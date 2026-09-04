@@ -74,6 +74,17 @@ Debug GUI start and normal close: PASS, exit code 0
 Release GUI start and normal close: PASS, exit code 0
 Bundled GDB breakpoint at src/gui/main.cpp: PASS
 
+STAGE 1 MILESTONE RECHECK
+-------------------------
+Date: 2026-09-04
+GCC: 16.1.0
+Bundled GDB: 16.3
+CMake: 4.2.2
+Ninja: 1.13.2
+Complete pacman package comparison: PASS, 167/167 entries unchanged
+Debug build and CTest: PASS, 13/13 tests
+Release build and CTest: PASS, 13/13 tests
+
 COMPLETE `pacman -Q` OUTPUT
 ---------------------------
 base 2022.06-1

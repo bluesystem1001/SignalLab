@@ -23,6 +23,23 @@ include(CTest)
 include(cmake/Dependencies.cmake)
 include(cmake/CompilerWarnings.cmake)
 
+add_library(signallab_core STATIC
+    include/signallab/core/error.hpp
+    include/signallab/core/result.hpp
+    include/signallab/core/signal.hpp
+    include/signallab/core/signal_generator.hpp
+    src/core/signal.cpp
+    src/core/signal_generator.cpp
+)
+
+target_include_directories(signallab_core
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+
+target_compile_features(signallab_core PUBLIC cxx_std_20)
+signallab_set_compiler_warnings(signallab_core)
+
 add_library(signallab_gui STATIC
     src/gui/main_window.cpp
     src/gui/main_window.hpp
@@ -42,6 +59,7 @@ target_compile_definitions(signallab_gui
 
 target_link_libraries(signallab_gui
     PUBLIC
+        signallab_core
         Qt6::Core
         Qt6::Widgets
         Qt6::Charts
