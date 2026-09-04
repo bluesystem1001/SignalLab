@@ -2,6 +2,7 @@
 
 > 文档状态：实施基线草案  
 > 编制日期：2026-09-02  
+> 最近同步：2026-09-04（记录实际冻结版本及经用户批准的 CLion GDB 16.3 偏差）
 > 依据：`SignalLab_智能信号分析平台_课程大作业项目设计文档.docx`
 
 ## 1. 目标与实施原则
@@ -39,7 +40,7 @@
 - IDE：CLion 2026.1.4，安装于 `E:\CLion\CLion 2026.1.4`；项目模型只使用 CMake，不依赖 `.idea` 文件。
 - 工具链：MinGW-w64 x86_64 GCC，由 MSYS2 管理。
 - MSYS2 环境：固定使用 **MINGW64**，安装根目录为 `E:\MSYS2`，工具链前缀为 `E:\MSYS2\mingw64`。
-- 构建工具：使用 CLion 自带的 CMake + Ninja；编译器和调试器使用 MSYS2 MINGW64 环境中的 GCC/GDB。
+- 构建工具：使用 CLion 自带的 CMake + Ninja；编译器使用 MSYS2 MINGW64 GCC，调试器使用经批准的 CLion 自带 GDB 16.3。
 - 构建类型：日常开发使用 Debug；性能报告和答辩包必须使用 Release。
 
 MSYS2 已将 `MINGW64` 环境列为弃用，但本项目根据既有开发环境固定使用它，并在 8 周开发周期内保持工具链不变。所有库必须来自同一个 MINGW64 仓库前缀；同一个构建中绝不能混用 UCRT64、CLion Bundled MinGW、MSVC 或其他 MinGW 安装的对象文件和静态库。
@@ -48,16 +49,18 @@ MSYS2 已将 `MINGW64` 环境列为弃用，但本项目根据既有开发环境
 
 在 `Settings | Build, Execution, Deployment | Toolchains` 中新建 MinGW 或 System 工具链，明确填写：
 
-| 项目 | MINGW64 路径 |
+| 项目 | 固定路径 |
 |---|---|
 | Toolset / Environment | `E:\MSYS2\mingw64` |
 | C Compiler | `E:\MSYS2\mingw64\bin\gcc.exe` |
 | C++ Compiler | `E:\MSYS2\mingw64\bin\g++.exe` |
-| Debugger | `E:\MSYS2\mingw64\bin\gdb.exe` |
+| Debugger | `E:\CLion\CLion 2026.1.4\bin\gdb\win\x64\bin\gdb.exe` |
 | CMake | `E:\CLion\CLion 2026.1.4\bin\cmake\win\x64\bin\cmake.exe` |
 | Build Tool | `E:\CLion\CLion 2026.1.4\bin\ninja\win\x64\ninja.exe` |
 
 随后在 CLion 的 CMake Profile 中选择该工具链，CMake 选择 Bundled 或上表中的明确路径，生成器使用 CLion 自带的 Windows x64 Ninja，构建目录使用 `cmake-build-debug-mingw64` 和 `cmake-build-release-mingw64`。可以使用 CLion 自带的 CMake/Ninja，但不要选择 CLion 自带的 Bundled MinGW，否则会与 `E:\MSYS2\mingw64` 中的 Qt/GoogleTest 产生 ABI 或路径混用。
+
+**已批准偏差（2026-09-04）**：用户批准 CLion Toolchain 仅在 Debugger 一项使用上述 CLion 自带 GDB 16.3。C/C++ 编译器、链接器、头文件及全部 C/C++ 库仍固定来自 MSYS2 MINGW64；这不代表可以使用 CLion Bundled MinGW。详细边界和回退方案见 `docs/adr/0005-clion-bundled-gdb.md`。
 
 ### 2.4 架构边界
 
@@ -78,29 +81,31 @@ MSYS2 已将 `MINGW64` 环境列为弃用，但本项目根据既有开发环境
 | CLion | 2026.1.4 | 安装于 `E:\CLion\CLion 2026.1.4`，用于代码编写、CMake Profile、运行与 GDB 调试 |
 | MSYS2 | 现有 MINGW64 环境 | 安装于 `E:\MSYS2`；外部库与工具统一由 `pacman` 管理 |
 | MinGW-w64 GCC | 16.1.0 | MINGW64 x86_64 主编译器；本机实测版本，以环境快照为准 |
-| GDB | 16.3 | 项目验收目标；CLion 固定使用 `E:\MSYS2\mingw64\bin\gdb.exe` |
-| Qt | 6.11.2-2 | `qt6-base` 提供 Core、Widgets、Sql、QSQLITE 和部署工具 |
-| Qt Charts | 6.11.2-1 | QWidget 图表；已进入维护阶段，不在其中封装业务逻辑 |
-| SQLite | 3.53.4-1 | 由 MSYS2 安装，并被 Qt `qt6-base`/QSQLITE 使用；应用不再手工链接第二份 SQLite |
+| GDB | 16.3 | CLion 自带版本，固定使用 `E:\CLion\CLion 2026.1.4\bin\gdb\win\x64\bin\gdb.exe` |
+| Qt | 6.11.1-1 | 阶段 0 实际冻结的 `qt6-base` 包，提供 Core、Widgets、Sql、QSQLITE 和部署工具 |
+| Qt Charts | 6.11.1-1 | 阶段 0 实际冻结版本；QWidget 图表中不封装业务逻辑 |
+| SQLite | 3.53.2-1 | 阶段 0 实际冻结的 MSYS2 包，由 Qt/QSQLITE 使用；应用不再手工链接第二份 SQLite |
 | CMake | 4.2.2 | CLion 自带版本；“CMake 4.22”按 4.2.2 记录，项目最低要求仍为 3.28 |
 | CTest | 随 CMake | 统一发现并运行单元、集成测试 |
 | GoogleTest | 1.17.0-1 | 使用已安装的 MSYS2 MINGW64 `gtest` 包，仅测试目标依赖 |
 | Ninja | 1.13.2 | 使用 CLion 自带的 Windows x64 Ninja，不使用 Cygwin 版本 |
-| Git | 2.x | 功能分支、里程碑标签、代码量和 AI 使用记录 |
+| Git | 2.54.0.1-1 | 实际安装的 `mingw-w64-x86_64-git` 包；用于功能分支、里程碑标签、代码量和 AI 使用记录 |
 
 ### 3.1 本机环境预检（2026-09-02）
 
 | 检查项 | 本机结果 | 与计划的关系 |
 |---|---|---|
 | `E:\MSYS2\mingw64\bin\g++.exe --version` | GCC 16.1.0 | 可作为本项目编译器基线 |
-| `E:\MSYS2\mingw64\bin\gdb.exe --version` | GDB 17.2 | **不满足指定的 16.3**，第 1 周开始前需切换到 16.3 并重新核验 |
+| `E:\MSYS2\mingw64\bin\gdb.exe --version` | GDB 17.2 | 已安装但不作为本项目所选调试器 |
+| CLion 自带 `gdb.exe --version` | GDB 16.3 | 2026-09-04 经用户批准，作为本项目所选调试器 |
 | CLion 自带 `cmake.exe --version` | CMake 4.2.2 | 满足计划，可直接使用 |
 | CLion 自带 Windows x64 `ninja.exe --version` | Ninja 1.13.2 | 满足计划，可直接使用；不要选同目录下的 Cygwin 版本 |
-| MINGW64 Qt 6、Qt Charts | 对应包尚未安装 | 在阶段 0 安装并记录实际包版本 |
+| MINGW64 Qt 6、Qt Charts | 6.11.1-1 | 已安装，作为阶段 0 实际冻结版本 |
 | MINGW64 GoogleTest | 1.17.0-1 | 已安装，满足计划 |
-| MINGW64 SQLite | 3.53.2-1 | 可用；与 Qt/QSQLITE 一起复验后再冻结 |
+| MINGW64 SQLite | 包版本 3.53.2-1 | 已安装；项目通过 Qt/QSQLITE 使用，命令行版本差异详见环境快照 |
+| MINGW64 Git | 2.54.0.1-1 | 已安装，满足版本备份与里程碑要求 |
 
-CLion 自带的 CMake 4.2.2 和 Ninja 1.13.2 已满足计划。当前 Windows `PATH` 中还能找到 STM32 工具附带的 CMake 3.28.1，因此构建时必须让 CLion 使用上述 Bundled CMake，命令行构建也应使用明确路径或由 CLion 生成的环境，不能依赖系统 `PATH`。GDB 16.3 仍是尚未达到的固定基线：MSYS2 是滚动发布环境，切换版本前先检查候选包；若仓库已不提供目标版本，应从可信归档取得对应包，记录包文件名与 SHA-256，再执行完整构建和测试，不能直接盲目降级。
+CLion 自带的 CMake 4.2.2、Ninja 1.13.2 和 GDB 16.3 已满足当前计划。Windows `PATH` 中还能找到 STM32 工具附带的 CMake 3.28.1，因此构建和测试命令必须使用本文给出的 CLion 绝对路径，不能依赖系统 `PATH`。MSYS2 GDB 17.2 保留为环境现状但不被选用；不得为了匹配旧基线盲目降级。用户批准的决定、验证要求和回退方式见 ADR 0005。
 
 依赖策略：
 
@@ -114,11 +119,11 @@ pacman -S --needed \
   mingw-w64-x86_64-qt6-charts \
   mingw-w64-x86_64-gtest \
   mingw-w64-x86_64-sqlite3 \
-  git
+  mingw-w64-x86_64-git
 ```
 
 - CMake 使用 `find_package(Qt6 6.11 REQUIRED COMPONENTS Core Widgets Charts Sql)` 和 `find_package(GTest CONFIG REQUIRED)`；测试目标链接 `GTest::gtest_main`，并通过 `include(GoogleTest)`、`gtest_discover_tests(signallab_tests)` 注册到 CTest。CLion 使用指定工具链后从 `E:\MSYS2\mingw64`/`/mingw64` 前缀查找依赖。
-- 第 1 周及每个里程碑分别执行 CLion 自带 `cmake.exe --version`、Windows x64 `ninja.exe --version`、MINGW64 `gdb.exe --version`、`g++.exe --version` 和 `pacman -Q`，把结果保存到 `docs/msys2-package-snapshot.txt`。所有可执行文件都使用本节列出的明确路径，8 周内基线以该快照为准。
+- 第 1 周及每个里程碑分别执行 CLion 自带 `cmake.exe --version`、Windows x64 `ninja.exe --version`、所选 CLion `gdb.exe --version`、MINGW64 `g++.exe --version` 和 `pacman -Q`，把结果保存到 `docs/msys2-package-snapshot.txt`。快照同时记录未选用的 MSYS2 GDB，避免隐藏环境差异。所有可执行文件都使用本节列出的明确路径，8 周内基线以该快照为准。
 - CSV、PCM16 WAV、FFT、FIR、峰值、线程池和 Parser 首版自行实现，不引入替代课程核心的第三方库。
 - JSON、SHA-256 和数据库访问放在基础设施边界，分别使用 Qt Core 的 JSON、`QCryptographicHash` 和 Qt SQL。
 - 首版不引入 FFTW、QtConcurrent、Boost、spdlog、nlohmann/json、ANTLR/Bison 或机器学习框架。
@@ -330,7 +335,7 @@ SignalLab/
 主要工作：
 
 - 核对 `E:\MSYS2\mingw64` 环境，并用 `pacman` 安装 Qt、GoogleTest、SQLite 等依赖。
-- 在 CLion 中配置混合工具链：编译器/GDB 指向 `E:\MSYS2\mingw64`，CMake/Ninja 指向 `E:\CLion\CLion 2026.1.4` 内的自带工具。
+- 在 CLion 中配置混合工具链：编译器指向 `E:\MSYS2\mingw64`，GDB/CMake/Ninja 指向 `E:\CLion\CLion 2026.1.4` 内的上述自带工具。
 - 建立根目录、CMake targets、Debug/Release presets。
 - 通过 `find_package` 接入 MSYS2 中的 Qt 和 GoogleTest，使用 `gtest_discover_tests` 开启 CTest 自动发现。
 - 配置 C++20、GCC 警告、UTF-8、输出目录和版本信息。
@@ -354,7 +359,7 @@ README.md
 
 验收门槛：
 
-- CLion Toolchain 检测到 `E:\MSYS2\mingw64` 的 GCC、GDB 16.3，并使用 CLion 自带的 CMake 4.2.2、Windows x64 Ninja 1.13.2；未使用 Bundled MinGW 或 Cygwin Ninja。
+- CLion Toolchain 检测到 `E:\MSYS2\mingw64` 的 GCC 16.1.0、经批准的 CLion 自带 GDB 16.3、CMake 4.2.2 和 Windows x64 Ninja 1.13.2；能够命中断点并查看局部变量和调用栈；未使用 Bundled MinGW 或 Cygwin Ninja。
 - `cmake --preset dev-mingw64` 成功。
 - `cmake --build --preset dev-mingw64` 成功并能打开空窗口。
 - `ctest --preset dev-mingw64` 至少通过 1 个 smoke test。
@@ -559,16 +564,16 @@ README.md
 ### 第一天
 
 1. 安装 CLion 与 MSYS2，打开 **MSYS2 MINGW64** 终端，确认其根目录为 `E:\MSYS2`。
-2. 核对 `E:\MSYS2\mingw64\bin` 中的 `g++.exe` 和 `gdb.exe`，并核对 `E:\CLion\CLion 2026.1.4` 中的 CMake 4.2.2 与 Windows x64 Ninja 1.13.2。
+2. 核对 `E:\MSYS2\mingw64\bin` 中的 `g++.exe`，并核对 `E:\CLion\CLion 2026.1.4` 中的 GDB 16.3、CMake 4.2.2 与 Windows x64 Ninja 1.13.2。
 3. 在 MINGW64 环境中安装本文列出的 Qt、GoogleTest、SQLite 等依赖；版本满足验收目标后立即保存 `pacman -Q` 快照并冻结环境，不在开发中途执行无计划升级。
-4. 在 CLion 中新建混合工具链：GCC/GDB 使用 MSYS2 MINGW64，CMake/Ninja 使用 CLion Bundled；确认没有选择 Bundled MinGW、MSVC、UCRT64 或 Cygwin Ninja。
+4. 在 CLion 中新建混合工具链：GCC 使用 MSYS2 MINGW64，GDB/CMake/Ninja 使用本文列出的 CLion 自带工具；确认没有选择 Bundled MinGW、MSVC、UCRT64 或 Cygwin Ninja。
 5. 创建根 `CMakeLists.txt`、`CMakePresets.json` 和一个空窗口。
 6. 通过 `find_package` 接入 Qt/GoogleTest，建立第一个 smoke test，并提交 `chore: bootstrap clion msys2 and tests`。
 
 ### 第一周结束前
 
 1. 完成阶段 0 的全部验收门槛。
-2. 写下 4 份短 ADR：C++20、MSYS2 MINGW64、QSQLITE、Qt Charts 的选择与替代方案。
+2. 写下 5 份短 ADR：C++20、MSYS2 MINGW64、QSQLITE、Qt Charts，以及经用户批准的 CLion GDB 偏差。
 3. 固化一个小型正弦样例及生成参数。
 4. 把构建和测试命令放进 README，并在一个全新构建目录复验。
 5. 保存 `pacman -Q` 环境快照并创建里程碑 `v0.1`；之后开始实现 `Signal`，不要先写数据库或脚本界面。

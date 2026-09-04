@@ -1,0 +1,76 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "mingw64-base",
+      "hidden": true,
+      "generator": "Ninja",
+      "environment": {
+        "PATH": "E:/MSYS2/mingw64/bin;$penv{PATH}"
+      },
+      "cacheVariables": {
+        "CMAKE_CXX_COMPILER": "E:/MSYS2/mingw64/bin/g++.exe",
+        "CMAKE_MAKE_PROGRAM": "E:/CLion/CLion 2026.1.4/bin/ninja/win/x64/ninja.exe",
+        "CMAKE_PREFIX_PATH": "E:/MSYS2/mingw64",
+        "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"
+      }
+    },
+    {
+      "name": "dev-mingw64",
+      "displayName": "SignalLab Debug (MSYS2 MINGW64)",
+      "description": "Debug build with MSYS2 GCC and CLion's Windows Ninja.",
+      "inherits": "mingw64-base",
+      "binaryDir": "${sourceDir}/cmake-build-debug-mingw64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "release-mingw64",
+      "displayName": "SignalLab Release (MSYS2 MINGW64)",
+      "description": "Release build with MSYS2 GCC and CLion's Windows Ninja.",
+      "inherits": "mingw64-base",
+      "binaryDir": "${sourceDir}/cmake-build-release-mingw64",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "dev-mingw64",
+      "configurePreset": "dev-mingw64"
+    },
+    {
+      "name": "release-mingw64",
+      "configurePreset": "release-mingw64"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "dev-mingw64",
+      "configurePreset": "dev-mingw64",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    },
+    {
+      "name": "release-mingw64",
+      "configurePreset": "release-mingw64",
+      "output": {
+        "outputOnFailure": true
+      },
+      "execution": {
+        "noTestsAction": "error"
+      }
+    }
+  ]
+}

@@ -1,0 +1,31 @@
+{
+  "version": 6,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 28,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "name": "local-dev-mingw64",
+      "displayName": "Local SignalLab Debug",
+      "inherits": "dev-mingw64",
+      "binaryDir": "${sourceDir}/cmake-build-debug-local"
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "local-dev-mingw64",
+      "configurePreset": "local-dev-mingw64"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "local-dev-mingw64",
+      "configurePreset": "local-dev-mingw64",
+      "output": {
+        "outputOnFailure": true
+      }
+    }
+  ]
+}
