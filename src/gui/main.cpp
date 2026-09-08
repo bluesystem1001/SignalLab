@@ -1,11 +1,42 @@
 #include <QApplication>
+#include <QCoreApplication>
 #include <QMessageBox>
 #include <QString>
 
+#include <filesystem>
+#include <system_error>
 #include <utility>
 
 #include "main_window.hpp"
 #include "signallab/core/signal_generator.hpp"
+
+namespace {
+
+std::filesystem::path findProjectRoot()
+{
+    const auto applicationDirectory = std::filesystem::path(
+        QCoreApplication::applicationDirPath().toStdWString());
+    auto candidate = applicationDirectory;
+
+    while (!candidate.empty()) {
+        std::error_code error;
+        if (std::filesystem::exists(candidate / "CMakeLists.txt", error)
+            && !error) {
+            return candidate;
+        }
+
+        const auto parent = candidate.parent_path();
+        if (parent == candidate) {
+            break;
+        }
+        candidate = parent;
+    }
+
+    // A packaged program stores its data beside the executable.
+    return applicationDirectory;
+}
+
+}  // namespace
 
 int main(int argc, char* argv[])
 {
@@ -31,8 +62,11 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    auto signal = std::move(signalResult).value();
-    MainWindow mainWindow(signal);
+    signallab::app::ImportService importService(findProjectRoot());
+    static_cast<void>(
+        importService.addGeneratedSignal(std::move(signalResult).value()));
+
+    MainWindow mainWindow(importService);
     mainWindow.show();
 
     return application.exec();

@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     SignalLab
-    VERSION 0.1.0
+    VERSION 0.2.0
     LANGUAGES CXX
 )
 
@@ -40,6 +40,46 @@ target_include_directories(signallab_core
 target_compile_features(signallab_core PUBLIC cxx_std_20)
 signallab_set_compiler_warnings(signallab_core)
 
+add_library(signallab_io STATIC
+    include/signallab/io/csv_reader.hpp
+    include/signallab/io/hash_service.hpp
+    include/signallab/io/import_types.hpp
+    include/signallab/io/wav_reader.hpp
+    src/io/csv_reader.cpp
+    src/io/hash_service.cpp
+    src/io/wav_reader.cpp
+)
+
+target_include_directories(signallab_io
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+
+target_compile_features(signallab_io PUBLIC cxx_std_20)
+target_link_libraries(signallab_io PUBLIC signallab_core Qt6::Core)
+signallab_set_compiler_warnings(signallab_io)
+
+add_library(signallab_app STATIC
+    include/signallab/app/display_downsampler.hpp
+    include/signallab/app/import_service.hpp
+    src/app/display_downsampler.cpp
+    src/app/import_service.cpp
+)
+
+target_include_directories(signallab_app
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+
+target_compile_features(signallab_app PUBLIC cxx_std_20)
+target_link_libraries(signallab_app
+    PUBLIC
+        signallab_core
+    PRIVATE
+        signallab_io
+)
+signallab_set_compiler_warnings(signallab_app)
+
 add_library(signallab_gui STATIC
     src/gui/main_window.cpp
     src/gui/main_window.hpp
@@ -59,7 +99,7 @@ target_compile_definitions(signallab_gui
 
 target_link_libraries(signallab_gui
     PUBLIC
-        signallab_core
+        signallab_app
         Qt6::Core
         Qt6::Widgets
         Qt6::Charts

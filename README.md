@@ -2,17 +2,43 @@
 
 SignalLab 是一个面向课程学习的一维离线信号分析程序。首版计划支持模拟信号、CSV/WAV 导入、时域处理、FFT、特征提取、SQLite 追溯、后台任务和 SignalScript。
 
-“阶段 1：最小纵向切片”已经完成。程序启动后会生成并显示一个固定的 1 kHz 正弦信号；后续功能将继续严格按照阶段计划逐步加入。
+“阶段 2：文件导入与信号管理”已经实现。程序启动后会生成一个固定的 1 kHz 正弦信号，也可以预览并导入 CSV 或 PCM16 WAV；后续功能将继续严格按照阶段计划逐步加入。
 
 ## 当前可以看到什么
 
 运行程序后，主窗口会显示：
 
 - 48 kHz 采样率、0.02 秒、幅值 1.0 的 1 kHz 正弦信号。
-- 信号名称、采样率、样本数和持续时间。
-- 由 Qt Charts 绘制的时域波形。
+- 左侧项目列表，以及所选信号的名称、采样率、样本数和持续时间。
+- CSV 和 WAV 导入按钮、导入前预览、重复文件提示。
+- 由 Qt Charts 绘制的时域波形；大信号显示前会按像素桶保留最小值和最大值。
 
-核心层会拒绝无效采样率、空样本和 NaN/无穷大样本。模拟器还会检查时长、幅值和奈奎斯特频率。当前 Debug 与 Release 共自动发现并通过 13 个测试。
+核心层会拒绝无效采样率、空样本和 NaN/无穷大样本。模拟器还会检查时长、幅值和奈奎斯特频率。导入成功的原始文件按 SHA-256 内容哈希保存到项目相对目录 `data/imports/`；该运行目录不会提交到 Git。
+
+当前 Debug 与 Release 都自动发现并通过 41 项测试。除顺序执行外，两种配置还通过了 `-j 8` 并行测试复验。
+
+## 导入文件
+
+CSV 首版支持：
+
+- 逗号或制表符分隔。
+- 有表头或无表头。
+- 指定从 1 开始的数值列编号。
+- 使用单位为秒、严格递增且近似等间隔的时间列推导采样率，或直接填写采样率。
+
+仓库中的 `data/samples/example_signal.csv` 可以直接用于练习：选择逗号、表头、数值列 2、时间列 1。确认预览后，它会出现在左侧列表中。
+
+WAV 首版只支持 PCM 16-bit 的单声道或双声道文件。双声道可选择左声道、右声道或左右平均。格式错误会显示源文件和字节位置；CSV 内容错误会显示源文件及从 1 开始的行、列位置。
+
+阶段 2 有两个有意保留的范围限制：信号列表仅存在于本次运行中，重启恢复会在阶段 4 随 SQLite 持久化实现；同一内容的原始文件按 SHA-256 去重，因此一个 CSV/WAV 在本阶段只能采用一组列或声道选项。若要比较不同选项，请修改原始文件内容后另存，或等待后续阶段把“原始文件”和“逻辑信号记录”分离。
+
+### 阶段 2 人工验收
+
+1. 启动程序，确认左侧有内置正弦信号且右侧显示波形。
+2. 导入 `data/samples/example_signal.csv`，按“逗号、表头、数值列 2、时间列 1”填写，确认预览为 21 个样本、1000 Hz。
+3. 在左侧切换内置信号和导入信号，确认名称、采样率、样本数及波形随选择变化。
+4. 再次导入同一 CSV，确认出现重复提示，并检查 `data/imports/` 中没有第二份原始文件或 `.tmp` 文件。
+5. 如手边有 PCM16 单/双声道 WAV，再验证预览及左/右/平均选择；WAV 格式和截断分支已由自动化测试覆盖，不要求为此准备课程外部数据。
 
 ## 开发环境
 
@@ -109,8 +135,11 @@ Set-Location -LiteralPath 'E:\programme\project_c++\SignalLab'
 运行：
 
 ```powershell
+$env:PATH = 'E:\MSYS2\mingw64\bin;' + $env:PATH
 & '.\cmake-build-debug-mingw64\bin\SignalLab.exe'
 ```
+
+这里把 MINGW64 放到本次 PowerShell 会话的 `PATH` 首位，避免系统中其他 MinGW 运行库被程序误加载。
 
 ## Release：配置、构建、测试和运行
 
@@ -120,6 +149,7 @@ Set-Location -LiteralPath 'E:\programme\project_c++\SignalLab'
 & 'E:\CLion\CLion 2026.1.4\bin\cmake\win\x64\bin\cmake.exe' --preset release-mingw64
 & 'E:\CLion\CLion 2026.1.4\bin\cmake\win\x64\bin\cmake.exe' --build --preset release-mingw64
 & 'E:\CLion\CLion 2026.1.4\bin\cmake\win\x64\bin\ctest.exe' --preset release-mingw64 --output-on-failure
+$env:PATH = 'E:\MSYS2\mingw64\bin;' + $env:PATH
 & '.\cmake-build-release-mingw64\bin\SignalLab.exe'
 ```
 

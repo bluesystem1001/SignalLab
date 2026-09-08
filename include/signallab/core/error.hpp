@@ -11,7 +11,14 @@ enum class ErrorCode {
     InvalidFrequency,
     InvalidAmplitude,
     InvalidDuration,
-    InvalidParameter
+    InvalidParameter,
+    FileNotFound,
+    FileOpenFailed,
+    InvalidCsv,
+    UnsupportedWavFormat,
+    TruncatedFile,
+    DuplicateFile,
+    FileWriteFailed
 };
 
 struct Error {
