@@ -278,7 +278,7 @@ NumPy/MATLAB 只允许在开发机上离线生成参考结果。若以后加入�
 | 项目 | 记录 |
 |---|---|
 | 测量日期与时区 | `2026-09-08，Asia/Shanghai` |
-| Git 提交 | `[阶段 3 代码提交后填写]` |
+| 被测代码提交 | `00326e8e009d7f2bde991c5aadc2c66d5fc4c72d` |
 | 构建预设 | `release-mingw64` |
 | 编译器 | `GCC 16.1.0（MINGW64）` |
 | 构建类型与优化选项 | `Release，-O3 -DNDEBUG` |
