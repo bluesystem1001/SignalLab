@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "signallab/app/display_downsampler.hpp"
+#include "signallab/algorithm/spectrum.hpp"
 #include "signallab/core/signal.hpp"
 
 namespace {
@@ -101,4 +102,38 @@ TEST(DisplayDownsamplerTest, ReturnsNoPointsForZeroPixelWidth)
     const auto points = signallab::app::makeDisplayPoints(signal, 0);
 
     EXPECT_TRUE(points.empty());
+}
+
+TEST(DisplayDownsamplerTest, LimitsALargeSpectrumAndKeepsItsPeak)
+{
+    constexpr std::size_t binCount = 500'001;
+    constexpr std::size_t pixelWidth = 900;
+
+    signallab::algorithm::Spectrum spectrum;
+    spectrum.sampleRate = 1'000'000.0;
+    spectrum.inputSize = 1'000'000;
+    spectrum.fftSize = 1'000'000;
+    spectrum.windowType = signallab::algorithm::WindowType::Rectangular;
+    spectrum.coherentGain = 1.0;
+    spectrum.frequenciesHz.resize(binCount);
+    spectrum.amplitudes.assign(binCount, 0.01);
+    spectrum.powers.assign(binCount, 0.0);
+
+    for (std::size_t index = 0; index < binCount; ++index) {
+        spectrum.frequenciesHz[index] = static_cast<double>(index);
+    }
+    spectrum.amplitudes[345'678] = 25.0;
+
+    const auto points = signallab::app::makeSpectrumDisplayPoints(
+        spectrum,
+        pixelWidth);
+
+    EXPECT_LE(points.size(), pixelWidth * 2);
+    const auto peak = std::find_if(
+        points.begin(),
+        points.end(),
+        [](const signallab::app::SpectrumDisplayPoint& point) {
+            return point.amplitude == 25.0;
+        });
+    EXPECT_NE(peak, points.end());
 }

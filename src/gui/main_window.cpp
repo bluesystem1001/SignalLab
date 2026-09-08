@@ -3,6 +3,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QFormLayout>
+#include <QGroupBox>
 #include <QHBoxLayout>
 #include <QInputDialog>
 #include <QLabel>
@@ -13,6 +14,7 @@
 #include <QStatusBar>
 #include <QString>
 #include <QStringList>
+#include <QTabWidget>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -27,6 +29,7 @@
 #include <filesystem>
 #include <string>
 
+#include "signallab/app/analysis_service.hpp"
 #include "signallab/app/display_downsampler.hpp"
 #include "signallab/core/error.hpp"
 #include "signallab/io/import_types.hpp"
@@ -83,7 +86,16 @@ MainWindow::MainWindow(
       sampleRateValue_(nullptr),
       sampleCountValue_(nullptr),
       durationValue_(nullptr),
-      chartView_(nullptr)
+      meanValue_(nullptr),
+      varianceValue_(nullptr),
+      rmsValue_(nullptr),
+      peakToPeakValue_(nullptr),
+      dominantFrequencyValue_(nullptr),
+      snrValue_(nullptr),
+      thdValue_(nullptr),
+      chartTabs_(nullptr),
+      timeChartView_(nullptr),
+      spectrumChartView_(nullptr)
 {
     setWindowTitle("SignalLab " SIGNALLAB_VERSION_STRING);
     resize(1080, 680);
@@ -116,9 +128,35 @@ MainWindow::MainWindow(
     informationLayout->addRow("持续时间：", durationValue_);
     signalLayout->addLayout(informationLayout);
 
-    chartView_ = new QChartView(new QChart, centralWidget);
-    chartView_->setRenderHint(QPainter::Antialiasing);
-    signalLayout->addWidget(chartView_);
+    auto* analyzeButton = new QPushButton("分析所选信号", centralWidget);
+    signalLayout->addWidget(analyzeButton);
+
+    auto* featureGroup = new QGroupBox("同步分析结果", centralWidget);
+    auto* featureLayout = new QFormLayout(featureGroup);
+    meanValue_ = new QLabel("—", featureGroup);
+    varianceValue_ = new QLabel("—", featureGroup);
+    rmsValue_ = new QLabel("—", featureGroup);
+    peakToPeakValue_ = new QLabel("—", featureGroup);
+    dominantFrequencyValue_ = new QLabel("—", featureGroup);
+    snrValue_ = new QLabel("—", featureGroup);
+    thdValue_ = new QLabel("—", featureGroup);
+    featureLayout->addRow("均值：", meanValue_);
+    featureLayout->addRow("总体方差：", varianceValue_);
+    featureLayout->addRow("RMS：", rmsValue_);
+    featureLayout->addRow("峰峰值：", peakToPeakValue_);
+    featureLayout->addRow("主频：", dominantFrequencyValue_);
+    featureLayout->addRow("SNR：", snrValue_);
+    featureLayout->addRow("THD：", thdValue_);
+    signalLayout->addWidget(featureGroup);
+
+    chartTabs_ = new QTabWidget(centralWidget);
+    timeChartView_ = new QChartView(new QChart, chartTabs_);
+    spectrumChartView_ = new QChartView(new QChart, chartTabs_);
+    timeChartView_->setRenderHint(QPainter::Antialiasing);
+    spectrumChartView_->setRenderHint(QPainter::Antialiasing);
+    chartTabs_->addTab(timeChartView_, "时域波形");
+    chartTabs_->addTab(spectrumChartView_, "单边频谱");
+    signalLayout->addWidget(chartTabs_);
     windowLayout->addLayout(signalLayout, 1);
 
     setCentralWidget(centralWidget);
@@ -142,6 +180,11 @@ MainWindow::MainWindow(
         &QPushButton::clicked,
         this,
         [this]() { importWav(); });
+    connect(
+        analyzeButton,
+        &QPushButton::clicked,
+        this,
+        [this]() { analyzeSelectedSignal(); });
 
     refreshSignalList();
     if (!importService_.entries().empty()) {
@@ -370,6 +413,82 @@ void MainWindow::importWav()
     statusBar()->showMessage("WAV 导入成功", 4000);
 }
 
+void MainWindow::analyzeSelectedSignal()
+{
+    const int selectedRow = signalList_->currentRow();
+    if (selectedRow < 0) {
+        QMessageBox::information(
+            this,
+            "分析信号",
+            "请先在左侧选择一个信号。");
+        return;
+    }
+
+    const auto entryIndex = static_cast<std::size_t>(selectedRow);
+    const auto& entries = importService_.entries();
+    if (entryIndex >= entries.size()) {
+        return;
+    }
+
+    auto analysisResult = signallab::app::analyzeSignal(
+        entries[entryIndex].signal);
+    if (!analysisResult) {
+        QMessageBox::warning(
+            this,
+            "分析失败",
+            QString::fromStdString(analysisResult.error().message));
+        return;
+    }
+
+    const auto& result = analysisResult.value();
+    meanValue_->setText(QString::number(result.features.mean, 'g', 8));
+    varianceValue_->setText(
+        QString::number(result.features.variance, 'g', 8));
+    rmsValue_->setText(QString::number(result.features.rms, 'g', 8));
+    peakToPeakValue_->setText(
+        QString::number(result.features.peakToPeak, 'g', 8));
+
+    if (result.dominantPeak.has_value()) {
+        dominantFrequencyValue_->setText(
+            QString("%1 Hz，幅值 %2")
+                .arg(result.dominantPeak->frequencyHz, 0, 'f', 3)
+                .arg(result.dominantPeak->amplitude, 0, 'g', 6));
+    } else {
+        dominantFrequencyValue_->setText("未检测到");
+    }
+
+    snrValue_->setText(result.snrDb.has_value()
+        ? QString("%1 dB").arg(*result.snrDb, 0, 'f', 2)
+        : QString("不可计算"));
+    thdValue_->setText(result.thdPercent.has_value()
+        ? QString("%1 %").arg(*result.thdPercent, 0, 'f', 3)
+        : QString("不可计算"));
+
+    showSpectrum(result.spectrum);
+    chartTabs_->setCurrentWidget(spectrumChartView_);
+    statusBar()->showMessage(
+        QString("同步分析完成：FFT %1 点，检测到 %2 个峰值")
+            .arg(static_cast<qulonglong>(result.spectrum.fftSize))
+            .arg(static_cast<qulonglong>(result.peaks.size())));
+}
+
+void MainWindow::clearAnalysis()
+{
+    meanValue_->setText("—");
+    varianceValue_->setText("—");
+    rmsValue_->setText("—");
+    peakToPeakValue_->setText("—");
+    dominantFrequencyValue_->setText("—");
+    snrValue_->setText("—");
+    thdValue_->setText("—");
+
+    auto* chart = new QChart;
+    chart->setTitle("选择信号后单击“分析所选信号”");
+    QChart* oldChart = spectrumChartView_->chart();
+    spectrumChartView_->setChart(chart);
+    delete oldChart;
+}
+
 void MainWindow::refreshSignalList()
 {
     signalList_->clear();
@@ -393,9 +512,12 @@ void MainWindow::showSignal(std::size_t index)
         QString::number(static_cast<qulonglong>(signal.sampleCount())));
     durationValue_->setText(
         QString("%1 s").arg(signal.durationSeconds(), 0, 'f', 6));
+    clearAnalysis();
+    chartTabs_->setCurrentWidget(timeChartView_);
 
     auto* series = new QLineSeries;
-    const int availableWidth = std::max(chartView_->viewport()->width(), 1);
+    const int availableWidth =
+        std::max(timeChartView_->viewport()->width(), 1);
     const auto points = signallab::app::makeDisplayPoints(
         signal,
         static_cast<std::size_t>(availableWidth));
@@ -426,12 +548,60 @@ void MainWindow::showSignal(std::size_t index)
     series->attachAxis(timeAxis);
     series->attachAxis(sampleAxis);
 
-    QChart* oldChart = chartView_->chart();
-    chartView_->setChart(chart);
+    QChart* oldChart = timeChartView_->chart();
+    timeChartView_->setChart(chart);
     delete oldChart;
 
     statusBar()->showMessage(
         QString("正在显示 %1 个原始样本，绘图点 %2 个")
             .arg(static_cast<qulonglong>(signal.sampleCount()))
             .arg(static_cast<qulonglong>(points.size())));
+}
+
+void MainWindow::showSpectrum(
+    const signallab::algorithm::Spectrum& spectrum)
+{
+    auto* series = new QLineSeries;
+    const int availableWidth =
+        std::max(spectrumChartView_->viewport()->width(), 1);
+    const auto displayPoints =
+        signallab::app::makeSpectrumDisplayPoints(
+            spectrum,
+            static_cast<std::size_t>(availableWidth));
+    for (const auto& point : displayPoints) {
+        series->append(point.frequencyHz, point.amplitude);
+    }
+
+    auto* chart = new QChart;
+    chart->addSeries(series);
+    chart->setTitle("单边幅度谱");
+    chart->legend()->hide();
+
+    auto* frequencyAxis = new QValueAxis;
+    frequencyAxis->setTitleText("频率 (Hz)");
+    const double maximumFrequency = spectrum.frequenciesHz.empty()
+        ? 1.0
+        : std::max(spectrum.frequenciesHz.back(), 1.0);
+    frequencyAxis->setRange(0.0, maximumFrequency);
+
+    const auto maximumAmplitude = std::max_element(
+        spectrum.amplitudes.begin(),
+        spectrum.amplitudes.end());
+    double amplitudeLimit = 1.0;
+    if (maximumAmplitude != spectrum.amplitudes.end()
+        && *maximumAmplitude > 0.0) {
+        amplitudeLimit = *maximumAmplitude * 1.05;
+    }
+    auto* amplitudeAxis = new QValueAxis;
+    amplitudeAxis->setTitleText("幅值");
+    amplitudeAxis->setRange(0.0, amplitudeLimit);
+
+    chart->addAxis(frequencyAxis, Qt::AlignBottom);
+    chart->addAxis(amplitudeAxis, Qt::AlignLeft);
+    series->attachAxis(frequencyAxis);
+    series->attachAxis(amplitudeAxis);
+
+    QChart* oldChart = spectrumChartView_->chart();
+    spectrumChartView_->setChart(chart);
+    delete oldChart;
 }

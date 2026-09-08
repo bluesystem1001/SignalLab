@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     SignalLab
-    VERSION 0.2.0
+    VERSION 0.3.0
     LANGUAGES CXX
 )
 
@@ -40,6 +40,34 @@ target_include_directories(signallab_core
 target_compile_features(signallab_core PUBLIC cxx_std_20)
 signallab_set_compiler_warnings(signallab_core)
 
+add_library(signallab_algorithm STATIC
+    include/signallab/algorithm/features.hpp
+    include/signallab/algorithm/fft.hpp
+    include/signallab/algorithm/fir_filter.hpp
+    include/signallab/algorithm/peak_detector.hpp
+    include/signallab/algorithm/preprocessing.hpp
+    include/signallab/algorithm/quality_metrics.hpp
+    include/signallab/algorithm/spectrum.hpp
+    include/signallab/algorithm/window.hpp
+    src/algorithm/features.cpp
+    src/algorithm/fft.cpp
+    src/algorithm/fir_filter.cpp
+    src/algorithm/peak_detector.cpp
+    src/algorithm/preprocessing.cpp
+    src/algorithm/quality_metrics.cpp
+    src/algorithm/spectrum.cpp
+    src/algorithm/window.cpp
+)
+
+target_include_directories(signallab_algorithm
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+
+target_compile_features(signallab_algorithm PUBLIC cxx_std_20)
+target_link_libraries(signallab_algorithm PUBLIC signallab_core)
+signallab_set_compiler_warnings(signallab_algorithm)
+
 add_library(signallab_io STATIC
     include/signallab/io/csv_reader.hpp
     include/signallab/io/hash_service.hpp
@@ -60,8 +88,10 @@ target_link_libraries(signallab_io PUBLIC signallab_core Qt6::Core)
 signallab_set_compiler_warnings(signallab_io)
 
 add_library(signallab_app STATIC
+    include/signallab/app/analysis_service.hpp
     include/signallab/app/display_downsampler.hpp
     include/signallab/app/import_service.hpp
+    src/app/analysis_service.cpp
     src/app/display_downsampler.cpp
     src/app/import_service.cpp
 )
@@ -75,6 +105,7 @@ target_compile_features(signallab_app PUBLIC cxx_std_20)
 target_link_libraries(signallab_app
     PUBLIC
         signallab_core
+        signallab_algorithm
     PRIVATE
         signallab_io
 )
@@ -114,6 +145,14 @@ qt_add_executable(SignalLab WIN32
 target_compile_features(SignalLab PRIVATE cxx_std_20)
 target_link_libraries(SignalLab PRIVATE signallab_gui)
 signallab_set_compiler_warnings(SignalLab)
+
+add_executable(signallab_fft_benchmark
+    benchmarks/fft_benchmark.cpp
+)
+
+target_compile_features(signallab_fft_benchmark PRIVATE cxx_std_20)
+target_link_libraries(signallab_fft_benchmark PRIVATE signallab_algorithm)
+signallab_set_compiler_warnings(signallab_fft_benchmark)
 
 if(BUILD_TESTING)
     add_subdirectory(tests)

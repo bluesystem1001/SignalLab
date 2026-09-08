@@ -3,6 +3,7 @@
 #include <cstddef>
 #include <vector>
 
+#include "signallab/algorithm/spectrum.hpp"
 #include "signallab/core/signal.hpp"
 
 namespace signallab::app {
@@ -14,6 +15,15 @@ struct DisplayPoint {
 
 [[nodiscard]] std::vector<DisplayPoint> makeDisplayPoints(
     const core::Signal& signal,
+    std::size_t pixelWidth);
+
+struct SpectrumDisplayPoint {
+    double frequencyHz;
+    double amplitude;
+};
+
+[[nodiscard]] std::vector<SpectrumDisplayPoint> makeSpectrumDisplayPoints(
+    const algorithm::Spectrum& spectrum,
     std::size_t pixelWidth);
 
 }  // namespace signallab::app
