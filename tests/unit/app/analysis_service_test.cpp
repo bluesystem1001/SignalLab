@@ -1,12 +1,21 @@
 #include <gtest/gtest.h>
 
+#include <chrono>
 #include <cmath>
 #include <cstddef>
+#include <cstdint>
+#include <filesystem>
+#include <string>
+#include <system_error>
 #include <utility>
 
 #include "signallab/app/analysis_service.hpp"
 #include "signallab/core/error.hpp"
 #include "signallab/core/signal_generator.hpp"
+#include "signallab/database/database_connection.hpp"
+#include "signallab/database/migration_runner.hpp"
+#include "signallab/database/sqlite_signal_repository.hpp"
+#include "signallab/database/sqlite_task_repository.hpp"
 
 namespace {
 
@@ -27,6 +36,16 @@ signallab::core::Signal makeAcceptanceSignal()
         static_cast<double>(sampleCount) / sampleRate,
         std::move(metadata));
     return std::move(result).value();
+}
+
+std::filesystem::path makeTemporaryDatabaseRoot()
+{
+    const auto uniqueNumber =
+        std::chrono::steady_clock::now().time_since_epoch().count();
+    const auto root = std::filesystem::temp_directory_path()
+        / ("signallab-analysis-test-" + std::to_string(uniqueNumber));
+    std::filesystem::create_directories(root);
+    return root;
 }
 
 }  // namespace
@@ -93,4 +112,105 @@ TEST(AnalysisServiceTest, RejectsInvalidOptions)
     options = {};
     options.maximumPeakCount = 0;
     EXPECT_FALSE(signallab::app::analyzeSignal(signal, options));
+}
+
+TEST(AnalysisServiceTest, PersistsSuccessFailureAndHistoryAcrossRestart)
+{
+    const std::filesystem::path root = makeTemporaryDatabaseRoot();
+    const std::filesystem::path databasePath = root / "analysis.sqlite3";
+    const std::filesystem::path migrationsDirectory =
+        std::filesystem::path(SIGNALLAB_SOURCE_DIR) / "migrations";
+    std::string inputHash;
+    std::int64_t signalRecordId = 0;
+
+    {
+        signallab::database::DatabaseConnection database(databasePath);
+        ASSERT_TRUE(database.open());
+        signallab::database::MigrationRunner migrationRunner(database);
+        ASSERT_TRUE(migrationRunner.run(migrationsDirectory));
+
+        signallab::database::SqliteTaskRepository taskRepository(database);
+        signallab::database::SqliteSignalRepository signalRepository(
+            database);
+        auto storedSignal = signalRepository.saveSignal(
+            signallab::repository::SignalRegistration{
+                signallab::repository::SignalSourceType::Generated,
+                "analysis-test-signal",
+                {},
+                "{}",
+                std::nullopt,
+                makeAcceptanceSignal()});
+        ASSERT_TRUE(storedSignal);
+        inputHash = storedSignal.value().sampleHash;
+        signalRecordId = storedSignal.value().recordId;
+
+        signallab::app::AnalysisService service(
+            taskRepository,
+            signalRepository);
+
+        const auto analysisResult = service.analyze(
+            signalRecordId);
+        ASSERT_TRUE(analysisResult) << analysisResult.error().message;
+
+        auto historyResult = service.history();
+        ASSERT_TRUE(historyResult);
+        ASSERT_EQ(historyResult.value().size(), 1U);
+        const auto& successfulTask = historyResult.value().front();
+        EXPECT_EQ(
+            successfulTask.status,
+            signallab::repository::AnalysisTaskStatus::Succeeded);
+        EXPECT_EQ(successfulTask.inputHash, inputHash);
+        EXPECT_EQ(successfulTask.outputHash.size(), 64U);
+        EXPECT_EQ(
+            successfulTask.parametersJson,
+            "{\"maximum_peak_count\":10,\"metric_guard_bins\":1,"
+            "\"minimum_peak_amplitude_ratio\":0.01,"
+            "\"minimum_peak_distance_hz\":0,"
+            "\"thd_harmonic_count\":5,\"window_type\":\"hann\"}");
+        EXPECT_NE(
+            successfulTask.algorithmVersion.find("fft="),
+            std::string::npos);
+
+        const auto featureResult = service.featureResults(successfulTask.id);
+        ASSERT_TRUE(featureResult);
+        EXPECT_GE(featureResult.value().size(), 7U);
+
+        signallab::app::AnalysisOptions invalidOptions;
+        invalidOptions.maximumPeakCount = 0;
+        const auto failedAnalysis = service.analyze(
+            signalRecordId,
+            invalidOptions);
+        ASSERT_FALSE(failedAnalysis);
+
+        historyResult = service.history();
+        ASSERT_TRUE(historyResult);
+        ASSERT_EQ(historyResult.value().size(), 2U);
+        EXPECT_EQ(
+            historyResult.value().front().status,
+            signallab::repository::AnalysisTaskStatus::Failed);
+    }
+
+    {
+        signallab::database::DatabaseConnection reopenedDatabase(databasePath);
+        ASSERT_TRUE(reopenedDatabase.open());
+        signallab::database::MigrationRunner migrationRunner(
+            reopenedDatabase);
+        ASSERT_TRUE(migrationRunner.run(migrationsDirectory));
+        signallab::database::SqliteTaskRepository taskRepository(
+            reopenedDatabase);
+        signallab::database::SqliteSignalRepository signalRepository(
+            reopenedDatabase);
+        signallab::app::AnalysisService restartedService(
+            taskRepository,
+            signalRepository);
+
+        const auto historyResult = restartedService.history();
+        ASSERT_TRUE(historyResult);
+        ASSERT_EQ(historyResult.value().size(), 2U);
+        EXPECT_EQ(historyResult.value().back().inputHash, inputHash);
+        EXPECT_EQ(historyResult.value().back().outputHash.size(), 64U);
+    }
+
+    std::error_code ignoredError;
+    std::filesystem::remove_all(root, ignoredError);
 }

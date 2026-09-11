@@ -3,8 +3,10 @@
 #include <QMainWindow>
 
 #include <cstddef>
+#include <vector>
 
 #include "signallab/algorithm/spectrum.hpp"
+#include "signallab/app/analysis_service.hpp"
 #include "signallab/app/import_service.hpp"
 
 class QLabel;
@@ -12,12 +14,14 @@ class QListWidget;
 class QPushButton;
 class QChartView;
 class QTabWidget;
+class QTextEdit;
 
 class MainWindow : public QMainWindow
 {
 public:
     explicit MainWindow(
         signallab::app::ImportService& importService,
+        signallab::app::AnalysisService& analysisService,
         QWidget* parent = nullptr);
 
 private:
@@ -25,11 +29,14 @@ private:
     void importWav();
     void analyzeSelectedSignal();
     void clearAnalysis();
+    void refreshHistory();
     void refreshSignalList();
+    void showHistoryTask(int row);
     void showSignal(std::size_t index);
     void showSpectrum(const signallab::algorithm::Spectrum& spectrum);
 
     signallab::app::ImportService& importService_;
+    signallab::app::AnalysisService& analysisService_;
     QListWidget* signalList_;
     QLabel* nameValue_;
     QLabel* sampleRateValue_;
@@ -45,4 +52,7 @@ private:
     QTabWidget* chartTabs_;
     QChartView* timeChartView_;
     QChartView* spectrumChartView_;
+    QListWidget* historyList_;
+    QTextEdit* historyDetails_;
+    std::vector<signallab::repository::AnalysisTaskRecord> historyTasks_;
 };

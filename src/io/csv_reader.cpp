@@ -75,9 +75,9 @@ std::string trim(const std::string& text)
     return {first, last};
 }
 
-char delimiterCharacter(CsvDelimiter delimiter)
+char delimiterCharacter(repository::CsvDelimiter delimiter)
 {
-    if (delimiter == CsvDelimiter::Tab) {
+    if (delimiter == repository::CsvDelimiter::Tab) {
         return '\t';
     }
 
@@ -196,7 +196,7 @@ core::Result<double> parseNumber(
 }
 
 core::Result<bool> validateColumnOptions(
-    const CsvImportOptions& options,
+    const repository::CsvImportOptions& options,
     std::size_t columnCount,
     const std::filesystem::path& path,
     std::size_t row)
@@ -336,7 +336,7 @@ core::Result<double> inferSampleRate(
 
 core::Result<ParsedCsv> parseCsv(
     const std::filesystem::path& path,
-    const CsvImportOptions& options,
+    const repository::CsvImportOptions& options,
     bool keepSamples,
     std::size_t previewRowLimit)
 {
@@ -518,21 +518,22 @@ core::Result<ParsedCsv> parseCsv(
 
 }  // namespace
 
-core::Result<ImportPreview> previewCsv(
+core::Result<repository::ImportPreview> previewCsv(
     const std::filesystem::path& path,
-    const CsvImportOptions& options,
+    const repository::CsvImportOptions& options,
     std::size_t maxRows)
 {
     auto parsedResult = parseCsv(path, options, false, maxRows);
     if (!parsedResult) {
-        return core::Result<ImportPreview>::failure(parsedResult.error());
+        return core::Result<repository::ImportPreview>::failure(
+            parsedResult.error());
     }
 
     ParsedCsv parsed = std::move(parsedResult).value();
 
-    ImportPreview preview;
+    repository::ImportPreview preview;
     preview.sourcePath = path;
-    preview.format = ImportFormat::Csv;
+    preview.format = repository::ImportFormat::Csv;
     preview.sampleCount = parsed.sampleCount;
     preview.columnCount = parsed.columnCount;
     preview.channelCount = 1;
@@ -541,12 +542,13 @@ core::Result<ImportPreview> previewCsv(
 
     preview.rows = std::move(parsed.previewRows);
 
-    return core::Result<ImportPreview>::success(std::move(preview));
+    return core::Result<repository::ImportPreview>::success(
+        std::move(preview));
 }
 
 core::Result<core::Signal> readCsv(
     const std::filesystem::path& path,
-    const CsvImportOptions& options)
+    const repository::CsvImportOptions& options)
 {
     auto parsedResult = parseCsv(path, options, true, 0);
     if (!parsedResult) {

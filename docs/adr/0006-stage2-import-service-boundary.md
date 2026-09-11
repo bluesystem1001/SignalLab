@@ -1,7 +1,8 @@
 # ADR 0006：阶段 2 导入服务边界
 
-- 状态：接受，阶段性决定
+- 状态：已执行并关闭（阶段 4 退出条件已满足）
 - 日期：2026-09-08
+- 关闭日期：2026-09-11
 
 ## 背景
 
@@ -19,6 +20,15 @@
 
 ## 影响与退出条件
 
-- 这是临时依赖，不是最终架构的新方向。
-- 阶段 2 的信号列表不负责重启恢复，同一原始文件也只能采用一组导入选项。
-- 阶段 4 创建 repository 抽象后，必须让 `app` 只依赖抽象，并由 `SignalLab` 可执行程序装配 `io`/`database` 实现；届时本 ADR 的阶段性例外结束。
+- 这是阶段 2—3 的临时依赖，不是最终架构的新方向。
+- 在临时边界存续期间，信号列表不负责重启恢复，同一原始文件也只能采用一组导入选项。
+- 退出条件是：阶段 4 创建 repository 抽象后，让 `app` 只依赖抽象，并由 `SignalLab` 可执行程序装配 `io`/`database` 实现。
+
+## 阶段 4 关闭记录
+
+- `signallab_repository` 已提供 `FileRepository`、`SignalRepository`、`TaskRepository` 和 `ScriptRepository` 抽象。
+- `ImportService` 只接收 `FileRepository` 与 `SignalRepository`，`AnalysisService` 只接收 `TaskRepository` 与 `SignalRepository`；`signallab_app` 不再链接 `signallab_io` 或 `signallab_database`。
+- `signallab_io` 提供文件系统实现，`signallab_database` 提供 SQLite 实现，`main.cpp` 在启动时创建并注入这些对象。
+- 信号列表现在可从 SQLite 恢复。文件内容哈希与解析选项共同标识逻辑信号，因此同一原始文件可以用不同列或声道选项产生多个信号，而原始内容仍只存档一份。
+
+上述代码边界已完成，所以本 ADR 的临时例外不再适用。阶段 4 的 Debug/Release、GUI 启动重启和备份验证也已完成，项目现停在用户验收点。

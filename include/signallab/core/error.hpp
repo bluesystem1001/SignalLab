@@ -18,7 +18,10 @@ enum class ErrorCode {
     UnsupportedWavFormat,
     TruncatedFile,
     DuplicateFile,
-    FileWriteFailed
+    FileWriteFailed,
+    DatabaseOpenFailed,
+    DatabaseQueryFailed,
+    MigrationFailed
 };
 
 struct Error {

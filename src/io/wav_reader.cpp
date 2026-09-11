@@ -387,19 +387,20 @@ double sampleForChannel(
 
 }  // namespace
 
-core::Result<ImportPreview> previewWav(
+core::Result<repository::ImportPreview> previewWav(
     const std::filesystem::path& path,
     std::size_t maxSamples)
 {
     auto parsedResult = parseWav(path);
     if (!parsedResult) {
-        return core::Result<ImportPreview>::failure(parsedResult.error());
+        return core::Result<repository::ImportPreview>::failure(
+            parsedResult.error());
     }
 
     const ParsedWav& wav = parsedResult.value();
-    ImportPreview preview;
+    repository::ImportPreview preview;
     preview.sourcePath = path;
-    preview.format = ImportFormat::Wav;
+    preview.format = repository::ImportFormat::Wav;
     preview.sampleCount = frameCount(wav);
     preview.columnCount = wav.channelCount;
     preview.channelCount = wav.channelCount;
@@ -424,12 +425,13 @@ core::Result<ImportPreview> previewWav(
         preview.rows.push_back(std::move(row));
     }
 
-    return core::Result<ImportPreview>::success(std::move(preview));
+    return core::Result<repository::ImportPreview>::success(
+        std::move(preview));
 }
 
 core::Result<core::Signal> readWav(
     const std::filesystem::path& path,
-    const WavImportOptions& options)
+    const repository::WavImportOptions& options)
 {
     auto parsedResult = parseWav(path);
     if (!parsedResult) {
@@ -443,13 +445,14 @@ core::Result<core::Signal> readWav(
     for (std::size_t frame = 0; frame < sampleCount; ++frame) {
         const double left = sampleForChannel(wav, frame, 0);
 
-        if (wav.channelCount == 1 || options.channel == StereoChannel::Left) {
+        if (wav.channelCount == 1
+            || options.channel == repository::StereoChannel::Left) {
             samples[frame] = left;
             continue;
         }
 
         const double right = sampleForChannel(wav, frame, 1);
-        if (options.channel == StereoChannel::Right) {
+        if (options.channel == repository::StereoChannel::Right) {
             samples[frame] = right;
         } else {
             samples[frame] = (left + right) / 2.0;

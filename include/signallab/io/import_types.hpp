@@ -1,54 +1,16 @@
 #pragma once
 
-#include <cstddef>
-#include <filesystem>
-#include <optional>
-#include <string>
-#include <vector>
-
-#include "signallab/core/signal.hpp"
+#include "signallab/repository/file_repository.hpp"
 
 namespace signallab::io {
 
-enum class ImportFormat {
-    Csv,
-    Wav
-};
-
-enum class CsvDelimiter {
-    Comma,
-    Tab
-};
-
-struct CsvImportOptions {
-    CsvDelimiter delimiter{CsvDelimiter::Comma};
-    bool hasHeader{true};
-    std::size_t valueColumn{1};
-    std::optional<std::size_t> timeColumn{0};
-    double sampleRateIfNoTimeColumn{48000.0};
-    core::SignalMetadata metadata;
-};
-
-enum class StereoChannel {
-    Left,
-    Right,
-    Average
-};
-
-struct WavImportOptions {
-    StereoChannel channel{StereoChannel::Average};
-    core::SignalMetadata metadata;
-};
-
-struct ImportPreview {
-    std::filesystem::path sourcePath;
-    ImportFormat format{ImportFormat::Csv};
-    std::size_t sampleCount{0};
-    std::size_t columnCount{0};
-    std::size_t channelCount{0};
-    std::optional<double> sampleRate;
-    std::vector<std::string> columnNames;
-    std::vector<std::vector<std::string>> rows;
-};
+// Compatibility names for code written before the repository layer existed.
+// New interfaces should use the types from signallab::repository directly.
+using ImportFormat = repository::ImportFormat;
+using CsvDelimiter = repository::CsvDelimiter;
+using CsvImportOptions = repository::CsvImportOptions;
+using StereoChannel = repository::StereoChannel;
+using WavImportOptions = repository::WavImportOptions;
+using ImportPreview = repository::ImportPreview;
 
 }  // namespace signallab::io

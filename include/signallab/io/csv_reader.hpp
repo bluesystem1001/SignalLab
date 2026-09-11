@@ -8,13 +8,13 @@
 
 namespace signallab::io {
 
-[[nodiscard]] core::Result<ImportPreview> previewCsv(
+[[nodiscard]] core::Result<repository::ImportPreview> previewCsv(
     const std::filesystem::path& path,
-    const CsvImportOptions& options,
+    const repository::CsvImportOptions& options,
     std::size_t maxRows = 5);
 
 [[nodiscard]] core::Result<core::Signal> readCsv(
     const std::filesystem::path& path,
-    const CsvImportOptions& options);
+    const repository::CsvImportOptions& options);
 
 }  // namespace signallab::io

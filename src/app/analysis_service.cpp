@@ -2,13 +2,158 @@
 
 #include <algorithm>
 #include <cmath>
+#include <iomanip>
+#include <locale>
+#include <sstream>
+#include <string>
 #include <utility>
 
+#include "signallab/algorithm/fft.hpp"
 #include "signallab/algorithm/preprocessing.hpp"
 #include "signallab/algorithm/quality_metrics.hpp"
+#include "signallab/algorithm/window.hpp"
 #include "signallab/core/error.hpp"
 
 namespace signallab::app {
+namespace {
+
+std::string jsonNumber(double value)
+{
+    if (!std::isfinite(value)) {
+        return "null";
+    }
+    if (value == 0.0) {
+        return "0";
+    }
+
+    std::ostringstream stream;
+    stream.imbue(std::locale::classic());
+    stream << std::setprecision(17) << value;
+    return stream.str();
+}
+
+std::string windowTypeName(algorithm::WindowType windowType)
+{
+    switch (windowType) {
+    case algorithm::WindowType::Rectangular:
+        return "rectangular";
+    case algorithm::WindowType::Hann:
+        return "hann";
+    case algorithm::WindowType::Hamming:
+        return "hamming";
+    }
+    return "unknown";
+}
+
+std::string analysisParametersJson(const AnalysisOptions& options)
+{
+    // Keys are deliberately kept in alphabetical order.
+    return "{\"maximum_peak_count\":"
+        + std::to_string(options.maximumPeakCount)
+        + ",\"metric_guard_bins\":"
+        + std::to_string(options.metricGuardBins)
+        + ",\"minimum_peak_amplitude_ratio\":"
+        + jsonNumber(options.minimumPeakAmplitudeRatio)
+        + ",\"minimum_peak_distance_hz\":"
+        + jsonNumber(options.minimumPeakDistanceHz)
+        + ",\"thd_harmonic_count\":"
+        + std::to_string(options.thdHarmonicCount)
+        + ",\"window_type\":\"" + windowTypeName(options.windowType)
+        + "\"}";
+}
+
+std::string analysisAlgorithmVersion()
+{
+    std::string version;
+    version += "analysis=";
+    version += kAnalysisServiceVersion;
+    version += "|preprocessing=";
+    version += algorithm::kPreprocessingAlgorithmVersion;
+    version += "|window=";
+    version += algorithm::kWindowAlgorithmVersion;
+    version += "|fft=";
+    version += algorithm::kFftVersion;
+    version += "|spectrum=";
+    version += algorithm::kSpectrumVersion;
+    version += "|features=";
+    version += algorithm::kFeaturesVersion;
+    version += "|peak_detector=";
+    version += algorithm::kPeakDetectorVersion;
+    version += "|quality_metrics=";
+    version += algorithm::kQualityMetricsVersion;
+    return version;
+}
+
+std::string squaredUnit(const std::string& unit)
+{
+    if (unit.empty()) {
+        return {};
+    }
+    return unit + "^2";
+}
+
+void addFeature(
+    std::vector<repository::FeatureValue>& values,
+    std::string name,
+    double value,
+    std::string unit)
+{
+    values.push_back(repository::FeatureValue{
+        std::move(name),
+        value,
+        std::move(unit)
+    });
+}
+
+std::vector<repository::FeatureValue> makeFeatureValues(
+    const AnalysisResult& result,
+    const core::Signal& signal)
+{
+    const std::string& signalUnit = signal.metadata().unit;
+    std::vector<repository::FeatureValue> values;
+    values.reserve(10);
+
+    addFeature(values, "mean", result.features.mean, signalUnit);
+    addFeature(
+        values,
+        "variance",
+        result.features.variance,
+        squaredUnit(signalUnit));
+    addFeature(values, "rms", result.features.rms, signalUnit);
+    addFeature(
+        values,
+        "peak_to_peak",
+        result.features.peakToPeak,
+        signalUnit);
+
+    if (result.dominantPeak.has_value()) {
+        addFeature(
+            values,
+            "dominant_frequency",
+            result.dominantPeak->frequencyHz,
+            "Hz");
+        addFeature(
+            values,
+            "amplitude",
+            result.dominantPeak->amplitude,
+            signalUnit);
+    }
+    if (result.snrDb.has_value()) {
+        addFeature(values, "snr", *result.snrDb, "dB");
+    }
+    if (result.thdPercent.has_value()) {
+        addFeature(values, "thd", *result.thdPercent, "%");
+    }
+
+    addFeature(
+        values,
+        "fft_size",
+        static_cast<double>(result.spectrum.fftSize),
+        "samples");
+    return values;
+}
+
+}  // namespace
 
 core::Result<AnalysisResult> analyzeSignal(
     const core::Signal& signal,
@@ -134,6 +279,104 @@ core::Result<AnalysisResult> analyzeSignal(
         snrDb,
         thdPercent
     });
+}
+
+AnalysisService::AnalysisService(
+    repository::TaskRepository& taskRepository,
+    repository::SignalRepository& signalRepository)
+    : taskRepository_(taskRepository),
+      signalRepository_(signalRepository)
+{
+}
+
+core::Result<std::size_t> AnalysisService::interruptRunningTasks()
+{
+    return taskRepository_.interruptRunningTasks();
+}
+
+core::Result<AnalysisResult> AnalysisService::analyze(
+    std::int64_t signalRecordId,
+    const AnalysisOptions& options)
+{
+    auto storedSignalResult = signalRepository_.findByRecordId(
+        signalRecordId);
+    if (!storedSignalResult) {
+        return core::Result<AnalysisResult>::failure(
+            storedSignalResult.error());
+    }
+    if (!storedSignalResult.value().has_value()) {
+        return core::Result<AnalysisResult>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The selected signal record does not exist.");
+    }
+
+    std::optional<repository::StoredSignal> storedSignalValue =
+        std::move(storedSignalResult).value();
+    repository::StoredSignal storedSignal =
+        std::move(*storedSignalValue);
+    std::string signalName = storedSignal.signal.metadata().name;
+    if (signalName.empty() && !storedSignal.sourcePath.empty()) {
+        signalName = storedSignal.sourcePath.filename().string();
+    }
+    if (signalName.empty()) {
+        signalName = "Signal #" + std::to_string(storedSignal.recordId);
+    }
+
+    const repository::AnalysisTaskStart taskStart{
+        storedSignal.recordId,
+        signalName,
+        "synchronous-analysis",
+        analysisAlgorithmVersion(),
+        analysisParametersJson(options),
+        storedSignal.sampleHash
+    };
+
+    auto taskIdResult = taskRepository_.createTask(taskStart);
+    if (!taskIdResult) {
+        return core::Result<AnalysisResult>::failure(taskIdResult.error());
+    }
+    const std::int64_t taskId = taskIdResult.value();
+
+    auto analysisResult = analyzeSignal(storedSignal.signal, options);
+    if (!analysisResult) {
+        const core::Error algorithmError = analysisResult.error();
+        auto failResult = taskRepository_.failTask(
+            taskId,
+            algorithmError.message);
+        if (!failResult) {
+            return core::Result<AnalysisResult>::failure(
+                failResult.error());
+        }
+        if (!failResult.value()) {
+            return core::Result<AnalysisResult>::failure(
+                core::ErrorCode::DatabaseQueryFailed,
+                "The failed analysis task could not be marked FAILED.");
+        }
+        return core::Result<AnalysisResult>::failure(algorithmError);
+    }
+
+    const auto values = makeFeatureValues(
+        analysisResult.value(),
+        storedSignal.signal);
+    auto completionResult = taskRepository_.completeTask(taskId, values);
+    if (!completionResult) {
+        return core::Result<AnalysisResult>::failure(
+            completionResult.error());
+    }
+
+    return analysisResult;
+}
+
+core::Result<std::vector<repository::AnalysisTaskRecord>>
+AnalysisService::history(std::size_t maximumCount)
+{
+    return taskRepository_.listTasks(maximumCount);
+}
+
+core::Result<std::vector<repository::FeatureResultRecord>>
+AnalysisService::featureResults(std::int64_t taskId)
+{
+    return taskRepository_.listFeatureResults(taskId);
 }
 
 }  // namespace signallab::app

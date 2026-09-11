@@ -1,89 +1,196 @@
 #include "signallab/app/import_service.hpp"
 
-#include <algorithm>
-#include <atomic>
-#include <cctype>
-#include <chrono>
-#include <cstddef>
-#include <cstdint>
-#include <exception>
-#include <filesystem>
-#include <string>
-#include <system_error>
+#include <cmath>
+#include <iomanip>
+#include <locale>
+#include <sstream>
+#include <string_view>
 #include <utility>
 
 #include "signallab/core/error.hpp"
-#include "signallab/io/csv_reader.hpp"
-#include "signallab/io/hash_service.hpp"
-#include "signallab/io/wav_reader.hpp"
 
 namespace signallab::app {
 namespace {
 
-std::atomic<std::uint64_t> snapshotCounter{0};
-
-class TemporarySnapshotGuard {
-public:
-    explicit TemporarySnapshotGuard(std::filesystem::path path)
-        : path_(std::move(path))
-    {
-    }
-
-    ~TemporarySnapshotGuard()
-    {
-        std::error_code ignoredError;
-        std::filesystem::remove(path_, ignoredError);
-    }
-
-    TemporarySnapshotGuard(const TemporarySnapshotGuard&) = delete;
-    TemporarySnapshotGuard& operator=(const TemporarySnapshotGuard&) = delete;
-
-private:
-    std::filesystem::path path_;
-};
-
-std::filesystem::path importsDirectory(
-    const std::filesystem::path& projectRoot)
+std::string chooseDisplayName(const repository::StoredSignal& stored)
 {
-    return projectRoot / "data" / "imports";
-}
-
-std::filesystem::path makeStoredRelativePath(
-    const std::filesystem::path& sourcePath,
-    const std::string& hash,
-    const std::string& fallbackExtension)
-{
-    std::string extension = sourcePath.extension().string();
-    if (extension.empty()) {
-        extension = fallbackExtension;
+    if (!stored.signal.metadata().name.empty()) {
+        return stored.signal.metadata().name;
     }
-
-    std::transform(
-        extension.begin(),
-        extension.end(),
-        extension.begin(),
-        [](unsigned char character) {
-            return static_cast<char>(std::tolower(character));
-        });
-
-    return std::filesystem::path("data")
-        / "imports"
-        / (hash + extension);
-}
-
-std::string chooseDisplayName(
-    const core::Signal& signal,
-    const std::filesystem::path& sourcePath)
-{
-    if (!signal.metadata().name.empty()) {
-        return signal.metadata().name;
+    if (!stored.sourcePath.empty()) {
+        return stored.sourcePath.filename().string();
     }
-
-    if (!sourcePath.empty()) {
-        return sourcePath.filename().string();
-    }
-
     return "Generated signal";
+}
+
+SignalEntry makeEntry(repository::StoredSignal stored)
+{
+    const std::string displayName = chooseDisplayName(stored);
+
+    return SignalEntry{
+        stored.recordId,
+        stored.sourceId,
+        stored.sourceType,
+        std::move(stored.sourceKey),
+        displayName,
+        std::move(stored.fileHash),
+        std::move(stored.sampleHash),
+        std::move(stored.sourcePath),
+        std::move(stored.storedRelativePath),
+        std::move(stored.parametersJson),
+        std::move(stored.signal)
+    };
+}
+
+std::string escapeJson(std::string_view value)
+{
+    constexpr char hexadecimal[] = "0123456789abcdef";
+    std::string escaped;
+    escaped.reserve(value.size());
+
+    for (const unsigned char character : value) {
+        switch (character) {
+        case '"':
+            escaped += "\\\"";
+            break;
+        case '\\':
+            escaped += "\\\\";
+            break;
+        case '\b':
+            escaped += "\\b";
+            break;
+        case '\f':
+            escaped += "\\f";
+            break;
+        case '\n':
+            escaped += "\\n";
+            break;
+        case '\r':
+            escaped += "\\r";
+            break;
+        case '\t':
+            escaped += "\\t";
+            break;
+        default:
+            if (character < 0x20U) {
+                escaped += "\\u00";
+                escaped += hexadecimal[(character >> 4U) & 0x0fU];
+                escaped += hexadecimal[character & 0x0fU];
+            } else {
+                escaped += static_cast<char>(character);
+            }
+            break;
+        }
+    }
+
+    return escaped;
+}
+
+std::string jsonString(std::string_view value)
+{
+    return "\"" + escapeJson(value) + "\"";
+}
+
+std::string jsonNumber(double value)
+{
+    if (!std::isfinite(value)) {
+        return "null";
+    }
+    if (value == 0.0) {
+        return "0";
+    }
+
+    std::ostringstream stream;
+    stream.imbue(std::locale::classic());
+    stream << std::setprecision(17) << value;
+    return stream.str();
+}
+
+std::string metadataJson(const core::SignalMetadata& metadata)
+{
+    // Keys are deliberately kept in alphabetical order.
+    return "{\"name\":" + jsonString(metadata.name)
+        + ",\"source\":" + jsonString(metadata.source)
+        + ",\"unit\":" + jsonString(metadata.unit) + "}";
+}
+
+std::string csvDelimiterName(repository::CsvDelimiter delimiter)
+{
+    if (delimiter == repository::CsvDelimiter::Tab) {
+        return "tab";
+    }
+    return "comma";
+}
+
+std::string stereoChannelName(repository::StereoChannel channel)
+{
+    switch (channel) {
+    case repository::StereoChannel::Left:
+        return "left";
+    case repository::StereoChannel::Right:
+        return "right";
+    case repository::StereoChannel::Average:
+        return "average";
+    }
+    return "unknown";
+}
+
+std::string csvParametersJson(const repository::CsvImportOptions& options)
+{
+    const std::string timeColumn = options.timeColumn.has_value()
+        ? std::to_string(*options.timeColumn)
+        : "null";
+
+    // Object keys and nested metadata keys are in alphabetical order.
+    return "{\"delimiter\":" + jsonString(csvDelimiterName(options.delimiter))
+        + ",\"has_header\":"
+        + (options.hasHeader ? "true" : "false")
+        + ",\"metadata\":" + metadataJson(options.metadata)
+        + ",\"sample_rate_if_no_time_column\":"
+        + jsonNumber(options.sampleRateIfNoTimeColumn)
+        + ",\"time_column\":" + timeColumn
+        + ",\"value_column\":" + std::to_string(options.valueColumn)
+        + "}";
+}
+
+std::string csvLogicalOptionsJson(
+    const repository::CsvImportOptions& options)
+{
+    const std::string timeColumn = options.timeColumn.has_value()
+        ? std::to_string(*options.timeColumn)
+        : "null";
+
+    return "{\"delimiter\":" + jsonString(csvDelimiterName(options.delimiter))
+        + ",\"has_header\":"
+        + (options.hasHeader ? "true" : "false")
+        + ",\"sample_rate_if_no_time_column\":"
+        + jsonNumber(options.sampleRateIfNoTimeColumn)
+        + ",\"time_column\":" + timeColumn
+        + ",\"value_column\":" + std::to_string(options.valueColumn)
+        + "}";
+}
+
+std::string wavParametersJson(const repository::WavImportOptions& options)
+{
+    return "{\"channel\":" + jsonString(stereoChannelName(options.channel))
+        + ",\"metadata\":" + metadataJson(options.metadata) + "}";
+}
+
+std::string wavLogicalOptionsJson(
+    const repository::WavImportOptions& options)
+{
+    return "{\"channel\":"
+        + jsonString(stereoChannelName(options.channel)) + "}";
+}
+
+std::string importedSourceKey(
+    const repository::FileImport& fileImport,
+    std::string_view logicalOptionsJson)
+{
+    // The same archived file may produce more than one logical signal when
+    // the user selects different columns or channels.
+    return "file-sha256:" + fileImport.contentHash
+        + "|options-json:" + std::string(logicalOptionsJson);
 }
 
 core::Result<std::size_t> duplicateFileError(
@@ -95,315 +202,139 @@ core::Result<std::size_t> duplicateFileError(
             + sourcePath.generic_string());
 }
 
-core::Result<std::size_t> importStorageError(
-    const std::filesystem::path& sourcePath,
-    const std::string& details)
-{
-    return core::Result<std::size_t>::failure(
-        core::ErrorCode::FileWriteFailed,
-        "Cannot store imported file " + sourcePath.generic_string()
-            + ": " + details);
-}
-
-void replaceAll(
-    std::string& text,
-    const std::string& oldText,
-    const std::string& newText)
-{
-    if (oldText.empty() || oldText == newText) {
-        return;
-    }
-
-    std::size_t position = 0;
-    while ((position = text.find(oldText, position)) != std::string::npos) {
-        text.replace(position, oldText.size(), newText);
-        position += newText.size();
-    }
-}
-
-core::Error sourceFacingError(
-    core::Error error,
-    const std::filesystem::path& snapshotPath,
-    const std::filesystem::path& sourcePath)
-{
-    replaceAll(
-        error.message,
-        snapshotPath.string(),
-        sourcePath.string());
-    replaceAll(
-        error.message,
-        snapshotPath.generic_string(),
-        sourcePath.generic_string());
-    return error;
-}
-
-core::Result<std::filesystem::path> createSourceSnapshot(
-    const std::filesystem::path& projectRoot,
-    const std::filesystem::path& sourcePath)
-{
-    std::error_code error;
-    const bool sourceExists = std::filesystem::exists(sourcePath, error);
-    if (error) {
-        return core::Result<std::filesystem::path>::failure(
-            core::ErrorCode::FileOpenFailed,
-            "Cannot inspect source file " + sourcePath.generic_string()
-                + ": " + error.message());
-    }
-    if (!sourceExists) {
-        return core::Result<std::filesystem::path>::failure(
-            core::ErrorCode::FileNotFound,
-            "File not found: " + sourcePath.generic_string());
-    }
-
-    const bool sourceIsFile =
-        std::filesystem::is_regular_file(sourcePath, error);
-    if (error || !sourceIsFile) {
-        const std::string details = error
-            ? error.message()
-            : "the source path is not a regular file";
-        return core::Result<std::filesystem::path>::failure(
-            core::ErrorCode::FileOpenFailed,
-            "Cannot read source file " + sourcePath.generic_string()
-                + ": " + details);
-    }
-
-    const auto directory = importsDirectory(projectRoot);
-    std::filesystem::create_directories(directory, error);
-    if (error) {
-        return core::Result<std::filesystem::path>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Cannot create project import folder: " + error.message());
-    }
-
-    constexpr int maximumAttempts = 10;
-    for (int attempt = 0; attempt < maximumAttempts; ++attempt) {
-        const auto timeValue = std::chrono::high_resolution_clock::now()
-            .time_since_epoch()
-            .count();
-        const auto counterValue = snapshotCounter.fetch_add(
-            1,
-            std::memory_order_relaxed);
-        const std::string uniquePart = std::to_string(timeValue)
-            + "-" + std::to_string(counterValue);
-        const auto snapshotPath =
-            directory / (".signallab-import-" + uniquePart + ".tmp");
-
-        error.clear();
-        const bool copied = std::filesystem::copy_file(
-            sourcePath,
-            snapshotPath,
-            std::filesystem::copy_options::none,
-            error);
-
-        if (copied && !error) {
-            return core::Result<std::filesystem::path>::success(snapshotPath);
-        }
-
-        if (error == std::make_error_code(std::errc::file_exists)
-            || (!copied && !error)) {
-            continue;
-        }
-
-        std::error_code cleanupError;
-        std::filesystem::remove(snapshotPath, cleanupError);
-
-        const std::string details = error
-            ? error.message()
-            : "the snapshot could not be created";
-        return core::Result<std::filesystem::path>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Cannot snapshot source file " + sourcePath.generic_string()
-                + ": " + details);
-    }
-
-    return core::Result<std::filesystem::path>::failure(
-        core::ErrorCode::FileWriteFailed,
-        "Cannot create a unique temporary snapshot for "
-            + sourcePath.generic_string());
-}
-
-core::Result<bool> validateStoredFile(
-    const std::filesystem::path& storedPath,
-    const std::string& expectedHash)
-{
-    std::error_code error;
-    const bool exists = std::filesystem::exists(storedPath, error);
-    if (error) {
-        return core::Result<bool>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Cannot inspect stored import file "
-                + storedPath.generic_string() + ": " + error.message());
-    }
-    if (!exists) {
-        return core::Result<bool>::success(false);
-    }
-
-    const bool isFile = std::filesystem::is_regular_file(storedPath, error);
-    if (error || !isFile) {
-        const std::string details = error
-            ? error.message()
-            : "the stored path is not a regular file";
-        return core::Result<bool>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Stored import is damaged: " + storedPath.generic_string()
-                + " (" + details + ")");
-    }
-
-    auto storedHashResult = io::calculateSha256(storedPath);
-    if (!storedHashResult) {
-        return core::Result<bool>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Cannot validate stored import file "
-                + storedPath.generic_string() + ": "
-                + storedHashResult.error().message);
-    }
-
-    const std::string& actualHash = storedHashResult.value();
-    if (actualHash != expectedHash) {
-        return core::Result<bool>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Stored import is damaged: SHA-256 mismatch for "
-                + storedPath.generic_string()
-                + " (expected " + expectedHash
-                + ", found " + actualHash + ")");
-    }
-
-    return core::Result<bool>::success(true);
-}
-
-bool hasContentAddressedName(
-    const std::filesystem::path& path,
-    const std::string& hash)
-{
-    const std::string fileName = path.filename().string();
-    return fileName.starts_with(hash + ".")
-        && !fileName.ends_with(".tmp");
-}
-
 }  // namespace
 
-ImportService::ImportService(std::filesystem::path projectRoot)
-    : projectRoot_(std::move(projectRoot))
+ImportService::ImportService(
+    repository::FileRepository& fileRepository,
+    repository::SignalRepository& signalRepository)
+    : fileRepository_(fileRepository),
+      signalRepository_(signalRepository)
 {
 }
 
-std::size_t ImportService::addGeneratedSignal(core::Signal signal)
+core::Result<std::size_t> ImportService::restoreSignals()
 {
-    const std::size_t entryIndex = entries_.size();
-    const std::string displayName = chooseDisplayName(signal, {});
+    auto storedSignalsResult = signalRepository_.listSignals();
+    if (!storedSignalsResult) {
+        return core::Result<std::size_t>::failure(
+            storedSignalsResult.error());
+    }
 
-    entries_.push_back(SignalEntry{
-        displayName,
+    std::vector<repository::StoredSignal> storedSignals =
+        std::move(storedSignalsResult).value();
+    std::vector<SignalEntry> restoredEntries;
+    restoredEntries.reserve(storedSignals.size());
+
+    for (repository::StoredSignal& stored : storedSignals) {
+        if (stored.sourceType != repository::SignalSourceType::Generated) {
+            auto validationResult = fileRepository_.validateStoredFile(
+                stored.storedRelativePath,
+                stored.fileHash);
+            if (!validationResult) {
+                return core::Result<std::size_t>::failure(
+                    validationResult.error());
+            }
+            if (!validationResult.value()) {
+                return core::Result<std::size_t>::failure(
+                    core::ErrorCode::FileWriteFailed,
+                    "Stored import is missing: "
+                        + stored.storedRelativePath.generic_string());
+            }
+        }
+
+        restoredEntries.push_back(makeEntry(std::move(stored)));
+    }
+
+    entries_ = std::move(restoredEntries);
+    return core::Result<std::size_t>::success(entries_.size());
+}
+
+core::Result<std::size_t> ImportService::addGeneratedSignal(
+    core::Signal signal,
+    const std::string& stableSourceKey)
+{
+    if (stableSourceKey.empty()) {
+        return core::Result<std::size_t>::failure(
+            core::ErrorCode::InvalidParameter,
+            "A generated signal requires a non-empty stable source key.");
+    }
+
+    auto existingResult = signalRepository_.findBySourceKey(stableSourceKey);
+    if (!existingResult) {
+        return core::Result<std::size_t>::failure(existingResult.error());
+    }
+
+    if (existingResult.value().has_value()) {
+        const std::int64_t recordId = existingResult.value()->recordId;
+        for (std::size_t index = 0; index < entries_.size(); ++index) {
+            if (entries_[index].recordId == recordId) {
+                return core::Result<std::size_t>::success(index);
+            }
+        }
+
+        entries_.push_back(makeEntry(*existingResult.value()));
+        return core::Result<std::size_t>::success(entries_.size() - 1U);
+    }
+
+    repository::SignalRegistration registration{
+        repository::SignalSourceType::Generated,
+        stableSourceKey,
         {},
-        {},
-        {},
+        "{}",
+        std::nullopt,
         std::move(signal)
-    });
+    };
 
-    return entryIndex;
+    auto savedResult = signalRepository_.saveSignal(std::move(registration));
+    if (!savedResult) {
+        return core::Result<std::size_t>::failure(savedResult.error());
+    }
+
+    entries_.push_back(makeEntry(std::move(savedResult).value()));
+    return core::Result<std::size_t>::success(entries_.size() - 1U);
 }
 
-core::Result<io::ImportPreview> ImportService::previewCsv(
+core::Result<repository::ImportPreview> ImportService::previewCsv(
     const std::filesystem::path& sourcePath,
-    const io::CsvImportOptions& options) const
+    const repository::CsvImportOptions& options) const
 {
-    return io::previewCsv(sourcePath, options);
+    return fileRepository_.previewCsv(sourcePath, options);
 }
 
-core::Result<io::ImportPreview> ImportService::previewWav(
+core::Result<repository::ImportPreview> ImportService::previewWav(
     const std::filesystem::path& sourcePath) const
 {
-    return io::previewWav(sourcePath);
+    return fileRepository_.previewWav(sourcePath);
 }
 
 core::Result<std::size_t> ImportService::importCsv(
     const std::filesystem::path& sourcePath,
-    const io::CsvImportOptions& options)
+    const repository::CsvImportOptions& options)
 {
-    auto snapshotResult = createSourceSnapshot(projectRoot_, sourcePath);
-    if (!snapshotResult) {
-        return core::Result<std::size_t>::failure(snapshotResult.error());
+    auto fileImportResult = fileRepository_.importCsv(sourcePath, options);
+    if (!fileImportResult) {
+        return core::Result<std::size_t>::failure(fileImportResult.error());
     }
 
-    const std::filesystem::path snapshotPath =
-        std::move(snapshotResult).value();
-    const TemporarySnapshotGuard snapshotGuard(snapshotPath);
-
-    auto hashResult = io::calculateSha256(snapshotPath);
-    if (!hashResult) {
-        return core::Result<std::size_t>::failure(sourceFacingError(
-            hashResult.error(), snapshotPath, sourcePath));
-    }
-
-    std::string hash = std::move(hashResult).value();
-    const auto storedRelativePath =
-        makeStoredRelativePath(sourcePath, hash, ".csv");
-
-    auto duplicateResult = isDuplicate(hash, storedRelativePath);
-    if (!duplicateResult) {
-        return core::Result<std::size_t>::failure(duplicateResult.error());
-    }
-    if (duplicateResult.value()) {
-        return duplicateFileError(sourcePath);
-    }
-
-    auto signalResult = io::readCsv(snapshotPath, options);
-    if (!signalResult) {
-        return core::Result<std::size_t>::failure(sourceFacingError(
-            signalResult.error(), snapshotPath, sourcePath));
-    }
-
-    return storeImportedSignal(
-        sourcePath,
-        snapshotPath,
-        std::move(hash),
-        storedRelativePath,
-        std::move(signalResult).value());
+    return registerImportedSignal(
+        std::move(fileImportResult).value(),
+        csvParametersJson(options),
+        csvLogicalOptionsJson(options));
 }
 
 core::Result<std::size_t> ImportService::importWav(
     const std::filesystem::path& sourcePath,
-    const io::WavImportOptions& options)
+    const repository::WavImportOptions& options)
 {
-    auto snapshotResult = createSourceSnapshot(projectRoot_, sourcePath);
-    if (!snapshotResult) {
-        return core::Result<std::size_t>::failure(snapshotResult.error());
+    auto fileImportResult = fileRepository_.importWav(sourcePath, options);
+    if (!fileImportResult) {
+        return core::Result<std::size_t>::failure(fileImportResult.error());
     }
 
-    const std::filesystem::path snapshotPath =
-        std::move(snapshotResult).value();
-    const TemporarySnapshotGuard snapshotGuard(snapshotPath);
-
-    auto hashResult = io::calculateSha256(snapshotPath);
-    if (!hashResult) {
-        return core::Result<std::size_t>::failure(sourceFacingError(
-            hashResult.error(), snapshotPath, sourcePath));
-    }
-
-    std::string hash = std::move(hashResult).value();
-    const auto storedRelativePath =
-        makeStoredRelativePath(sourcePath, hash, ".wav");
-
-    auto duplicateResult = isDuplicate(hash, storedRelativePath);
-    if (!duplicateResult) {
-        return core::Result<std::size_t>::failure(duplicateResult.error());
-    }
-    if (duplicateResult.value()) {
-        return duplicateFileError(sourcePath);
-    }
-
-    auto signalResult = io::readWav(snapshotPath, options);
-    if (!signalResult) {
-        return core::Result<std::size_t>::failure(sourceFacingError(
-            signalResult.error(), snapshotPath, sourcePath));
-    }
-
-    return storeImportedSignal(
-        sourcePath,
-        snapshotPath,
-        std::move(hash),
-        storedRelativePath,
-        std::move(signalResult).value());
+    return registerImportedSignal(
+        std::move(fileImportResult).value(),
+        wavParametersJson(options),
+        wavLogicalOptionsJson(options));
 }
 
 const std::vector<SignalEntry>& ImportService::entries() const noexcept
@@ -411,135 +342,123 @@ const std::vector<SignalEntry>& ImportService::entries() const noexcept
     return entries_;
 }
 
-core::Result<bool> ImportService::isDuplicate(
-    const std::string& hash,
-    const std::filesystem::path& storedRelativePath) const
+core::Result<std::size_t> ImportService::registerImportedSignal(
+    repository::FileImport fileImport,
+    std::string parametersJson,
+    std::string logicalOptionsJson)
 {
-    const auto matchingEntry = std::find_if(
-        entries_.begin(),
-        entries_.end(),
-        [&hash](const SignalEntry& entry) {
-            return !entry.hash.empty() && entry.hash == hash;
-        });
+    const std::string sourceKey = importedSourceKey(
+        fileImport,
+        logicalOptionsJson);
+    auto existingResult = signalRepository_.findBySourceKey(sourceKey);
+    if (!existingResult) {
+        core::Error databaseError = existingResult.error();
+        if (fileImport.createdStoredFile) {
+            auto referenceResult = signalRepository_.findByFileHash(
+                fileImport.contentHash);
+            const bool referencedAtThisPath = referenceResult
+                && referenceResult.value().has_value()
+                && referenceResult.value()->storedRelativePath
+                    == fileImport.storedRelativePath;
 
-    if (matchingEntry != entries_.end()) {
-        if (matchingEntry->storedRelativePath.empty()) {
-            return core::Result<bool>::failure(
-                core::ErrorCode::FileWriteFailed,
-                "An imported signal record has no stored file path.");
-        }
-
-        auto validationResult = validateStoredFile(
-            projectRoot_ / matchingEntry->storedRelativePath,
-            hash);
-        if (!validationResult) {
-            return validationResult;
-        }
-        if (!validationResult.value()) {
-            return core::Result<bool>::failure(
-                core::ErrorCode::FileWriteFailed,
-                "Stored import is missing: "
-                    + (projectRoot_ / matchingEntry->storedRelativePath)
-                        .generic_string());
-        }
-
-        return core::Result<bool>::success(true);
-    }
-
-    auto exactTargetResult = validateStoredFile(
-        projectRoot_ / storedRelativePath,
-        hash);
-    if (!exactTargetResult) {
-        return exactTargetResult;
-    }
-    if (exactTargetResult.value()) {
-        return core::Result<bool>::success(true);
-    }
-
-    const auto directory = importsDirectory(projectRoot_);
-    std::error_code error;
-    const bool directoryExists = std::filesystem::exists(directory, error);
-    if (error) {
-        return core::Result<bool>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Cannot inspect the project import folder: " + error.message());
-    }
-    if (!directoryExists) {
-        return core::Result<bool>::success(false);
-    }
-
-    std::filesystem::directory_iterator item(directory, error);
-    const std::filesystem::directory_iterator end;
-
-    while (!error && item != end) {
-        if (hasContentAddressedName(item->path(), hash)) {
-            auto validationResult = validateStoredFile(item->path(), hash);
-            if (!validationResult) {
-                return validationResult;
-            }
-            if (validationResult.value()) {
-                return core::Result<bool>::success(true);
+            if (!referenceResult) {
+                databaseError.message +=
+                    " The new archive was kept because its database "
+                    "references could not be checked.";
+            } else if (!referencedAtThisPath) {
+                auto cleanupResult = fileRepository_.removeStoredFile(
+                    fileImport.storedRelativePath);
+                if (!cleanupResult) {
+                    databaseError.message +=
+                        " Cleanup of the new archive also failed: "
+                        + cleanupResult.error().message;
+                } else if (!cleanupResult.value()) {
+                    databaseError.message +=
+                        " The new archive could not be removed.";
+                }
             }
         }
-
-        item.increment(error);
+        return core::Result<std::size_t>::failure(
+            std::move(databaseError));
     }
 
-    if (error) {
-        return core::Result<bool>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Cannot inspect the project import folder: " + error.message());
-    }
-
-    return core::Result<bool>::success(false);
-}
-
-core::Result<std::size_t> ImportService::storeImportedSignal(
-    const std::filesystem::path& sourcePath,
-    const std::filesystem::path& snapshotPath,
-    std::string hash,
-    std::filesystem::path storedRelativePath,
-    core::Signal signal)
-{
-    const std::filesystem::path destinationPath =
-        projectRoot_ / storedRelativePath;
-
-    std::error_code error;
-    std::filesystem::rename(snapshotPath, destinationPath, error);
-    if (error) {
-        auto duplicateResult = isDuplicate(hash, storedRelativePath);
-        if (duplicateResult && duplicateResult.value()) {
-            return duplicateFileError(sourcePath);
+    if (existingResult.value().has_value()) {
+        const auto& existing = *existingResult.value();
+        if (fileImport.createdStoredFile
+            && existing.storedRelativePath
+                != fileImport.storedRelativePath) {
+            auto cleanupResult = fileRepository_.removeStoredFile(
+                fileImport.storedRelativePath);
+            if (!cleanupResult || !cleanupResult.value()) {
+                auto duplicateResult = duplicateFileError(
+                    fileImport.sourcePath);
+                core::Error duplicateError = duplicateResult.error();
+                duplicateError.message += !cleanupResult
+                    ? " Cleanup of the replacement archive also failed: "
+                        + cleanupResult.error().message
+                    : " The replacement archive could not be removed.";
+                return core::Result<std::size_t>::failure(
+                    std::move(duplicateError));
+            }
         }
-        if (!duplicateResult) {
-            return core::Result<std::size_t>::failure(
-                duplicateResult.error());
+        return duplicateFileError(fileImport.sourcePath);
+    }
+
+    repository::FileVersionRegistration fileVersion{
+        fileImport.contentHash,
+        fileImport.storedRelativePath,
+        fileImport.sourcePath.filename().string(),
+        fileImport.byteSize
+    };
+
+    repository::SignalRegistration registration{
+        fileImport.sourceType,
+        sourceKey,
+        fileImport.sourcePath,
+        std::move(parametersJson),
+        std::move(fileVersion),
+        std::move(fileImport.signal)
+    };
+
+    auto savedResult = signalRepository_.saveSignal(std::move(registration));
+    if (!savedResult) {
+        core::Error databaseError = savedResult.error();
+
+        if (fileImport.createdStoredFile) {
+            // Another importer may have committed the same file between our
+            // lookup and save. Never delete an archive already referenced by
+            // the database.
+            auto referenceResult = signalRepository_.findByFileHash(
+                fileImport.contentHash);
+            const bool referencedAtThisPath = referenceResult
+                && referenceResult.value().has_value()
+                && referenceResult.value()->storedRelativePath
+                    == fileImport.storedRelativePath;
+
+            if (!referenceResult) {
+                databaseError.message +=
+                    " The new archive was kept because its database "
+                    "references could not be checked.";
+            } else if (!referencedAtThisPath) {
+                auto cleanupResult = fileRepository_.removeStoredFile(
+                    fileImport.storedRelativePath);
+                if (!cleanupResult) {
+                    databaseError.message +=
+                        " Cleanup of the newly stored file also failed: "
+                        + cleanupResult.error().message;
+                } else if (!cleanupResult.value()) {
+                    databaseError.message +=
+                        " The newly stored file could not be removed.";
+                }
+            }
         }
 
-        return importStorageError(sourcePath, error.message());
+        return core::Result<std::size_t>::failure(
+            std::move(databaseError));
     }
 
-    const std::size_t entryIndex = entries_.size();
-    const std::string displayName = chooseDisplayName(signal, sourcePath);
-
-    try {
-        entries_.push_back(SignalEntry{
-            displayName,
-            std::move(hash),
-            sourcePath,
-            std::move(storedRelativePath),
-            std::move(signal)
-        });
-    } catch (const std::exception& exception) {
-        std::error_code cleanupError;
-        std::filesystem::remove(destinationPath, cleanupError);
-        return importStorageError(
-            sourcePath,
-            "cannot register the imported signal ("
-                + std::string(exception.what()) + ")");
-    }
-
-    return core::Result<std::size_t>::success(entryIndex);
+    entries_.push_back(makeEntry(std::move(savedResult).value()));
+    return core::Result<std::size_t>::success(entries_.size() - 1U);
 }
 
 }  // namespace signallab::app

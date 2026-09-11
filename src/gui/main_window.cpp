@@ -15,6 +15,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTabWidget>
+#include <QTextEdit>
 #include <QTimer>
 #include <QVBoxLayout>
 #include <QWidget>
@@ -32,7 +33,6 @@
 #include "signallab/app/analysis_service.hpp"
 #include "signallab/app/display_downsampler.hpp"
 #include "signallab/core/error.hpp"
-#include "signallab/io/import_types.hpp"
 
 namespace {
 
@@ -41,7 +41,8 @@ std::filesystem::path toPath(const QString& text)
     return std::filesystem::path(text.toStdWString());
 }
 
-QString previewDescription(const signallab::io::ImportPreview& preview)
+QString previewDescription(
+    const signallab::repository::ImportPreview& preview)
 {
     QString description = QString("样本数：%1\n通道数：%2")
         .arg(static_cast<qulonglong>(preview.sampleCount))
@@ -74,13 +75,40 @@ QString previewDescription(const signallab::io::ImportPreview& preview)
     return description;
 }
 
+QString taskStatusText(signallab::repository::AnalysisTaskStatus status)
+{
+    using signallab::repository::AnalysisTaskStatus;
+
+    switch (status) {
+    case AnalysisTaskStatus::Pending:
+        return "等待中";
+    case AnalysisTaskStatus::Running:
+        return "运行中";
+    case AnalysisTaskStatus::Succeeded:
+        return "成功";
+    case AnalysisTaskStatus::Failed:
+        return "失败";
+    case AnalysisTaskStatus::Interrupted:
+        return "已中断";
+    }
+
+    return "未知";
+}
+
+QString textOrDash(const std::string& text)
+{
+    return text.empty() ? QString("—") : QString::fromStdString(text);
+}
+
 }  // namespace
 
 MainWindow::MainWindow(
     signallab::app::ImportService& importService,
+    signallab::app::AnalysisService& analysisService,
     QWidget* parent)
     : QMainWindow(parent),
       importService_(importService),
+      analysisService_(analysisService),
       signalList_(nullptr),
       nameValue_(nullptr),
       sampleRateValue_(nullptr),
@@ -95,7 +123,9 @@ MainWindow::MainWindow(
       thdValue_(nullptr),
       chartTabs_(nullptr),
       timeChartView_(nullptr),
-      spectrumChartView_(nullptr)
+      spectrumChartView_(nullptr),
+      historyList_(nullptr),
+      historyDetails_(nullptr)
 {
     setWindowTitle("SignalLab " SIGNALLAB_VERSION_STRING);
     resize(1080, 680);
@@ -156,6 +186,18 @@ MainWindow::MainWindow(
     spectrumChartView_->setRenderHint(QPainter::Antialiasing);
     chartTabs_->addTab(timeChartView_, "时域波形");
     chartTabs_->addTab(spectrumChartView_, "单边频谱");
+
+    auto* historyPage = new QWidget(chartTabs_);
+    auto* historyLayout = new QHBoxLayout(historyPage);
+    historyList_ = new QListWidget(historyPage);
+    historyList_->setMinimumWidth(300);
+    historyDetails_ = new QTextEdit(historyPage);
+    historyDetails_->setReadOnly(true);
+    historyDetails_->setPlaceholderText("选择左侧任务查看持久化详情");
+    historyLayout->addWidget(historyList_);
+    historyLayout->addWidget(historyDetails_, 1);
+    chartTabs_->addTab(historyPage, "历史任务");
+
     signalLayout->addWidget(chartTabs_);
     windowLayout->addLayout(signalLayout, 1);
 
@@ -185,8 +227,14 @@ MainWindow::MainWindow(
         &QPushButton::clicked,
         this,
         [this]() { analyzeSelectedSignal(); });
+    connect(
+        historyList_,
+        &QListWidget::currentRowChanged,
+        this,
+        [this](int row) { showHistoryTask(row); });
 
     refreshSignalList();
+    refreshHistory();
     if (!importService_.entries().empty()) {
         QTimer::singleShot(
             0,
@@ -207,7 +255,7 @@ void MainWindow::importCsv()
         return;
     }
 
-    signallab::io::CsvImportOptions options;
+    signallab::repository::CsvImportOptions options;
     bool accepted = false;
     const int defaultDelimiter =
         QFileInfo(fileName).suffix().compare("tsv", Qt::CaseInsensitive) == 0
@@ -225,8 +273,8 @@ void MainWindow::importCsv()
         return;
     }
     options.delimiter = delimiter.startsWith("制表符")
-        ? signallab::io::CsvDelimiter::Tab
-        : signallab::io::CsvDelimiter::Comma;
+        ? signallab::repository::CsvDelimiter::Tab
+        : signallab::repository::CsvDelimiter::Comma;
 
     const auto headerAnswer = QMessageBox::question(
         this,
@@ -353,7 +401,7 @@ void MainWindow::importWav()
         return;
     }
 
-    signallab::io::WavImportOptions options;
+    signallab::repository::WavImportOptions options;
     const QFileInfo fileInformation(fileName);
     options.metadata.name = fileInformation.completeBaseName().toStdString();
     options.metadata.unit = "幅值";
@@ -376,11 +424,11 @@ void MainWindow::importWav()
         }
 
         if (channel == "左声道") {
-            options.channel = signallab::io::StereoChannel::Left;
+            options.channel = signallab::repository::StereoChannel::Left;
         } else if (channel == "右声道") {
-            options.channel = signallab::io::StereoChannel::Right;
+            options.channel = signallab::repository::StereoChannel::Right;
         } else {
-            options.channel = signallab::io::StereoChannel::Average;
+            options.channel = signallab::repository::StereoChannel::Average;
         }
         selectedChannel = channel;
     }
@@ -430,9 +478,13 @@ void MainWindow::analyzeSelectedSignal()
         return;
     }
 
-    auto analysisResult = signallab::app::analyzeSignal(
-        entries[entryIndex].signal);
+    const auto& entry = entries[entryIndex];
+    signallab::app::AnalysisOptions options;
+    auto analysisResult = analysisService_.analyze(
+        entry.recordId,
+        options);
     if (!analysisResult) {
+        refreshHistory();
         QMessageBox::warning(
             this,
             "分析失败",
@@ -465,6 +517,7 @@ void MainWindow::analyzeSelectedSignal()
         : QString("不可计算"));
 
     showSpectrum(result.spectrum);
+    refreshHistory();
     chartTabs_->setCurrentWidget(spectrumChartView_);
     statusBar()->showMessage(
         QString("同步分析完成：FFT %1 点，检测到 %2 个峰值")
@@ -487,6 +540,97 @@ void MainWindow::clearAnalysis()
     QChart* oldChart = spectrumChartView_->chart();
     spectrumChartView_->setChart(chart);
     delete oldChart;
+}
+
+void MainWindow::refreshHistory()
+{
+    auto historyResult = analysisService_.history();
+
+    historyList_->clear();
+    historyTasks_.clear();
+
+    if (!historyResult) {
+        historyDetails_->setPlainText("无法读取历史任务。");
+        QMessageBox::warning(
+            this,
+            "历史任务读取失败",
+            QString::fromStdString(historyResult.error().message));
+        return;
+    }
+
+    historyTasks_ = historyResult.value();
+    for (const auto& task : historyTasks_) {
+        historyList_->addItem(
+            QString("#%1  [%2]  %3")
+                .arg(task.id)
+                .arg(taskStatusText(task.status))
+                .arg(QString::fromStdString(task.signalName)));
+    }
+
+    if (historyTasks_.empty()) {
+        historyDetails_->setPlainText("尚无分析任务。完成一次分析后，记录会显示在这里。");
+        return;
+    }
+
+    historyList_->setCurrentRow(0);
+}
+
+void MainWindow::showHistoryTask(int row)
+{
+    if (row < 0 || static_cast<std::size_t>(row) >= historyTasks_.size()) {
+        historyDetails_->clear();
+        return;
+    }
+
+    const auto& task = historyTasks_[static_cast<std::size_t>(row)];
+    auto featureResult = analysisService_.featureResults(task.id);
+    if (!featureResult) {
+        historyDetails_->setPlainText("无法读取此任务的特征结果。");
+        QMessageBox::warning(
+            this,
+            "分析结果读取失败",
+            QString::fromStdString(featureResult.error().message));
+        return;
+    }
+
+    QStringList lines;
+    lines << QString("任务 ID：%1").arg(task.id);
+    lines << "状态：" + taskStatusText(task.status);
+    lines << "信号：" + textOrDash(task.signalName);
+    lines << "算法：" + textOrDash(task.algorithmName);
+    lines << "算法版本：" + textOrDash(task.algorithmVersion);
+    lines << "参数 JSON：" + textOrDash(task.parametersJson);
+    lines << "输入哈希：" + textOrDash(task.inputHash);
+    lines << "输出哈希：" + textOrDash(task.outputHash);
+    lines << "创建时间 (UTC)：" + textOrDash(task.createdUtc);
+    lines << "开始时间 (UTC)：" + textOrDash(task.startedUtc);
+    lines << "完成时间 (UTC)：" + textOrDash(task.finishedUtc);
+    lines << "错误：" + textOrDash(task.errorMessage);
+    lines << "";
+    lines << "特征结果：";
+
+    if (featureResult.value().empty()) {
+        lines << "  （无）";
+    } else {
+        for (const auto& feature : featureResult.value()) {
+            QString value;
+            if (feature.numericValue.has_value()) {
+                value = QString::number(*feature.numericValue, 'g', 17);
+            } else {
+                value = textOrDash(feature.valueText);
+            }
+
+            const QString unit = feature.unit.empty()
+                ? QString()
+                : " " + QString::fromStdString(feature.unit);
+            lines << QString("  %1 = %2%3")
+                         .arg(QString::fromStdString(feature.name))
+                         .arg(value)
+                         .arg(unit);
+        }
+    }
+
+    historyDetails_->setPlainText(lines.join('\n'));
 }
 
 void MainWindow::refreshSignalList()
