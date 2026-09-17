@@ -1,11 +1,17 @@
 #include "signallab/io/filesystem_file_repository.hpp"
 
+#include <QByteArray>
+#include <QFile>
+#include <QIODevice>
+#include <QString>
+
 #include <atomic>
 #include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <limits>
 #include <optional>
+#include <stop_token>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -19,6 +25,7 @@ namespace signallab::io {
 namespace {
 
 std::atomic<std::uint64_t> snapshotCounter{0};
+constexpr qint64 fileBlockSize = 64 * 1024;
 
 core::Result<std::filesystem::path> resolveStoredPath(
     const std::filesystem::path& projectRoot,
@@ -33,12 +40,20 @@ public:
 
     ~TemporarySnapshotGuard()
     {
+        if (path_.empty()) {
+            return;
+        }
         std::error_code ignoredError;
         std::filesystem::remove(path_, ignoredError);
     }
 
     TemporarySnapshotGuard(const TemporarySnapshotGuard&) = delete;
     TemporarySnapshotGuard& operator=(const TemporarySnapshotGuard&) = delete;
+
+    void release()
+    {
+        path_.clear();
+    }
 
 private:
     std::filesystem::path path_;
@@ -107,10 +122,27 @@ core::Error storageError(
     };
 }
 
+template<typename T>
+core::Result<T> cancelledFileOperation(
+    const std::filesystem::path& sourcePath,
+    const std::string& operation)
+{
+    return core::Result<T>::failure(
+        core::ErrorCode::Cancelled,
+        operation + " was cancelled for " + sourcePath.generic_string());
+}
+
 core::Result<std::filesystem::path> createSourceSnapshot(
     const std::filesystem::path& projectRoot,
-    const std::filesystem::path& sourcePath)
+    const std::filesystem::path& sourcePath,
+    const std::stop_token& stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledFileOperation<std::filesystem::path>(
+            sourcePath,
+            "Source snapshot");
+    }
+
     std::error_code error;
     const bool sourceExists = std::filesystem::exists(sourcePath, error);
     if (error) {
@@ -158,6 +190,12 @@ core::Result<std::filesystem::path> createSourceSnapshot(
 
     constexpr int maximumAttempts = 10;
     for (int attempt = 0; attempt < maximumAttempts; ++attempt) {
+        if (stopToken.stop_requested()) {
+            return cancelledFileOperation<std::filesystem::path>(
+                sourcePath,
+                "Source snapshot");
+        }
+
         const auto timeValue = std::chrono::high_resolution_clock::now()
             .time_since_epoch()
             .count();
@@ -169,32 +207,96 @@ core::Result<std::filesystem::path> createSourceSnapshot(
         const std::filesystem::path snapshotPath =
             directory / (".signallab-import-" + uniquePart + ".tmp");
 
-        error.clear();
-        const bool copied = std::filesystem::copy_file(
-            sourcePath,
-            snapshotPath,
-            std::filesystem::copy_options::none,
-            error);
+        // NewOnly reserves the candidate without overwriting another
+        // importer's file. It is then reopened for a simple block copy.
+        QFile reservation(QString::fromStdWString(snapshotPath.wstring()));
+        if (!reservation.open(QIODevice::WriteOnly | QIODevice::NewOnly)) {
+            std::error_code existenceError;
+            const bool alreadyExists =
+                std::filesystem::exists(snapshotPath, existenceError);
+            if (!existenceError && alreadyExists) {
+                continue;
+            }
 
-        if (copied && !error) {
-            return core::Result<std::filesystem::path>::success(snapshotPath);
+            return core::Result<std::filesystem::path>::failure(
+                core::ErrorCode::FileWriteFailed,
+                "Cannot snapshot source file " + sourcePath.generic_string()
+                    + ": " + reservation.errorString().toStdString());
+        }
+        reservation.close();
+
+        TemporarySnapshotGuard snapshotGuard(snapshotPath);
+        QFile sourceFile(QString::fromStdWString(sourcePath.wstring()));
+        if (!sourceFile.open(QIODevice::ReadOnly)) {
+            return core::Result<std::filesystem::path>::failure(
+                core::ErrorCode::FileOpenFailed,
+                "Cannot read source file " + sourcePath.generic_string()
+                    + ": " + sourceFile.errorString().toStdString());
         }
 
-        if (error == std::make_error_code(std::errc::file_exists)
-            || (!copied && !error)) {
-            continue;
+        QFile snapshotFile(QString::fromStdWString(snapshotPath.wstring()));
+        if (!snapshotFile.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+            return core::Result<std::filesystem::path>::failure(
+                core::ErrorCode::FileWriteFailed,
+                "Cannot snapshot source file " + sourcePath.generic_string()
+                    + ": " + snapshotFile.errorString().toStdString());
         }
 
-        std::error_code cleanupError;
-        std::filesystem::remove(snapshotPath, cleanupError);
+        while (!sourceFile.atEnd()) {
+            if (stopToken.stop_requested()) {
+                return cancelledFileOperation<std::filesystem::path>(
+                    sourcePath,
+                    "Source snapshot");
+            }
 
-        const std::string details = error
-            ? error.message()
-            : "the snapshot could not be created";
-        return core::Result<std::filesystem::path>::failure(
-            core::ErrorCode::FileWriteFailed,
-            "Cannot snapshot source file " + sourcePath.generic_string()
-                + ": " + details);
+            const QByteArray block = sourceFile.read(fileBlockSize);
+            if (block.isEmpty()
+                && sourceFile.error() != QFileDevice::NoError) {
+                return core::Result<std::filesystem::path>::failure(
+                    core::ErrorCode::FileOpenFailed,
+                    "Cannot read source file " + sourcePath.generic_string()
+                        + ": " + sourceFile.errorString().toStdString());
+            }
+
+            if (stopToken.stop_requested()) {
+                return cancelledFileOperation<std::filesystem::path>(
+                    sourcePath,
+                    "Source snapshot");
+            }
+
+            if (snapshotFile.write(block) != block.size()) {
+                return core::Result<std::filesystem::path>::failure(
+                    core::ErrorCode::FileWriteFailed,
+                    "Cannot snapshot source file "
+                        + sourcePath.generic_string() + ": "
+                        + snapshotFile.errorString().toStdString());
+            }
+        }
+
+        if (sourceFile.error() != QFileDevice::NoError) {
+            return core::Result<std::filesystem::path>::failure(
+                core::ErrorCode::FileOpenFailed,
+                "Cannot finish reading source file "
+                    + sourcePath.generic_string() + ": "
+                    + sourceFile.errorString().toStdString());
+        }
+        if (!snapshotFile.flush()) {
+            return core::Result<std::filesystem::path>::failure(
+                core::ErrorCode::FileWriteFailed,
+                "Cannot finish snapshotting source file "
+                    + sourcePath.generic_string() + ": "
+                    + snapshotFile.errorString().toStdString());
+        }
+        if (stopToken.stop_requested()) {
+            return cancelledFileOperation<std::filesystem::path>(
+                sourcePath,
+                "Source snapshot");
+        }
+
+        snapshotFile.close();
+        sourceFile.close();
+        snapshotGuard.release();
+        return core::Result<std::filesystem::path>::success(snapshotPath);
     }
 
     return core::Result<std::filesystem::path>::failure(
@@ -340,8 +442,15 @@ core::Result<std::filesystem::path> resolveStoredPath(
 
 core::Result<bool> validateStoredPath(
     const std::filesystem::path& storedPath,
-    const std::string& expectedHash)
+    const std::string& expectedHash,
+    const std::stop_token& stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledFileOperation<bool>(
+            storedPath,
+            "Stored file validation");
+    }
+
     if (expectedHash.empty()) {
         return core::Result<bool>::failure(
             core::ErrorCode::InvalidParameter,
@@ -372,8 +481,11 @@ core::Result<bool> validateStoredPath(
                 + " (" + details + ")");
     }
 
-    auto storedHashResult = calculateSha256(storedPath);
+    auto storedHashResult = calculateSha256(storedPath, stopToken);
     if (!storedHashResult) {
+        if (storedHashResult.error().code == core::ErrorCode::Cancelled) {
+            return core::Result<bool>::failure(storedHashResult.error());
+        }
         return core::Result<bool>::failure(
             core::ErrorCode::FileWriteFailed,
             "Cannot validate stored import file "
@@ -406,8 +518,16 @@ bool hasContentAddressedName(
 core::Result<std::optional<std::filesystem::path>> findStoredFile(
     const std::filesystem::path& projectRoot,
     const std::filesystem::path& preferredRelativePath,
-    const std::string& hash)
+    const std::string& hash,
+    const std::stop_token& stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledFileOperation<
+            std::optional<std::filesystem::path>>(
+                preferredRelativePath,
+                "Stored file lookup");
+    }
+
     auto preferredPathResult = resolveStoredPath(
         projectRoot,
         preferredRelativePath);
@@ -418,7 +538,8 @@ core::Result<std::optional<std::filesystem::path>> findStoredFile(
 
     auto preferredValidation = validateStoredPath(
         preferredPathResult.value(),
-        hash);
+        hash,
+        stopToken);
     if (!preferredValidation) {
         return core::Result<std::optional<std::filesystem::path>>::failure(
             preferredValidation.error());
@@ -445,6 +566,13 @@ core::Result<std::optional<std::filesystem::path>> findStoredFile(
     const std::filesystem::directory_iterator end;
 
     while (!error && item != end) {
+        if (stopToken.stop_requested()) {
+            return cancelledFileOperation<
+                std::optional<std::filesystem::path>>(
+                    preferredRelativePath,
+                    "Stored file lookup");
+        }
+
         if (item->path() != preferredPathResult.value()
             && hasContentAddressedName(item->path(), hash)) {
             const std::filesystem::path candidateRelativePath =
@@ -462,7 +590,8 @@ core::Result<std::optional<std::filesystem::path>> findStoredFile(
 
             auto validationResult = validateStoredPath(
                 candidatePathResult.value(),
-                hash);
+                hash,
+                stopToken);
             if (!validationResult) {
                 return core::Result<
                     std::optional<std::filesystem::path>>::failure(
@@ -499,12 +628,14 @@ core::Result<repository::FileImport> storeOrReuseFile(
     std::filesystem::path preferredRelativePath,
     std::uint64_t byteSize,
     repository::SignalSourceType sourceType,
-    core::Signal signal)
+    core::Signal signal,
+    const std::stop_token& stopToken)
 {
     auto existingFileResult = findStoredFile(
         projectRoot,
         preferredRelativePath,
-        hash);
+        hash,
+        stopToken);
     if (!existingFileResult) {
         return core::Result<repository::FileImport>::failure(
             storedFileErrorForSource(
@@ -513,6 +644,11 @@ core::Result<repository::FileImport> storeOrReuseFile(
     }
 
     if (existingFileResult.value()) {
+        if (stopToken.stop_requested()) {
+            return cancelledFileOperation<repository::FileImport>(
+                sourcePath,
+                "File import");
+        }
         return core::Result<repository::FileImport>::success(
             repository::FileImport{
                 sourceType,
@@ -527,6 +663,14 @@ core::Result<repository::FileImport> storeOrReuseFile(
 
     const std::filesystem::path destinationPath =
         projectRoot / preferredRelativePath;
+    // This is the final cancellation point before the temporary snapshot is
+    // atomically promoted to a permanent content-addressed archive.
+    if (stopToken.stop_requested()) {
+        return cancelledFileOperation<repository::FileImport>(
+            sourcePath,
+            "File import");
+    }
+
     std::error_code error;
     std::filesystem::rename(snapshotPath, destinationPath, error);
     if (error) {
@@ -534,7 +678,8 @@ core::Result<repository::FileImport> storeOrReuseFile(
         auto racedFileResult = findStoredFile(
             projectRoot,
             preferredRelativePath,
-            hash);
+            hash,
+            stopToken);
         if (!racedFileResult) {
             return core::Result<repository::FileImport>::failure(
                 storedFileErrorForSource(
@@ -542,6 +687,11 @@ core::Result<repository::FileImport> storeOrReuseFile(
                     sourcePath));
         }
         if (racedFileResult.value()) {
+            if (stopToken.stop_requested()) {
+                return cancelledFileOperation<repository::FileImport>(
+                    sourcePath,
+                    "File import");
+            }
             return core::Result<repository::FileImport>::success(
                 repository::FileImport{
                     sourceType,
@@ -581,23 +731,29 @@ FilesystemFileRepository::FilesystemFileRepository(
 core::Result<repository::ImportPreview>
 FilesystemFileRepository::previewCsv(
     const std::filesystem::path& sourcePath,
-    const repository::CsvImportOptions& options) const
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken) const
 {
-    return io::previewCsv(sourcePath, options);
+    return io::previewCsv(sourcePath, options, 5, stopToken);
 }
 
 core::Result<repository::ImportPreview>
 FilesystemFileRepository::previewWav(
-    const std::filesystem::path& sourcePath) const
+    const std::filesystem::path& sourcePath,
+    std::stop_token stopToken) const
 {
-    return io::previewWav(sourcePath);
+    return io::previewWav(sourcePath, 5, stopToken);
 }
 
 core::Result<repository::FileImport> FilesystemFileRepository::importCsv(
     const std::filesystem::path& sourcePath,
-    const repository::CsvImportOptions& options)
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken)
 {
-    auto snapshotResult = createSourceSnapshot(projectRoot_, sourcePath);
+    auto snapshotResult = createSourceSnapshot(
+        projectRoot_,
+        sourcePath,
+        stopToken);
     if (!snapshotResult) {
         return core::Result<repository::FileImport>::failure(
             snapshotResult.error());
@@ -607,7 +763,7 @@ core::Result<repository::FileImport> FilesystemFileRepository::importCsv(
         std::move(snapshotResult).value();
     const TemporarySnapshotGuard snapshotGuard(snapshotPath);
 
-    auto hashResult = calculateSha256(snapshotPath);
+    auto hashResult = calculateSha256(snapshotPath, stopToken);
     if (!hashResult) {
         return core::Result<repository::FileImport>::failure(
             sourceFacingError(
@@ -622,7 +778,7 @@ core::Result<repository::FileImport> FilesystemFileRepository::importCsv(
             sizeResult.error());
     }
 
-    auto signalResult = readCsv(snapshotPath, options);
+    auto signalResult = readCsv(snapshotPath, options, stopToken);
     if (!signalResult) {
         return core::Result<repository::FileImport>::failure(
             sourceFacingError(
@@ -642,14 +798,19 @@ core::Result<repository::FileImport> FilesystemFileRepository::importCsv(
         std::move(storedRelativePath),
         sizeResult.value(),
         repository::SignalSourceType::Csv,
-        std::move(signalResult).value());
+        std::move(signalResult).value(),
+        stopToken);
 }
 
 core::Result<repository::FileImport> FilesystemFileRepository::importWav(
     const std::filesystem::path& sourcePath,
-    const repository::WavImportOptions& options)
+    const repository::WavImportOptions& options,
+    std::stop_token stopToken)
 {
-    auto snapshotResult = createSourceSnapshot(projectRoot_, sourcePath);
+    auto snapshotResult = createSourceSnapshot(
+        projectRoot_,
+        sourcePath,
+        stopToken);
     if (!snapshotResult) {
         return core::Result<repository::FileImport>::failure(
             snapshotResult.error());
@@ -659,7 +820,7 @@ core::Result<repository::FileImport> FilesystemFileRepository::importWav(
         std::move(snapshotResult).value();
     const TemporarySnapshotGuard snapshotGuard(snapshotPath);
 
-    auto hashResult = calculateSha256(snapshotPath);
+    auto hashResult = calculateSha256(snapshotPath, stopToken);
     if (!hashResult) {
         return core::Result<repository::FileImport>::failure(
             sourceFacingError(
@@ -674,7 +835,7 @@ core::Result<repository::FileImport> FilesystemFileRepository::importWav(
             sizeResult.error());
     }
 
-    auto signalResult = readWav(snapshotPath, options);
+    auto signalResult = readWav(snapshotPath, options, stopToken);
     if (!signalResult) {
         return core::Result<repository::FileImport>::failure(
             sourceFacingError(
@@ -694,24 +855,42 @@ core::Result<repository::FileImport> FilesystemFileRepository::importWav(
         std::move(storedRelativePath),
         sizeResult.value(),
         repository::SignalSourceType::Wav,
-        std::move(signalResult).value());
+        std::move(signalResult).value(),
+        stopToken);
 }
 
 core::Result<bool> FilesystemFileRepository::validateStoredFile(
     const std::filesystem::path& storedRelativePath,
-    const std::string& expectedHash) const
+    const std::string& expectedHash,
+    std::stop_token stopToken) const
 {
+    if (stopToken.stop_requested()) {
+        return cancelledFileOperation<bool>(
+            storedRelativePath,
+            "Stored file validation");
+    }
+
     auto pathResult = resolveStoredPath(projectRoot_, storedRelativePath);
     if (!pathResult) {
         return core::Result<bool>::failure(pathResult.error());
     }
 
-    return validateStoredPath(pathResult.value(), expectedHash);
+    return validateStoredPath(
+        pathResult.value(),
+        expectedHash,
+        stopToken);
 }
 
 core::Result<bool> FilesystemFileRepository::removeStoredFile(
-    const std::filesystem::path& storedRelativePath)
+    const std::filesystem::path& storedRelativePath,
+    std::stop_token stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledFileOperation<bool>(
+            storedRelativePath,
+            "Stored file removal");
+    }
+
     auto pathResult = resolveStoredPath(projectRoot_, storedRelativePath);
     if (!pathResult) {
         return core::Result<bool>::failure(pathResult.error());
@@ -740,6 +919,12 @@ core::Result<bool> FilesystemFileRepository::removeStoredFile(
             core::ErrorCode::FileWriteFailed,
             "Cannot remove stored import " + storedPath.generic_string()
                 + ": " + details);
+    }
+
+    if (stopToken.stop_requested()) {
+        return cancelledFileOperation<bool>(
+            storedRelativePath,
+            "Stored file removal");
     }
 
     const bool removed = std::filesystem::remove(storedPath, error);

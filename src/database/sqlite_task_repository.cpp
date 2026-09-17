@@ -60,6 +60,9 @@ std::optional<repository::AnalysisTaskStatus> statusFromText(
     if (text == "INTERRUPTED") {
         return repository::AnalysisTaskStatus::Interrupted;
     }
+    if (text == "CANCELLED") {
+        return repository::AnalysisTaskStatus::Cancelled;
+    }
     return std::nullopt;
 }
 
@@ -276,7 +279,7 @@ core::Result<std::int64_t> SqliteTaskRepository::createTask(
             "signal_record_id, signal_name, status, algorithm_name, "
             "algorithm_version, parameters_json, input_hash, output_hash, "
             "created_utc, started_utc, finished_utc, error_message"
-            ") VALUES (?, ?, 'RUNNING', ?, ?, ?, ?, '', ?, ?, '', '')")) {
+            ") VALUES (?, ?, 'PENDING', ?, ?, ?, ?, '', ?, '', '', '')")) {
         const auto failure = detail::queryFailure(
             "Cannot prepare the task insert", insert);
         rollbackFailure(database, failure.error());
@@ -292,7 +295,6 @@ core::Result<std::int64_t> SqliteTaskRepository::createTask(
     insert.addBindValue(QString::fromStdString(task.algorithmVersion));
     insert.addBindValue(QString::fromStdString(task.parametersJson));
     insert.addBindValue(QString::fromStdString(task.inputHash));
-    insert.addBindValue(now);
     insert.addBindValue(now);
     if (!insert.exec()) {
         const auto failure = detail::queryFailure(
@@ -320,6 +322,63 @@ core::Result<std::int64_t> SqliteTaskRepository::createTask(
         return core::Result<std::int64_t>::failure(failure.error());
     }
     return core::Result<std::int64_t>::success(taskId);
+}
+
+core::Result<bool> SqliteTaskRepository::startTask(std::int64_t taskId)
+{
+    const auto threadCheck = connection_.checkThread();
+    if (!threadCheck) {
+        return threadCheck;
+    }
+    if (taskId <= 0) {
+        return core::Result<bool>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The task id must be positive.");
+    }
+
+    QSqlDatabase database = connection_.database();
+    if (!database.transaction()) {
+        return detail::databaseFailure(
+            "Cannot begin the task start transaction", database);
+    }
+
+    QSqlQuery update(database);
+    if (!update.prepare(
+            "UPDATE analysis_task SET status = 'RUNNING', started_utc = ?, "
+            "finished_utc = '', error_message = '', output_hash = '' "
+            "WHERE id = ? AND status = 'PENDING'")) {
+        const auto failure = detail::queryFailure(
+            "Cannot prepare the task start", update);
+        return rollbackFailure(database, failure.error());
+    }
+    update.addBindValue(detail::utcNow());
+    update.addBindValue(taskId);
+    if (!update.exec()) {
+        const auto failure = detail::queryFailure(
+            "Cannot start the analysis task", update);
+        return rollbackFailure(database, failure.error());
+    }
+    if (update.numRowsAffected() == 0) {
+        database.rollback();
+        return core::Result<bool>::success(false);
+    }
+
+    const auto log = detail::writeOperationLog(
+        database,
+        "START_TASK",
+        "analysis_task",
+        taskId,
+        QString::fromLatin1(""));
+    if (!log) {
+        return rollbackFailure(database, log.error());
+    }
+    if (!database.commit()) {
+        const auto failure = detail::databaseFailure(
+            "Cannot commit the task start transaction", database);
+        database.rollback();
+        return failure;
+    }
+    return core::Result<bool>::success(true);
 }
 
 core::Result<std::string> SqliteTaskRepository::completeTask(
@@ -528,6 +587,85 @@ core::Result<bool> SqliteTaskRepository::failTask(
     return core::Result<bool>::success(true);
 }
 
+core::Result<bool> SqliteTaskRepository::cancelTask(
+    std::int64_t taskId,
+    const std::string& reason)
+{
+    const auto threadCheck = connection_.checkThread();
+    if (!threadCheck) {
+        return threadCheck;
+    }
+    if (taskId <= 0) {
+        return core::Result<bool>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The task id must be positive.");
+    }
+
+    QString reasonText = QString::fromStdString(reason);
+    if (reasonText.isNull()) {
+        reasonText = QString::fromLatin1("");
+    }
+
+    QSqlDatabase database = connection_.database();
+    if (!database.transaction()) {
+        return detail::databaseFailure(
+            "Cannot begin the task cancellation transaction", database);
+    }
+
+    QSqlQuery update(database);
+    if (!update.prepare(
+            "UPDATE analysis_task SET status = 'CANCELLED', "
+            "finished_utc = ?, error_message = ?, output_hash = '' "
+            "WHERE id = ? AND status IN ('PENDING', 'RUNNING')")) {
+        const auto failure = detail::queryFailure(
+            "Cannot prepare the task cancellation", update);
+        return rollbackFailure(database, failure.error());
+    }
+    update.addBindValue(detail::utcNow());
+    update.addBindValue(reasonText);
+    update.addBindValue(taskId);
+    if (!update.exec()) {
+        const auto failure = detail::queryFailure(
+            "Cannot cancel the analysis task", update);
+        return rollbackFailure(database, failure.error());
+    }
+    if (update.numRowsAffected() == 0) {
+        database.rollback();
+        return core::Result<bool>::success(false);
+    }
+
+    QSqlQuery removeFeatures(database);
+    if (!removeFeatures.prepare(
+            "DELETE FROM feature_result WHERE task_id = ?")) {
+        const auto failure = detail::queryFailure(
+            "Cannot prepare cancelled feature cleanup", removeFeatures);
+        return rollbackFailure(database, failure.error());
+    }
+    removeFeatures.addBindValue(taskId);
+    if (!removeFeatures.exec()) {
+        const auto failure = detail::queryFailure(
+            "Cannot clean cancelled task features", removeFeatures);
+        return rollbackFailure(database, failure.error());
+    }
+
+    const auto log = detail::writeOperationLog(
+        database,
+        "CANCEL_TASK",
+        "analysis_task",
+        taskId,
+        reasonText);
+    if (!log) {
+        return rollbackFailure(database, log.error());
+    }
+    if (!database.commit()) {
+        const auto failure = detail::databaseFailure(
+            "Cannot commit the task cancellation transaction", database);
+        database.rollback();
+        return failure;
+    }
+    return core::Result<bool>::success(true);
+}
+
 core::Result<std::size_t> SqliteTaskRepository::interruptRunningTasks()
 {
     const auto threadCheck = connection_.checkThread();
@@ -542,12 +680,30 @@ core::Result<std::size_t> SqliteTaskRepository::interruptRunningTasks()
         return core::Result<std::size_t>::failure(failure.error());
     }
 
+    QSqlQuery removeFeatures(database);
+    if (!removeFeatures.prepare(
+            "DELETE FROM feature_result WHERE task_id IN ("
+            "SELECT id FROM analysis_task "
+            "WHERE status IN ('PENDING', 'RUNNING'))")) {
+        const auto failure = detail::queryFailure(
+            "Cannot prepare interrupted feature cleanup", removeFeatures);
+        rollbackFailure(database, failure.error());
+        return core::Result<std::size_t>::failure(failure.error());
+    }
+    if (!removeFeatures.exec()) {
+        const auto failure = detail::queryFailure(
+            "Cannot clean interrupted task features", removeFeatures);
+        rollbackFailure(database, failure.error());
+        return core::Result<std::size_t>::failure(failure.error());
+    }
+
     QSqlQuery update(database);
     if (!update.prepare(
             "UPDATE analysis_task SET status = 'INTERRUPTED', "
-            "finished_utc = ?, error_message = ? WHERE status = 'RUNNING'")) {
+            "finished_utc = ?, error_message = ?, output_hash = '' "
+            "WHERE status IN ('PENDING', 'RUNNING')")) {
         const auto failure = detail::queryFailure(
-            "Cannot prepare the running task interruption", update);
+            "Cannot prepare unfinished task interruption", update);
         rollbackFailure(database, failure.error());
         return core::Result<std::size_t>::failure(failure.error());
     }
@@ -556,7 +712,7 @@ core::Result<std::size_t> SqliteTaskRepository::interruptRunningTasks()
         QString("The application stopped before this task completed."));
     if (!update.exec()) {
         const auto failure = detail::queryFailure(
-            "Cannot interrupt running tasks", update);
+            "Cannot interrupt unfinished tasks", update);
         rollbackFailure(database, failure.error());
         return core::Result<std::size_t>::failure(failure.error());
     }

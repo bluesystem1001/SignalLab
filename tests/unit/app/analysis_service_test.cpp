@@ -121,7 +121,11 @@ TEST(AnalysisServiceTest, PersistsSuccessFailureAndHistoryAcrossRestart)
     const std::filesystem::path migrationsDirectory =
         std::filesystem::path(SIGNALLAB_SOURCE_DIR) / "migrations";
     std::string inputHash;
+    std::string persistedParametersJson;
+    std::string persistedAlgorithmVersion;
     std::int64_t signalRecordId = 0;
+    std::int64_t successfulTaskId = 0;
+    std::size_t successfulFeatureCount = 0;
 
     {
         signallab::database::DatabaseConnection database(databasePath);
@@ -170,10 +174,14 @@ TEST(AnalysisServiceTest, PersistsSuccessFailureAndHistoryAcrossRestart)
         EXPECT_NE(
             successfulTask.algorithmVersion.find("fft="),
             std::string::npos);
+        successfulTaskId = successfulTask.id;
+        persistedParametersJson = successfulTask.parametersJson;
+        persistedAlgorithmVersion = successfulTask.algorithmVersion;
 
         const auto featureResult = service.featureResults(successfulTask.id);
         ASSERT_TRUE(featureResult);
-        EXPECT_GE(featureResult.value().size(), 7U);
+        ASSERT_GE(featureResult.value().size(), 7U);
+        successfulFeatureCount = featureResult.value().size();
 
         signallab::app::AnalysisOptions invalidOptions;
         invalidOptions.maximumPeakCount = 0;
@@ -207,8 +215,23 @@ TEST(AnalysisServiceTest, PersistsSuccessFailureAndHistoryAcrossRestart)
         const auto historyResult = restartedService.history();
         ASSERT_TRUE(historyResult);
         ASSERT_EQ(historyResult.value().size(), 2U);
-        EXPECT_EQ(historyResult.value().back().inputHash, inputHash);
-        EXPECT_EQ(historyResult.value().back().outputHash.size(), 64U);
+        const auto& restoredSuccessfulTask = historyResult.value().back();
+        EXPECT_EQ(restoredSuccessfulTask.id, successfulTaskId);
+        EXPECT_EQ(restoredSuccessfulTask.inputHash, inputHash);
+        EXPECT_EQ(restoredSuccessfulTask.outputHash.size(), 64U);
+        EXPECT_EQ(
+            restoredSuccessfulTask.parametersJson,
+            persistedParametersJson);
+        EXPECT_EQ(
+            restoredSuccessfulTask.algorithmVersion,
+            persistedAlgorithmVersion);
+
+        const auto restoredFeatures = restartedService.featureResults(
+            successfulTaskId);
+        ASSERT_TRUE(restoredFeatures);
+        EXPECT_EQ(
+            restoredFeatures.value().size(),
+            successfulFeatureCount);
     }
 
     std::error_code ignoredError;

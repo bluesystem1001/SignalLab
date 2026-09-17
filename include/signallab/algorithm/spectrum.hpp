@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <span>
+#include <stop_token>
 #include <string_view>
 #include <vector>
 
@@ -29,10 +30,12 @@ inline constexpr std::string_view kSpectrumVersion = "spectrum-one-sided/1.0.0";
 [[nodiscard]] core::Result<Spectrum> computeSpectrum(
     std::span<const double> samples,
     double sampleRate,
-    WindowType windowType = WindowType::Hann);
+    WindowType windowType = WindowType::Hann,
+    std::stop_token stopToken = {});
 
 [[nodiscard]] core::Result<Spectrum> computeSpectrum(
     const core::Signal& signal,
-    WindowType windowType = WindowType::Hann);
+    WindowType windowType = WindowType::Hann,
+    std::stop_token stopToken = {});
 
 }  // namespace signallab::algorithm

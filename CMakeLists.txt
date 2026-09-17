@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     SignalLab
-    VERSION 0.4.0
+    VERSION 0.5.0
     LANGUAGES CXX
 )
 
@@ -83,6 +83,25 @@ target_compile_features(signallab_algorithm PUBLIC cxx_std_20)
 target_link_libraries(signallab_algorithm PUBLIC signallab_core)
 signallab_set_compiler_warnings(signallab_algorithm)
 
+add_library(signallab_task STATIC
+    include/signallab/task/scheduler.hpp
+    include/signallab/task/task.hpp
+    include/signallab/task/task_queue.hpp
+    include/signallab/task/thread_pool.hpp
+    src/task/scheduler.cpp
+    src/task/task_queue.cpp
+    src/task/thread_pool.cpp
+)
+
+target_include_directories(signallab_task
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+
+target_compile_features(signallab_task PUBLIC cxx_std_20)
+target_link_libraries(signallab_task PUBLIC signallab_core)
+signallab_set_compiler_warnings(signallab_task)
+
 add_library(signallab_io STATIC
     include/signallab/io/csv_reader.hpp
     include/signallab/io/filesystem_file_repository.hpp
@@ -111,11 +130,13 @@ signallab_set_compiler_warnings(signallab_io)
 
 add_library(signallab_database STATIC
     include/signallab/database/database_connection.hpp
+    include/signallab/database/database_executor.hpp
     include/signallab/database/migration_runner.hpp
     include/signallab/database/sqlite_script_repository.hpp
     include/signallab/database/sqlite_signal_repository.hpp
     include/signallab/database/sqlite_task_repository.hpp
     src/database/database_connection.cpp
+    src/database/database_executor.cpp
     src/database/migration_runner.cpp
     src/database/sqlite_script_repository.cpp
     src/database/sqlite_signal_repository.cpp
@@ -138,9 +159,13 @@ signallab_set_compiler_warnings(signallab_database)
 
 add_library(signallab_app STATIC
     include/signallab/app/analysis_service.hpp
+    include/signallab/app/background_analysis_service.hpp
+    include/signallab/app/background_file_service.hpp
     include/signallab/app/display_downsampler.hpp
     include/signallab/app/import_service.hpp
     src/app/analysis_service.cpp
+    src/app/background_analysis_service.cpp
+    src/app/background_file_service.cpp
     src/app/display_downsampler.cpp
     src/app/import_service.cpp
 )
@@ -156,6 +181,7 @@ target_link_libraries(signallab_app
         signallab_core
         signallab_algorithm
         signallab_repository
+        signallab_task
 )
 signallab_set_compiler_warnings(signallab_app)
 

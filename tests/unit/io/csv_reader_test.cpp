@@ -5,14 +5,19 @@
 #include <cstddef>
 #include <filesystem>
 #include <fstream>
+#include <future>
 #include <iomanip>
 #include <sstream>
+#include <stop_token>
 #include <stdexcept>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <utility>
 
 #include "signallab/io/csv_reader.hpp"
+#include "signallab/io/filesystem_file_repository.hpp"
+#include "signallab/io/hash_service.hpp"
 
 namespace signallab::io {
 namespace {
@@ -64,6 +69,66 @@ private:
     inline static std::atomic<unsigned int> nextId_{0};
     std::filesystem::path path_;
 };
+
+class TemporaryDirectory {
+public:
+    TemporaryDirectory()
+    {
+        const auto timestamp = std::chrono::high_resolution_clock::now()
+            .time_since_epoch()
+            .count();
+        path_ = std::filesystem::temp_directory_path()
+            / ("signallab_csv_cancel_test_" + std::to_string(timestamp));
+        std::filesystem::create_directories(path_);
+    }
+
+    ~TemporaryDirectory()
+    {
+        std::error_code ignoredError;
+        std::filesystem::remove_all(path_, ignoredError);
+    }
+
+    TemporaryDirectory(const TemporaryDirectory&) = delete;
+    TemporaryDirectory& operator=(const TemporaryDirectory&) = delete;
+
+    [[nodiscard]] const std::filesystem::path& path() const noexcept
+    {
+        return path_;
+    }
+
+private:
+    std::filesystem::path path_;
+};
+
+bool hasTemporarySnapshot(const std::filesystem::path& projectRoot)
+{
+    const std::filesystem::path importsDirectory =
+        projectRoot / "data" / "imports";
+    std::error_code error;
+    std::filesystem::directory_iterator item(importsDirectory, error);
+    const std::filesystem::directory_iterator end;
+
+    while (!error && item != end) {
+        if (item->path().filename().string().ends_with(".tmp")) {
+            return true;
+        }
+        item.increment(error);
+    }
+
+    return false;
+}
+
+bool importsDirectoryIsEmpty(const std::filesystem::path& projectRoot)
+{
+    const std::filesystem::path importsDirectory =
+        projectRoot / "data" / "imports";
+    std::error_code error;
+    const bool exists = std::filesystem::exists(importsDirectory, error);
+    if (error || !exists) {
+        return !error;
+    }
+    return std::filesystem::is_empty(importsDirectory, error) && !error;
+}
 
 void expectLocation(
     const core::Error& error,
@@ -271,6 +336,91 @@ TEST(CsvReaderTest, RejectsAHeaderWithoutSampleRows)
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code, core::ErrorCode::InvalidCsv);
     expectLocation(result.error(), file.path(), 2, 1);
+}
+
+TEST(CsvReaderTest, HonorsAPreRequestedCancellation)
+{
+    const TemporaryCsvFile file(
+        "time,value\n"
+        "0.000,1.0\n"
+        "0.001,2.0\n");
+    CsvImportOptions options;
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto previewResult = previewCsv(
+        file.path(),
+        options,
+        5,
+        stopSource.get_token());
+    const auto readResult = readCsv(
+        file.path(),
+        options,
+        stopSource.get_token());
+    const auto hashResult = calculateSha256(
+        file.path(),
+        stopSource.get_token());
+
+    ASSERT_FALSE(previewResult.hasValue());
+    EXPECT_EQ(previewResult.error().code, core::ErrorCode::Cancelled);
+    ASSERT_FALSE(readResult.hasValue());
+    EXPECT_EQ(readResult.error().code, core::ErrorCode::Cancelled);
+    ASSERT_FALSE(hashResult.hasValue());
+    EXPECT_EQ(hashResult.error().code, core::ErrorCode::Cancelled);
+}
+
+TEST(FilesystemFileRepositoryTest, CancelsAnImportAndRemovesItsSnapshot)
+{
+    std::string contents = "value\n";
+    contents.reserve(10'000'000U);
+    for (std::size_t row = 0; row < 500'000U; ++row) {
+        contents += "1.234567890123456789\n";
+    }
+
+    const TemporaryCsvFile file(contents);
+    const TemporaryDirectory project;
+    FilesystemFileRepository fileRepository(project.path());
+    CsvImportOptions options;
+    options.valueColumn = 0;
+    options.timeColumn.reset();
+
+    std::promise<core::Result<repository::FileImport>> resultPromise;
+    std::future<core::Result<repository::FileImport>> resultFuture =
+        resultPromise.get_future();
+    std::jthread worker(
+        [&](std::stop_token stopToken) {
+            resultPromise.set_value(fileRepository.importCsv(
+                file.path(),
+                options,
+                stopToken));
+        });
+
+    bool sawTemporarySnapshot = false;
+    const auto observationDeadline =
+        std::chrono::steady_clock::now() + std::chrono::seconds(2);
+    while (std::chrono::steady_clock::now() < observationDeadline) {
+        if (hasTemporarySnapshot(project.path())) {
+            sawTemporarySnapshot = true;
+            break;
+        }
+        if (resultFuture.wait_for(std::chrono::milliseconds(0))
+            == std::future_status::ready) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+
+    worker.request_stop();
+    ASSERT_EQ(
+        resultFuture.wait_for(std::chrono::milliseconds(500)),
+        std::future_status::ready);
+    const auto result = resultFuture.get();
+    worker.join();
+
+    EXPECT_TRUE(sawTemporarySnapshot);
+    ASSERT_FALSE(result.hasValue());
+    EXPECT_EQ(result.error().code, core::ErrorCode::Cancelled);
+    EXPECT_TRUE(importsDirectoryIsEmpty(project.path()));
 }
 
 }  // namespace

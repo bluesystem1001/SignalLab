@@ -100,6 +100,21 @@ Debug build and CTest: PASS, 127/127 tests
 Release build and CTest: PASS, 127/127 tests
 Debug GUI two-start persistence check: PASS, SQLite integrity OK
 
+STAGE 5 MILESTONE RECHECK
+-------------------------
+Date: 2026-09-17
+GCC: 16.1.0
+Qt: 6.11.1
+GoogleTest: 1.17.0
+Git: 2.54.0
+Bundled GDB: 16.3
+CMake: 4.2.2
+Ninja: 1.13.2
+Complete pacman package comparison: PASS, 167/167 entries unchanged
+Debug build and CTest: PASS, 164/164 tests
+Release build and CTest: PASS, 164/164 tests
+Debug GUI background-analysis smoke check: PASS, SQLite integrity OK
+
 COMPLETE `pacman -Q` OUTPUT
 ---------------------------
 base 2022.06-1

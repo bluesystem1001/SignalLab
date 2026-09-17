@@ -153,12 +153,36 @@ std::vector<repository::FeatureValue> makeFeatureValues(
     return values;
 }
 
+core::Result<AnalysisResult> cancelledAnalysis()
+{
+    return core::Result<AnalysisResult>::failure(
+        core::ErrorCode::Cancelled,
+        "The analysis was cancelled.");
+}
+
+void reportProgress(
+    const AnalysisProgressCallback& callback,
+    int percent,
+    std::string message)
+{
+    if (callback) {
+        callback(percent, std::move(message));
+    }
+}
+
 }  // namespace
 
 core::Result<AnalysisResult> analyzeSignal(
     const core::Signal& signal,
-    const AnalysisOptions& options)
+    const AnalysisOptions& options,
+    std::stop_token stopToken,
+    AnalysisProgressCallback progressCallback)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
+    }
+    reportProgress(progressCallback, 0, "Checking analysis options");
+
     if (!std::isfinite(options.minimumPeakAmplitudeRatio)
         || options.minimumPeakAmplitudeRatio < 0.0
         || options.minimumPeakAmplitudeRatio > 1.0) {
@@ -191,20 +215,33 @@ core::Result<AnalysisResult> analyzeSignal(
         return core::Result<AnalysisResult>::failure(
             featuresResult.error());
     }
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
+    }
+    reportProgress(progressCallback, 15, "Calculated time-domain features");
 
     auto centeredSignalResult = algorithm::removeDc(signal);
     if (!centeredSignalResult) {
         return core::Result<AnalysisResult>::failure(
             centeredSignalResult.error());
     }
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
+    }
+    reportProgress(progressCallback, 25, "Removed the DC component");
 
     auto spectrumResult = algorithm::computeSpectrum(
         centeredSignalResult.value(),
-        options.windowType);
+        options.windowType,
+        stopToken);
     if (!spectrumResult) {
         return core::Result<AnalysisResult>::failure(
             spectrumResult.error());
     }
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
+    }
+    reportProgress(progressCallback, 75, "Calculated the spectrum");
 
     algorithm::Spectrum spectrum = std::move(spectrumResult).value();
     if (spectrum.powers.size() >= 2
@@ -218,6 +255,9 @@ core::Result<AnalysisResult> analyzeSignal(
     for (std::size_t index = 1;
          index < spectrum.amplitudes.size();
          ++index) {
+        if ((index % 4096U) == 0U && stopToken.stop_requested()) {
+            return cancelledAnalysis();
+        }
         largestAmplitude = std::max(
             largestAmplitude,
             spectrum.amplitudes[index]);
@@ -238,6 +278,10 @@ core::Result<AnalysisResult> analyzeSignal(
         }
         peaks = std::move(peaksResult).value();
     }
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
+    }
+    reportProgress(progressCallback, 88, "Detected spectrum peaks");
 
     std::optional<algorithm::SpectrumPeak> dominantPeak;
     if (!peaks.empty()) {
@@ -271,6 +315,11 @@ core::Result<AnalysisResult> analyzeSignal(
         }
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
+    }
+    reportProgress(progressCallback, 100, "Analysis complete");
+
     return core::Result<AnalysisResult>::success(AnalysisResult{
         std::move(featuresResult).value(),
         std::move(spectrum),
@@ -296,13 +345,23 @@ core::Result<std::size_t> AnalysisService::interruptRunningTasks()
 
 core::Result<AnalysisResult> AnalysisService::analyze(
     std::int64_t signalRecordId,
-    const AnalysisOptions& options)
+    const AnalysisOptions& options,
+    std::stop_token stopToken,
+    AnalysisProgressCallback progressCallback)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
+    }
+
     auto storedSignalResult = signalRepository_.findByRecordId(
-        signalRecordId);
+        signalRecordId,
+        stopToken);
     if (!storedSignalResult) {
         return core::Result<AnalysisResult>::failure(
             storedSignalResult.error());
+    }
+    if (stopToken.stop_requested()) {
+        return cancelledAnalysis();
     }
     if (!storedSignalResult.value().has_value()) {
         return core::Result<AnalysisResult>::failure(
@@ -325,7 +384,7 @@ core::Result<AnalysisResult> AnalysisService::analyze(
     const repository::AnalysisTaskStart taskStart{
         storedSignal.recordId,
         signalName,
-        "synchronous-analysis",
+        "signal-analysis",
         analysisAlgorithmVersion(),
         analysisParametersJson(options),
         storedSignal.sampleHash
@@ -337,20 +396,58 @@ core::Result<AnalysisResult> AnalysisService::analyze(
     }
     const std::int64_t taskId = taskIdResult.value();
 
-    auto analysisResult = analyzeSignal(storedSignal.signal, options);
+    auto markCancelled = [this, taskId]() {
+        return taskRepository_.cancelTask(
+            taskId,
+            "The user cancelled this analysis.");
+    };
+
+    if (stopToken.stop_requested()) {
+        auto cancelResult = markCancelled();
+        if (!cancelResult) {
+            return core::Result<AnalysisResult>::failure(
+                cancelResult.error());
+        }
+        return cancelledAnalysis();
+    }
+
+    auto startResult = taskRepository_.startTask(taskId);
+    if (!startResult) {
+        return core::Result<AnalysisResult>::failure(startResult.error());
+    }
+    if (!startResult.value()) {
+        return core::Result<AnalysisResult>::failure(
+            core::ErrorCode::DatabaseQueryFailed,
+            "The pending analysis task could not be marked RUNNING.");
+    }
+
+    auto scaledProgress = [progressCallback](
+                              int percent,
+                              std::string message) {
+        if (progressCallback) {
+            progressCallback(
+                std::clamp(percent * 95 / 100, 0, 95),
+                std::move(message));
+        }
+    };
+    auto analysisResult = analyzeSignal(
+        storedSignal.signal,
+        options,
+        stopToken,
+        scaledProgress);
     if (!analysisResult) {
         const core::Error algorithmError = analysisResult.error();
-        auto failResult = taskRepository_.failTask(
-            taskId,
-            algorithmError.message);
-        if (!failResult) {
+        auto terminalResult = algorithmError.code == core::ErrorCode::Cancelled
+            ? markCancelled()
+            : taskRepository_.failTask(taskId, algorithmError.message);
+        if (!terminalResult) {
             return core::Result<AnalysisResult>::failure(
-                failResult.error());
+                terminalResult.error());
         }
-        if (!failResult.value()) {
+        if (!terminalResult.value()) {
             return core::Result<AnalysisResult>::failure(
                 core::ErrorCode::DatabaseQueryFailed,
-                "The failed analysis task could not be marked FAILED.");
+                "The analysis task could not enter its terminal state.");
         }
         return core::Result<AnalysisResult>::failure(algorithmError);
     }
@@ -358,11 +455,22 @@ core::Result<AnalysisResult> AnalysisService::analyze(
     const auto values = makeFeatureValues(
         analysisResult.value(),
         storedSignal.signal);
+    if (stopToken.stop_requested()) {
+        auto cancelResult = markCancelled();
+        if (!cancelResult) {
+            return core::Result<AnalysisResult>::failure(
+                cancelResult.error());
+        }
+        return cancelledAnalysis();
+    }
+
     auto completionResult = taskRepository_.completeTask(taskId, values);
     if (!completionResult) {
         return core::Result<AnalysisResult>::failure(
             completionResult.error());
     }
+
+    reportProgress(progressCallback, 100, "Analysis saved");
 
     return analysisResult;
 }

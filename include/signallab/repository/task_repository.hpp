@@ -15,7 +15,8 @@ enum class AnalysisTaskStatus {
     Running,
     Succeeded,
     Failed,
-    Interrupted
+    Interrupted,
+    Cancelled
 };
 
 struct AnalysisTaskStart {
@@ -65,6 +66,11 @@ public:
     [[nodiscard]] virtual core::Result<std::int64_t> createTask(
         const AnalysisTaskStart& task) = 0;
 
+    // Starts one queued task. Returns false when the task is no longer
+    // PENDING, so competing start/cancel requests have one clear winner.
+    [[nodiscard]] virtual core::Result<bool> startTask(
+        std::int64_t taskId) = 0;
+
     // Stores all feature rows and marks the task SUCCEEDED in one transaction.
     // If any row fails, implementations must roll back and mark the task FAILED.
     [[nodiscard]] virtual core::Result<std::string> completeTask(
@@ -75,6 +81,13 @@ public:
         std::int64_t taskId,
         const std::string& errorMessage) = 0;
 
+    // Cancels a queued or running task and removes any unfinished features.
+    [[nodiscard]] virtual core::Result<bool> cancelTask(
+        std::int64_t taskId,
+        const std::string& reason) = 0;
+
+    // Kept under its stage-4 name for source compatibility. Stage 5 also
+    // interrupts PENDING tasks left behind by an abnormal exit.
     [[nodiscard]] virtual core::Result<std::size_t> interruptRunningTasks() = 0;
 
     [[nodiscard]] virtual core::Result<std::vector<AnalysisTaskRecord>>

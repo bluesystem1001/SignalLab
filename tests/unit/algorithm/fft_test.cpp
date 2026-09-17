@@ -1,10 +1,14 @@
 #include "signallab/algorithm/fft.hpp"
 
+#include <chrono>
 #include <complex>
 #include <cstddef>
+#include <future>
 #include <limits>
+#include <stop_token>
 #include <string>
 #include <string_view>
+#include <thread>
 #include <vector>
 
 #include <gtest/gtest.h>
@@ -129,6 +133,51 @@ TEST(Radix2FftTest, RejectsArithmeticOverflow)
     ASSERT_FALSE(result.hasValue());
     EXPECT_EQ(result.error().code, core::ErrorCode::InvalidParameter);
     EXPECT_NE(result.error().message.find("output"), std::string::npos);
+}
+
+TEST(Radix2FftTest, HonorsAPreRequestedCancellation)
+{
+    const std::vector<std::complex<double>> input(8, {1.0, 0.0});
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto result = radix2Fft(input, stopSource.get_token());
+
+    ASSERT_FALSE(result.hasValue());
+    EXPECT_EQ(result.error().code, core::ErrorCode::Cancelled);
+}
+
+TEST(Radix2FftTest, NoticesCancellationDuringALargeTransform)
+{
+    using namespace std::chrono_literals;
+
+    constexpr std::size_t sampleCount = std::size_t{1} << 22U;
+    const std::vector<std::complex<double>> input(
+        sampleCount,
+        {1.0, 0.0});
+    std::stop_source stopSource;
+    std::promise<void> enteredPromise;
+    auto entered = enteredPromise.get_future();
+    std::promise<core::Result<std::vector<std::complex<double>>>>
+        resultPromise;
+    auto completion = resultPromise.get_future();
+
+    std::jthread worker([&]() {
+        enteredPromise.set_value();
+        resultPromise.set_value(radix2Fft(input, stopSource.get_token()));
+    });
+
+    ASSERT_EQ(entered.wait_for(1s), std::future_status::ready);
+    std::this_thread::sleep_for(10ms);
+    const auto requestedAt = std::chrono::steady_clock::now();
+    stopSource.request_stop();
+
+    ASSERT_EQ(completion.wait_for(200ms), std::future_status::ready);
+    const auto observedAt = std::chrono::steady_clock::now();
+    const auto result = completion.get();
+    ASSERT_FALSE(result.hasValue());
+    EXPECT_EQ(result.error().code, core::ErrorCode::Cancelled);
+    EXPECT_LT(observedAt - requestedAt, 200ms);
 }
 
 TEST(Radix2FftTest, PublishesAlgorithmVersion)

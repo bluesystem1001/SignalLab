@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <filesystem>
 #include <optional>
+#include <stop_token>
 #include <string>
 #include <vector>
 
@@ -57,7 +58,9 @@ public:
     findBySourceKey(const std::string& sourceKey) = 0;
 
     [[nodiscard]] virtual core::Result<std::optional<StoredSignal>>
-    findByRecordId(std::int64_t recordId) = 0;
+    findByRecordId(
+        std::int64_t recordId,
+        std::stop_token stopToken = {}) = 0;
 
     [[nodiscard]] virtual core::Result<std::optional<StoredSignal>>
     findByFileHash(const std::string& fileHash) = 0;

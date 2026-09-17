@@ -57,7 +57,11 @@ inline core::Result<bool> writeOperationLog(
     query.addBindValue(operation);
     query.addBindValue(entityType);
     query.addBindValue(entityId);
-    query.addBindValue(detail);
+    // A default-constructed QString is null and Qt binds it as SQL NULL.
+    // operation_log.detail is NOT NULL, so normalize that useful "no detail"
+    // value to an ordinary empty TEXT value.
+    query.addBindValue(
+        detail.isNull() ? QString::fromLatin1("") : detail);
     query.addBindValue(utcNow());
 
     if (!query.exec()) {

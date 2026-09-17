@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <optional>
 #include <string>
+#include <stop_token>
 #include <vector>
 
 #include "signallab/core/result.hpp"
@@ -70,25 +71,31 @@ public:
 
     [[nodiscard]] virtual core::Result<ImportPreview> previewCsv(
         const std::filesystem::path& sourcePath,
-        const CsvImportOptions& options) const = 0;
+        const CsvImportOptions& options,
+        std::stop_token stopToken = {}) const = 0;
 
     [[nodiscard]] virtual core::Result<ImportPreview> previewWav(
-        const std::filesystem::path& sourcePath) const = 0;
+        const std::filesystem::path& sourcePath,
+        std::stop_token stopToken = {}) const = 0;
 
     [[nodiscard]] virtual core::Result<FileImport> importCsv(
         const std::filesystem::path& sourcePath,
-        const CsvImportOptions& options) = 0;
+        const CsvImportOptions& options,
+        std::stop_token stopToken = {}) = 0;
 
     [[nodiscard]] virtual core::Result<FileImport> importWav(
         const std::filesystem::path& sourcePath,
-        const WavImportOptions& options) = 0;
+        const WavImportOptions& options,
+        std::stop_token stopToken = {}) = 0;
 
     [[nodiscard]] virtual core::Result<bool> validateStoredFile(
         const std::filesystem::path& storedRelativePath,
-        const std::string& expectedHash) const = 0;
+        const std::string& expectedHash,
+        std::stop_token stopToken = {}) const = 0;
 
     [[nodiscard]] virtual core::Result<bool> removeStoredFile(
-        const std::filesystem::path& storedRelativePath) = 0;
+        const std::filesystem::path& storedRelativePath,
+        std::stop_token stopToken = {}) = 0;
 };
 
 }  // namespace signallab::repository

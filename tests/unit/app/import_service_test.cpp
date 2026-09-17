@@ -123,7 +123,7 @@ public:
 
     signallab::core::Result<
         std::optional<signallab::repository::StoredSignal>>
-    findByRecordId(std::int64_t) override
+    findByRecordId(std::int64_t, std::stop_token) override
     {
         return signallab::core::Result<
             std::optional<signallab::repository::StoredSignal>>::success(

@@ -9,13 +9,13 @@
 
 #include "main_window.hpp"
 #include "signallab/app/analysis_service.hpp"
+#include "signallab/app/background_analysis_service.hpp"
+#include "signallab/app/background_file_service.hpp"
 #include "signallab/app/import_service.hpp"
 #include "signallab/core/signal_generator.hpp"
-#include "signallab/database/database_connection.hpp"
-#include "signallab/database/migration_runner.hpp"
-#include "signallab/database/sqlite_signal_repository.hpp"
-#include "signallab/database/sqlite_task_repository.hpp"
+#include "signallab/database/database_executor.hpp"
 #include "signallab/io/filesystem_file_repository.hpp"
+#include "signallab/task/scheduler.hpp"
 
 namespace {
 
@@ -58,30 +58,22 @@ int main(int argc, char* argv[])
     QApplication application(argc, argv);
     const std::filesystem::path projectRoot = findProjectRoot();
 
-    signallab::database::DatabaseConnection database(
-        projectRoot / "data" / "signallab.sqlite3");
-    auto openResult = database.open();
-    if (!openResult) {
-        showStartupError(openResult.error().message);
+    signallab::database::DatabaseExecutor databaseExecutor(
+        projectRoot / "data" / "signallab.sqlite3",
+        projectRoot / "migrations");
+    auto databaseStartResult = databaseExecutor.start();
+    if (!databaseStartResult) {
+        showStartupError(databaseStartResult.error().message);
         return 1;
     }
 
-    signallab::database::MigrationRunner migrationRunner(database);
-    auto migrationResult = migrationRunner.run(projectRoot / "migrations");
-    if (!migrationResult) {
-        showStartupError(migrationResult.error().message);
-        return 1;
-    }
-
-    signallab::database::SqliteSignalRepository signalRepository(database);
-    signallab::database::SqliteTaskRepository taskRepository(database);
     signallab::io::FilesystemFileRepository fileRepository(projectRoot);
     signallab::app::ImportService importService(
         fileRepository,
-        signalRepository);
+        databaseExecutor);
     signallab::app::AnalysisService analysisService(
-        taskRepository,
-        signalRepository);
+        databaseExecutor,
+        databaseExecutor);
 
     auto interruptionResult = analysisService.interruptRunningTasks();
     if (!interruptionResult) {
@@ -119,8 +111,38 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    MainWindow mainWindow(importService, analysisService);
+    signallab::task::Scheduler scheduler;
+    signallab::app::BackgroundAnalysisService backgroundAnalysisService(
+        analysisService,
+        scheduler);
+    signallab::app::BackgroundFileService backgroundFileService(
+        importService,
+        scheduler);
+
+    MainWindow mainWindow(
+        importService,
+        analysisService,
+        backgroundFileService,
+        backgroundAnalysisService,
+        scheduler);
     mainWindow.show();
 
-    return application.exec();
+    const int applicationResult = application.exec();
+
+    // Fixed shutdown order: stop cross-thread UI notifications, cancel and
+    // join task workers, drain/close SQLite on its owner thread, then allow
+    // the stack-owned services and window to be destroyed.
+    backgroundFileService.clearEventNotifier();
+    backgroundAnalysisService.clearEventNotifier();
+    scheduler.shutdownAndWait();
+    const auto databaseShutdownResult = databaseExecutor.shutdown();
+    if (!databaseShutdownResult) {
+        QMessageBox::critical(
+            &mainWindow,
+            "SignalLab 关闭失败",
+            QString::fromStdString(databaseShutdownResult.error().message));
+        return 1;
+    }
+
+    return applicationResult;
 }

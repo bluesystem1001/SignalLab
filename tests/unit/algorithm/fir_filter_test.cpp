@@ -1,9 +1,13 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <chrono>
+#include <future>
 #include <limits>
 #include <numeric>
 #include <span>
+#include <stop_token>
+#include <thread>
 #include <utility>
 #include <vector>
 
@@ -151,6 +155,54 @@ TEST(FirFilterTest, RejectsInvalidApplicationParameters)
     EXPECT_EQ(
         unknownBoundaryResult.error().code,
         core::ErrorCode::InvalidParameter);
+}
+
+TEST(FirFilterTest, HonorsAPreRequestedCancellation)
+{
+    const core::Signal signal = makeTestSignal({1.0, 2.0, 3.0});
+    const std::vector<double> coefficients{0.25, 0.5, 0.25};
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto result = applyFir(
+        signal,
+        coefficients,
+        FirBoundaryStrategy::ZeroPadding,
+        stopSource.get_token());
+
+    ASSERT_FALSE(result.hasValue());
+    EXPECT_EQ(result.error().code, core::ErrorCode::Cancelled);
+}
+
+TEST(FirFilterTest, NoticesCancellationWhileFiltering)
+{
+    const core::Signal signal = makeTestSignal(
+        std::vector<double>(200'000U, 1.0));
+    const std::vector<double> coefficients(1023U, 1.0 / 1023.0);
+    std::promise<core::Result<core::Signal>> resultPromise;
+    std::future<core::Result<core::Signal>> resultFuture =
+        resultPromise.get_future();
+
+    std::jthread worker(
+        [&](std::stop_token stopToken) {
+            resultPromise.set_value(applyFir(
+                signal,
+                coefficients,
+                FirBoundaryStrategy::ZeroPadding,
+                stopToken));
+        });
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    worker.request_stop();
+
+    ASSERT_EQ(
+        resultFuture.wait_for(std::chrono::milliseconds(200)),
+        std::future_status::ready);
+    const auto result = resultFuture.get();
+    worker.join();
+
+    ASSERT_FALSE(result.hasValue());
+    EXPECT_EQ(result.error().code, core::ErrorCode::Cancelled);
 }
 
 }  // namespace

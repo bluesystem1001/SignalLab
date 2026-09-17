@@ -4,6 +4,7 @@
 #include <cctype>
 #include <cmath>
 #include <fstream>
+#include <stop_token>
 #include <string>
 #include <system_error>
 #include <utility>
@@ -30,6 +31,8 @@ struct TimeValidationState {
     double averageInterval{0.0};
 };
 
+constexpr std::size_t fileBlockSize = 64U * 1024U;
+
 std::string errorMessage(
     const std::filesystem::path& path,
     std::size_t row,
@@ -42,14 +45,33 @@ std::string errorMessage(
         + "): " + detail;
 }
 
-bool isBlankLine(const std::string& line)
+template<typename T>
+core::Result<T> cancelledCsv(
+    const std::filesystem::path& path,
+    std::size_t row)
 {
-    return std::all_of(
-        line.begin(),
-        line.end(),
-        [](unsigned char character) {
-            return std::isspace(character) != 0;
-        });
+    return core::Result<T>::failure(
+        core::ErrorCode::Cancelled,
+        errorMessage(path, row, 1, "CSV reading was cancelled."));
+}
+
+core::Result<bool> isBlankLine(
+    const std::string& line,
+    const std::filesystem::path& path,
+    std::size_t row,
+    const std::stop_token& stopToken)
+{
+    for (std::size_t index = 0; index < line.size(); ++index) {
+        if (index % fileBlockSize == 0U
+            && stopToken.stop_requested()) {
+            return cancelledCsv<bool>(path, row);
+        }
+        if (std::isspace(static_cast<unsigned char>(line[index])) == 0) {
+            return core::Result<bool>::success(false);
+        }
+    }
+
+    return core::Result<bool>::success(true);
 }
 
 std::string trim(const std::string& text)
@@ -88,7 +110,8 @@ core::Result<std::vector<std::string>> parseLine(
     const std::string& line,
     char delimiter,
     const std::filesystem::path& path,
-    std::size_t row)
+    std::size_t row,
+    const std::stop_token& stopToken)
 {
     std::vector<std::string> fields;
     std::string field;
@@ -97,6 +120,11 @@ core::Result<std::vector<std::string>> parseLine(
     std::size_t column = 1;
 
     for (std::size_t index = 0; index < line.size(); ++index) {
+        if (index % fileBlockSize == 0U
+            && stopToken.stop_requested()) {
+            return cancelledCsv<std::vector<std::string>>(path, row);
+        }
+
         const char character = line[index];
 
         if (insideQuotes) {
@@ -338,8 +366,13 @@ core::Result<ParsedCsv> parseCsv(
     const std::filesystem::path& path,
     const repository::CsvImportOptions& options,
     bool keepSamples,
-    std::size_t previewRowLimit)
+    std::size_t previewRowLimit,
+    std::stop_token stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledCsv<ParsedCsv>(path, 1);
+    }
+
     std::error_code fileSystemError;
     const bool fileExists = std::filesystem::exists(path, fileSystemError);
 
@@ -374,6 +407,12 @@ core::Result<ParsedCsv> parseCsv(
     while (std::getline(input, line)) {
         ++lineNumber;
 
+        // A CSV row is the natural file-processing block. parseLine also
+        // checks every 64 KiB so unusually long rows stay cancellable.
+        if (stopToken.stop_requested()) {
+            return cancelledCsv<ParsedCsv>(path, lineNumber);
+        }
+
         if (!line.empty() && line.back() == '\r') {
             line.pop_back();
         }
@@ -382,11 +421,25 @@ core::Result<ParsedCsv> parseCsv(
             line.erase(0, 3);
         }
 
-        if (isBlankLine(line)) {
+        auto blankLineResult = isBlankLine(
+            line,
+            path,
+            lineNumber,
+            stopToken);
+        if (!blankLineResult) {
+            return core::Result<ParsedCsv>::failure(
+                blankLineResult.error());
+        }
+        if (blankLineResult.value()) {
             continue;
         }
 
-        auto fieldsResult = parseLine(line, delimiter, path, lineNumber);
+        auto fieldsResult = parseLine(
+            line,
+            delimiter,
+            path,
+            lineNumber,
+            stopToken);
         if (!fieldsResult) {
             return core::Result<ParsedCsv>::failure(fieldsResult.error());
         }
@@ -478,6 +531,10 @@ core::Result<ParsedCsv> parseCsv(
         ++parsed.sampleCount;
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledCsv<ParsedCsv>(path, lineNumber + 1U);
+    }
+
     if (input.bad()) {
         return core::Result<ParsedCsv>::failure(
             core::ErrorCode::FileOpenFailed,
@@ -521,9 +578,15 @@ core::Result<ParsedCsv> parseCsv(
 core::Result<repository::ImportPreview> previewCsv(
     const std::filesystem::path& path,
     const repository::CsvImportOptions& options,
-    std::size_t maxRows)
+    std::size_t maxRows,
+    std::stop_token stopToken)
 {
-    auto parsedResult = parseCsv(path, options, false, maxRows);
+    auto parsedResult = parseCsv(
+        path,
+        options,
+        false,
+        maxRows,
+        stopToken);
     if (!parsedResult) {
         return core::Result<repository::ImportPreview>::failure(
             parsedResult.error());
@@ -548,9 +611,10 @@ core::Result<repository::ImportPreview> previewCsv(
 
 core::Result<core::Signal> readCsv(
     const std::filesystem::path& path,
-    const repository::CsvImportOptions& options)
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken)
 {
-    auto parsedResult = parseCsv(path, options, true, 0);
+    auto parsedResult = parseCsv(path, options, true, 0, stopToken);
     if (!parsedResult) {
         return core::Result<core::Signal>::failure(parsedResult.error());
     }

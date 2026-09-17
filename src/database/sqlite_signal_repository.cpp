@@ -1,6 +1,7 @@
 #include "signallab/database/sqlite_signal_repository.hpp"
 
 #include <QByteArray>
+#include <QByteArrayView>
 #include <QCryptographicHash>
 #include <QMetaType>
 #include <QSqlDatabase>
@@ -9,11 +10,13 @@
 #include <QString>
 #include <QVariant>
 
+#include <algorithm>
 #include <bit>
 #include <cstddef>
 #include <cstdint>
 #include <limits>
 #include <optional>
+#include <stop_token>
 #include <string>
 #include <utility>
 #include <vector>
@@ -109,9 +112,10 @@ core::Result<QByteArray> encodeSamples(std::span<const double> samples)
     return core::Result<QByteArray>::success(std::move(bytes));
 }
 
-std::string hashSignalInput(
+core::Result<std::string> hashSignalInput(
     double sampleRate,
-    const QByteArray& sampleBytes)
+    const QByteArray& sampleBytes,
+    std::stop_token stopToken = {})
 {
     QByteArray sampleRateBytes;
     sampleRateBytes.reserve(static_cast<qsizetype>(sizeof(double)));
@@ -123,13 +127,35 @@ std::string hashSignalInput(
 
     QCryptographicHash hash(QCryptographicHash::Sha256);
     hash.addData(sampleRateBytes);
-    hash.addData(sampleBytes);
-    return hash.result().toHex().toStdString();
+
+    constexpr qsizetype hashBlockSize = 64 * 1024;
+    for (qsizetype offset = 0; offset < sampleBytes.size();) {
+        if (stopToken.stop_requested()) {
+            return core::Result<std::string>::failure(
+                core::ErrorCode::Cancelled,
+                "The stored signal lookup was cancelled.");
+        }
+        const qsizetype blockSize = std::min(
+            hashBlockSize,
+            sampleBytes.size() - offset);
+        hash.addData(QByteArrayView(
+            sampleBytes.constData() + offset,
+            blockSize));
+        offset += blockSize;
+    }
+    if (stopToken.stop_requested()) {
+        return core::Result<std::string>::failure(
+            core::ErrorCode::Cancelled,
+            "The stored signal lookup was cancelled.");
+    }
+    return core::Result<std::string>::success(
+        hash.result().toHex().toStdString());
 }
 
 core::Result<std::vector<double>> decodeSamples(
     const QByteArray& bytes,
-    std::int64_t sampleCount)
+    std::int64_t sampleCount,
+    std::stop_token stopToken = {})
 {
     if (sampleCount <= 0) {
         return core::Result<std::vector<double>>::failure(
@@ -150,6 +176,11 @@ core::Result<std::vector<double>> decodeSamples(
     std::vector<double> samples;
     samples.reserve(static_cast<std::size_t>(sampleCount));
     for (std::int64_t index = 0; index < sampleCount; ++index) {
+        if (index % 4096 == 0 && stopToken.stop_requested()) {
+            return core::Result<std::vector<double>>::failure(
+                core::ErrorCode::Cancelled,
+                "The stored signal lookup was cancelled.");
+        }
         std::uint64_t bits = 0;
         for (unsigned int byteIndex = 0; byteIndex < 8; ++byteIndex) {
             const auto offset = static_cast<qsizetype>(
@@ -163,8 +194,15 @@ core::Result<std::vector<double>> decodeSamples(
 }
 
 core::Result<repository::StoredSignal> storedSignalFromRow(
-    const QSqlQuery& query)
+    const QSqlQuery& query,
+    std::stop_token stopToken = {})
 {
+    if (stopToken.stop_requested()) {
+        return core::Result<repository::StoredSignal>::failure(
+            core::ErrorCode::Cancelled,
+            "The stored signal lookup was cancelled.");
+    }
+
     const auto sourceType = sourceTypeFromText(query.value(2).toString());
     if (!sourceType.has_value()) {
         return core::Result<repository::StoredSignal>::failure(
@@ -175,16 +213,34 @@ core::Result<repository::StoredSignal> storedSignalFromRow(
     const QByteArray blob = query.value(11).toByteArray();
     const std::string storedHash = query.value(7).toString().toStdString();
     const double sampleRate = query.value(9).toDouble();
-    if (hashSignalInput(sampleRate, blob) != storedHash) {
+    auto actualHash = hashSignalInput(sampleRate, blob, stopToken);
+    if (!actualHash) {
+        return core::Result<repository::StoredSignal>::failure(
+            actualHash.error());
+    }
+    if (actualHash.value() != storedHash) {
         return core::Result<repository::StoredSignal>::failure(
             core::ErrorCode::DatabaseQueryFailed,
             "A stored signal failed its SHA-256 integrity check.");
     }
+    if (stopToken.stop_requested()) {
+        return core::Result<repository::StoredSignal>::failure(
+            core::ErrorCode::Cancelled,
+            "The stored signal lookup was cancelled.");
+    }
 
-    const auto samples = decodeSamples(blob, query.value(10).toLongLong());
+    auto samples = decodeSamples(
+        blob,
+        query.value(10).toLongLong(),
+        stopToken);
     if (!samples) {
         return core::Result<repository::StoredSignal>::failure(
             samples.error());
+    }
+    if (stopToken.stop_requested()) {
+        return core::Result<repository::StoredSignal>::failure(
+            core::ErrorCode::Cancelled,
+            "The stored signal lookup was cancelled.");
     }
 
     core::SignalMetadata metadata{
@@ -192,7 +248,7 @@ core::Result<repository::StoredSignal> storedSignalFromRow(
         query.value(13).toString().toStdString(),
         query.value(14).toString().toStdString()};
     auto signal = core::Signal::create(
-        samples.value(), sampleRate, std::move(metadata));
+        std::move(samples).value(), sampleRate, std::move(metadata));
     if (!signal) {
         return core::Result<repository::StoredSignal>::failure(
             core::ErrorCode::DatabaseQueryFailed,
@@ -290,9 +346,14 @@ core::Result<repository::StoredSignal> SqliteSignalRepository::saveSignal(
             encoded.error());
     }
     const QByteArray sampleBlob = encoded.value();
-    const std::string sampleHash = hashSignalInput(
+    auto sampleHashResult = hashSignalInput(
         registration.signal.sampleRate(),
         sampleBlob);
+    if (!sampleHashResult) {
+        return core::Result<repository::StoredSignal>::failure(
+            sampleHashResult.error());
+    }
+    const std::string sampleHash = std::move(sampleHashResult).value();
 
     QSqlDatabase database = connection_.database();
     if (!database.transaction()) {
@@ -495,7 +556,9 @@ SqliteSignalRepository::findBySourceKey(const std::string& sourceKey)
 }
 
 core::Result<std::optional<repository::StoredSignal>>
-SqliteSignalRepository::findByRecordId(std::int64_t recordId)
+SqliteSignalRepository::findByRecordId(
+    std::int64_t recordId,
+    std::stop_token stopToken)
 {
     const auto threadCheck = connection_.checkThread();
     if (!threadCheck) {
@@ -506,6 +569,11 @@ SqliteSignalRepository::findByRecordId(std::int64_t recordId)
         return core::Result<std::optional<repository::StoredSignal>>::failure(
             core::ErrorCode::InvalidParameter,
             "The signal record id must be positive.");
+    }
+    if (stopToken.stop_requested()) {
+        return core::Result<std::optional<repository::StoredSignal>>::failure(
+            core::ErrorCode::Cancelled,
+            "The stored signal lookup was cancelled.");
     }
 
     QSqlQuery query(connection_.database());
@@ -524,12 +592,17 @@ SqliteSignalRepository::findByRecordId(std::int64_t recordId)
         return core::Result<std::optional<repository::StoredSignal>>::failure(
             failure.error());
     }
+    if (stopToken.stop_requested()) {
+        return core::Result<std::optional<repository::StoredSignal>>::failure(
+            core::ErrorCode::Cancelled,
+            "The stored signal lookup was cancelled.");
+    }
     if (!query.next()) {
         return core::Result<std::optional<repository::StoredSignal>>::success(
             std::nullopt);
     }
 
-    auto stored = storedSignalFromRow(query);
+    auto stored = storedSignalFromRow(query, stopToken);
     if (!stored) {
         return core::Result<std::optional<repository::StoredSignal>>::failure(
             stored.error());

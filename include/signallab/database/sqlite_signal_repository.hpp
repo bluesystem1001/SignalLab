@@ -16,7 +16,9 @@ public:
     findBySourceKey(const std::string& sourceKey) override;
 
     [[nodiscard]] core::Result<std::optional<repository::StoredSignal>>
-    findByRecordId(std::int64_t recordId) override;
+    findByRecordId(
+        std::int64_t recordId,
+        std::stop_token stopToken = {}) override;
 
     [[nodiscard]] core::Result<std::optional<repository::StoredSignal>>
     findByFileHash(const std::string& fileHash) override;

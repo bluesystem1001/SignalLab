@@ -15,6 +15,7 @@
       },
       "cacheVariables": {
         "CMAKE_CXX_COMPILER": "E:/MSYS2/mingw64/bin/g++.exe",
+        "CMAKE_CXX_SCAN_FOR_MODULES": "OFF",
         "CMAKE_MAKE_PROGRAM": "E:/CLion/CLion 2026.1.4/bin/ninja/win/x64/ninja.exe",
         "CMAKE_PREFIX_PATH": "E:/MSYS2/mingw64",
         "CMAKE_EXPORT_COMPILE_COMMANDS": "ON"

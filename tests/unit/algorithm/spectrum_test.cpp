@@ -6,6 +6,7 @@
 #include <limits>
 #include <numbers>
 #include <numeric>
+#include <stop_token>
 #include <string_view>
 #include <vector>
 
@@ -188,6 +189,22 @@ TEST(SpectrumTest, RejectsAFrequencyAxisThatCannotBeRepresented)
 
     ASSERT_FALSE(result.hasValue());
     EXPECT_EQ(result.error().code, core::ErrorCode::InvalidParameter);
+}
+
+TEST(SpectrumTest, PassesAPreRequestedCancellationToTheFft)
+{
+    const std::vector<double> samples(8U, 1.0);
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto result = computeSpectrum(
+        samples,
+        1'000.0,
+        WindowType::Hann,
+        stopSource.get_token());
+
+    ASSERT_FALSE(result.hasValue());
+    EXPECT_EQ(result.error().code, core::ErrorCode::Cancelled);
 }
 
 TEST(SpectrumTest, PublishesAlgorithmVersion)

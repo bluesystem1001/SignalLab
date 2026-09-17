@@ -3,6 +3,8 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <mutex>
+#include <stop_token>
 #include <string>
 #include <vector>
 
@@ -45,29 +47,53 @@ public:
 
     [[nodiscard]] core::Result<repository::ImportPreview> previewCsv(
         const std::filesystem::path& sourcePath,
-        const repository::CsvImportOptions& options) const;
+        const repository::CsvImportOptions& options,
+        std::stop_token stopToken = {}) const;
 
     [[nodiscard]] core::Result<repository::ImportPreview> previewWav(
-        const std::filesystem::path& sourcePath) const;
+        const std::filesystem::path& sourcePath,
+        std::stop_token stopToken = {}) const;
 
     [[nodiscard]] core::Result<std::size_t> importCsv(
         const std::filesystem::path& sourcePath,
-        const repository::CsvImportOptions& options);
+        const repository::CsvImportOptions& options,
+        std::stop_token stopToken = {});
 
     [[nodiscard]] core::Result<std::size_t> importWav(
         const std::filesystem::path& sourcePath,
-        const repository::WavImportOptions& options);
+        const repository::WavImportOptions& options,
+        std::stop_token stopToken = {});
+
+    // These two functions do the slow file and database work without changing
+    // entries(). A background worker can call them safely, then hand the
+    // returned entry to acceptImportedSignal() on the UI thread.
+    [[nodiscard]] core::Result<SignalEntry> loadCsv(
+        const std::filesystem::path& sourcePath,
+        const repository::CsvImportOptions& options,
+        std::stop_token stopToken = {});
+
+    [[nodiscard]] core::Result<SignalEntry> loadWav(
+        const std::filesystem::path& sourcePath,
+        const repository::WavImportOptions& options,
+        std::stop_token stopToken = {});
+
+    [[nodiscard]] std::size_t acceptImportedSignal(SignalEntry entry);
 
     [[nodiscard]] const std::vector<SignalEntry>& entries() const noexcept;
 
 private:
-    [[nodiscard]] core::Result<std::size_t> registerImportedSignal(
+    [[nodiscard]] core::Result<SignalEntry> registerImportedSignal(
         repository::FileImport fileImport,
         std::string parametersJson,
-        std::string logicalOptionsJson);
+        std::string logicalOptionsJson,
+        std::stop_token stopToken);
 
     repository::FileRepository& fileRepository_;
     repository::SignalRepository& signalRepository_;
+    // The archive promotion and database registration form one compensated
+    // operation. Serializing imports prevents two I/O workers from deleting
+    // an archive that the other worker is about to register.
+    std::mutex importMutex_;
     std::vector<SignalEntry> entries_;
 };
 

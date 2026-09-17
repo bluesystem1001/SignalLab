@@ -193,13 +193,13 @@ std::string importedSourceKey(
         + "|options-json:" + std::string(logicalOptionsJson);
 }
 
-core::Result<std::size_t> duplicateFileError(
+core::Error duplicateFileError(
     const std::filesystem::path& sourcePath)
 {
-    return core::Result<std::size_t>::failure(
+    return core::Error{
         core::ErrorCode::DuplicateFile,
         "This file has already been imported: "
-            + sourcePath.generic_string());
+            + sourcePath.generic_string()};
 }
 
 }  // namespace
@@ -296,45 +296,99 @@ core::Result<std::size_t> ImportService::addGeneratedSignal(
 
 core::Result<repository::ImportPreview> ImportService::previewCsv(
     const std::filesystem::path& sourcePath,
-    const repository::CsvImportOptions& options) const
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken) const
 {
-    return fileRepository_.previewCsv(sourcePath, options);
+    return fileRepository_.previewCsv(sourcePath, options, stopToken);
 }
 
 core::Result<repository::ImportPreview> ImportService::previewWav(
-    const std::filesystem::path& sourcePath) const
+    const std::filesystem::path& sourcePath,
+    std::stop_token stopToken) const
 {
-    return fileRepository_.previewWav(sourcePath);
+    return fileRepository_.previewWav(sourcePath, stopToken);
 }
 
 core::Result<std::size_t> ImportService::importCsv(
     const std::filesystem::path& sourcePath,
-    const repository::CsvImportOptions& options)
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken)
 {
-    auto fileImportResult = fileRepository_.importCsv(sourcePath, options);
+    auto loadResult = loadCsv(sourcePath, options, stopToken);
+    if (!loadResult) {
+        return core::Result<std::size_t>::failure(loadResult.error());
+    }
+
+    return core::Result<std::size_t>::success(
+        acceptImportedSignal(std::move(loadResult).value()));
+}
+
+core::Result<std::size_t> ImportService::importWav(
+    const std::filesystem::path& sourcePath,
+    const repository::WavImportOptions& options,
+    std::stop_token stopToken)
+{
+    auto loadResult = loadWav(sourcePath, options, stopToken);
+    if (!loadResult) {
+        return core::Result<std::size_t>::failure(loadResult.error());
+    }
+
+    return core::Result<std::size_t>::success(
+        acceptImportedSignal(std::move(loadResult).value()));
+}
+
+core::Result<SignalEntry> ImportService::loadCsv(
+    const std::filesystem::path& sourcePath,
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken)
+{
+    std::lock_guard importLock(importMutex_);
+    auto fileImportResult = fileRepository_.importCsv(
+        sourcePath,
+        options,
+        stopToken);
     if (!fileImportResult) {
-        return core::Result<std::size_t>::failure(fileImportResult.error());
+        return core::Result<SignalEntry>::failure(fileImportResult.error());
     }
 
     return registerImportedSignal(
         std::move(fileImportResult).value(),
         csvParametersJson(options),
-        csvLogicalOptionsJson(options));
+        csvLogicalOptionsJson(options),
+        stopToken);
 }
 
-core::Result<std::size_t> ImportService::importWav(
+core::Result<SignalEntry> ImportService::loadWav(
     const std::filesystem::path& sourcePath,
-    const repository::WavImportOptions& options)
+    const repository::WavImportOptions& options,
+    std::stop_token stopToken)
 {
-    auto fileImportResult = fileRepository_.importWav(sourcePath, options);
+    std::lock_guard importLock(importMutex_);
+    auto fileImportResult = fileRepository_.importWav(
+        sourcePath,
+        options,
+        stopToken);
     if (!fileImportResult) {
-        return core::Result<std::size_t>::failure(fileImportResult.error());
+        return core::Result<SignalEntry>::failure(fileImportResult.error());
     }
 
     return registerImportedSignal(
         std::move(fileImportResult).value(),
         wavParametersJson(options),
-        wavLogicalOptionsJson(options));
+        wavLogicalOptionsJson(options),
+        stopToken);
+}
+
+std::size_t ImportService::acceptImportedSignal(SignalEntry entry)
+{
+    for (std::size_t index = 0; index < entries_.size(); ++index) {
+        if (entries_[index].recordId == entry.recordId) {
+            return index;
+        }
+    }
+
+    entries_.push_back(std::move(entry));
+    return entries_.size() - 1U;
 }
 
 const std::vector<SignalEntry>& ImportService::entries() const noexcept
@@ -342,43 +396,63 @@ const std::vector<SignalEntry>& ImportService::entries() const noexcept
     return entries_;
 }
 
-core::Result<std::size_t> ImportService::registerImportedSignal(
+core::Result<SignalEntry> ImportService::registerImportedSignal(
     repository::FileImport fileImport,
     std::string parametersJson,
-    std::string logicalOptionsJson)
+    std::string logicalOptionsJson,
+    std::stop_token stopToken)
 {
+    auto cleanNewArchive = [this, &fileImport](core::Error& error) {
+        if (!fileImport.createdStoredFile) {
+            return;
+        }
+
+        auto referenceResult = signalRepository_.findByFileHash(
+            fileImport.contentHash);
+        const bool referencedAtThisPath = referenceResult
+            && referenceResult.value().has_value()
+            && referenceResult.value()->storedRelativePath
+                == fileImport.storedRelativePath;
+
+        if (!referenceResult) {
+            error.message +=
+                " The new archive was kept because its database "
+                "references could not be checked.";
+            return;
+        }
+        if (referencedAtThisPath) {
+            return;
+        }
+
+        // Cleanup must not reuse the cancelled token. Otherwise a cancelled
+        // import could deliberately leave a half-owned archive behind.
+        auto cleanupResult = fileRepository_.removeStoredFile(
+            fileImport.storedRelativePath);
+        if (!cleanupResult) {
+            error.message += " Cleanup of the new archive also failed: "
+                + cleanupResult.error().message;
+        } else if (!cleanupResult.value()) {
+            error.message += " The new archive could not be removed.";
+        }
+    };
+
+    if (stopToken.stop_requested()) {
+        core::Error cancelledError{
+            core::ErrorCode::Cancelled,
+            "The file import was cancelled before it was saved."};
+        cleanNewArchive(cancelledError);
+        return core::Result<SignalEntry>::failure(
+            std::move(cancelledError));
+    }
+
     const std::string sourceKey = importedSourceKey(
         fileImport,
         logicalOptionsJson);
     auto existingResult = signalRepository_.findBySourceKey(sourceKey);
     if (!existingResult) {
         core::Error databaseError = existingResult.error();
-        if (fileImport.createdStoredFile) {
-            auto referenceResult = signalRepository_.findByFileHash(
-                fileImport.contentHash);
-            const bool referencedAtThisPath = referenceResult
-                && referenceResult.value().has_value()
-                && referenceResult.value()->storedRelativePath
-                    == fileImport.storedRelativePath;
-
-            if (!referenceResult) {
-                databaseError.message +=
-                    " The new archive was kept because its database "
-                    "references could not be checked.";
-            } else if (!referencedAtThisPath) {
-                auto cleanupResult = fileRepository_.removeStoredFile(
-                    fileImport.storedRelativePath);
-                if (!cleanupResult) {
-                    databaseError.message +=
-                        " Cleanup of the new archive also failed: "
-                        + cleanupResult.error().message;
-                } else if (!cleanupResult.value()) {
-                    databaseError.message +=
-                        " The new archive could not be removed.";
-                }
-            }
-        }
-        return core::Result<std::size_t>::failure(
+        cleanNewArchive(databaseError);
+        return core::Result<SignalEntry>::failure(
             std::move(databaseError));
     }
 
@@ -390,18 +464,27 @@ core::Result<std::size_t> ImportService::registerImportedSignal(
             auto cleanupResult = fileRepository_.removeStoredFile(
                 fileImport.storedRelativePath);
             if (!cleanupResult || !cleanupResult.value()) {
-                auto duplicateResult = duplicateFileError(
+                core::Error duplicateError = duplicateFileError(
                     fileImport.sourcePath);
-                core::Error duplicateError = duplicateResult.error();
                 duplicateError.message += !cleanupResult
                     ? " Cleanup of the replacement archive also failed: "
                         + cleanupResult.error().message
                     : " The replacement archive could not be removed.";
-                return core::Result<std::size_t>::failure(
+                return core::Result<SignalEntry>::failure(
                     std::move(duplicateError));
             }
         }
-        return duplicateFileError(fileImport.sourcePath);
+        return core::Result<SignalEntry>::failure(
+            duplicateFileError(fileImport.sourcePath));
+    }
+
+    if (stopToken.stop_requested()) {
+        core::Error cancelledError{
+            core::ErrorCode::Cancelled,
+            "The file import was cancelled before it was saved."};
+        cleanNewArchive(cancelledError);
+        return core::Result<SignalEntry>::failure(
+            std::move(cancelledError));
     }
 
     repository::FileVersionRegistration fileVersion{
@@ -424,41 +507,17 @@ core::Result<std::size_t> ImportService::registerImportedSignal(
     if (!savedResult) {
         core::Error databaseError = savedResult.error();
 
-        if (fileImport.createdStoredFile) {
-            // Another importer may have committed the same file between our
-            // lookup and save. Never delete an archive already referenced by
-            // the database.
-            auto referenceResult = signalRepository_.findByFileHash(
-                fileImport.contentHash);
-            const bool referencedAtThisPath = referenceResult
-                && referenceResult.value().has_value()
-                && referenceResult.value()->storedRelativePath
-                    == fileImport.storedRelativePath;
-
-            if (!referenceResult) {
-                databaseError.message +=
-                    " The new archive was kept because its database "
-                    "references could not be checked.";
-            } else if (!referencedAtThisPath) {
-                auto cleanupResult = fileRepository_.removeStoredFile(
-                    fileImport.storedRelativePath);
-                if (!cleanupResult) {
-                    databaseError.message +=
-                        " Cleanup of the newly stored file also failed: "
-                        + cleanupResult.error().message;
-                } else if (!cleanupResult.value()) {
-                    databaseError.message +=
-                        " The newly stored file could not be removed.";
-                }
-            }
-        }
-
-        return core::Result<std::size_t>::failure(
+        // Another importer may have committed the same file between our
+        // lookup and save. The helper checks that before deleting anything.
+        cleanNewArchive(databaseError);
+        return core::Result<SignalEntry>::failure(
             std::move(databaseError));
     }
 
-    entries_.push_back(makeEntry(std::move(savedResult).value()));
-    return core::Result<std::size_t>::success(entries_.size() - 1U);
+    // The database commit is the point of no return. If cancellation arrives
+    // after this line, the committed success wins and the UI receives it.
+    return core::Result<SignalEntry>::success(
+        makeEntry(std::move(savedResult).value()));
 }
 
 }  // namespace signallab::app

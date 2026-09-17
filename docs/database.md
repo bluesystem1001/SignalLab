@@ -1,6 +1,6 @@
-# SignalLab 阶段 4 数据库说明
+# SignalLab 阶段 4—5 数据库说明
 
-阶段 4 使用 SQLite 保存信号、分析任务和结果。程序通过 Qt 的 `QSQLITE` 驱动访问数据库，界面和应用服务都不直接编写 SQL。
+阶段 4 使用 SQLite 保存信号、分析任务和结果；阶段 5 在不改变仓库抽象边界的前提下增加数据库专属执行线程、排队状态和取消状态。程序通过 Qt 的 `QSQLITE` 驱动访问数据库，界面和应用服务都不直接编写 SQL。本文对应已经完成 Debug/Release 自动化验证的 `0.5.0` 代码。
 
 ## 文件位置与启动顺序
 
@@ -14,13 +14,13 @@ data/signallab.sqlite3
 
 程序启动时依次执行：
 
-1. 打开数据库，并应用连接设置。
-2. 执行尚未应用的迁移。
-3. 把上次异常退出后遗留的 `RUNNING` 任务改为 `INTERRUPTED`。
+1. 启动 `DatabaseExecutor` 专属线程，并在该线程打开数据库、应用连接设置。
+2. 在同一线程执行尚未应用的迁移。
+3. 把上次异常退出后遗留的 `PENDING` 或 `RUNNING` 分析任务改为 `INTERRUPTED`。
 4. 从数据库恢复信号；对于 CSV/WAV，还会检查存档文件及其 SHA-256。
 5. 读取历史任务和特征结果，供“历史任务”页显示。
 
-如果数据库、迁移、存档或信号完整性检查失败，程序会显示启动错误，而不是带着不完整数据继续运行。
+如果数据库、迁移、存档或信号完整性检查失败，程序会显示启动错误，而不是带着不完整数据继续运行。正常退出时则先停止后台调度器，等工作线程退出后，再让数据库执行器排空已接收的命令并在所属线程关闭连接。
 
 ## 分层方式
 
@@ -28,21 +28,21 @@ data/signallab.sqlite3
 
 ```text
 GUI -> app 应用服务 -> repository 抽象接口
-                              ^
-                              |
-                 database / io 具体实现
+                               ^
+                               |
+           DatabaseExecutor / io 具体实现
 ```
 
 - `include/signallab/repository/` 定义信号、任务、脚本和文件仓库接口，不依赖 SQLite。
-- `src/database/` 实现 SQLite 信号仓库、任务仓库和脚本历史仓库。
+- `src/database/` 实现 SQLite 信号仓库、任务仓库和脚本历史仓库；`DatabaseExecutor` 在专属线程内拥有这些具体对象，并作为三个仓库接口的线程安全串行代理。
 - `src/io/` 实现文件预览、解析、存档和校验。
-- 可执行程序在 `main.cpp` 中创建这些对象，并把具体实现传给应用服务。
+- 可执行程序在 `main.cpp` 中创建文件仓库和数据库执行器，并把接口引用传给应用服务。
 
 因此，`app` 只知道仓库接口，GUI 不知道 SQL，`core` 和 `algorithm` 也不依赖 Qt SQL。
 
 ## 连接设置
 
-每次打开 `DatabaseConnection` 都会设置：
+数据库专属线程打开 `DatabaseConnection` 时会设置：
 
 | 设置 | 值 | 作用 |
 |---|---:|---|
@@ -54,7 +54,10 @@ GUI -> app 应用服务 -> repository 抽象接口
 
 ## 迁移
 
-迁移文件放在 `migrations/`。`MigrationRunner` 按文件名的字典序执行所有 `.sql` 文件，例如当前的 `001_init.sql`。
+迁移文件放在 `migrations/`。`MigrationRunner` 按文件名的字典序执行所有 `.sql` 文件。当前包括：
+
+- `001_init.sql`：建立阶段 4 的初始业务表、约束和索引。
+- `002_task_scheduler.sql`：重建任务及特征表以扩展状态约束，加入 `CANCELLED`；迁移复制既有编号、任务历史和特征结果后再替换旧表。
 
 运行器自己创建 `schema_migration` 表：
 
@@ -76,7 +79,7 @@ GUI -> app 应用服务 -> repository 抽象接口
 | `file_version` | 导入文件的内容哈希、项目内存档路径、原文件名和字节数 | `content_hash` 与 `stored_relative_path` 唯一；一个文件版本可被多个逻辑信号来源复用 |
 | `signal_source` | `GENERATED`、`CSV` 或 `WAV` 来源、稳定来源键、原路径和导入参数 JSON | 可选关联一个 `file_version`；`source_key` 唯一 |
 | `signal_record` | 采样率、样本数、样本 BLOB、样本哈希和信号元数据 | 每个 `signal_source` 恰好对应一个记录；删除来源时级联删除记录 |
-| `analysis_task` | 状态、信号名、算法名/版本、参数、输入/输出哈希、时间和错误 | 可选关联一个 `signal_record`；删除信号记录时任务保留，外键改为 `NULL` |
+| `analysis_task` | `PENDING/RUNNING/SUCCEEDED/FAILED/INTERRUPTED/CANCELLED` 状态、信号名、算法名/版本、参数、输入/输出哈希、时间和错误 | 可选关联一个 `signal_record`；删除信号记录时任务保留，外键改为 `NULL` |
 | `feature_result` | 一次任务产生的特征名、数值、文本值和单位 | 多条结果属于一个任务；任务删除时级联删除；同一任务内特征名唯一 |
 | `script_history` | 脚本文本、状态、开始/结束时间和错误 | 当前独立保存，为后续脚本界面使用 |
 | `operation_log` | 保存信号、创建/完成/失败任务等写操作日志 | 用 `entity_type` 和可选 `entity_id` 指向业务对象，不设置外键 |
@@ -99,15 +102,17 @@ script_history        operation_log          （两者独立）
 
 保存一个导入信号时，`file_version`、`signal_source`、`signal_record` 和 `operation_log` 在同一个数据库事务内写入。任何一步失败都会回滚，因此不会只留下文件版本或来源记录。删除信号时，相关来源、没有其他引用的文件版本和操作日志也在同一事务中处理。
 
-原始文件存档属于文件系统，不能参加 SQLite 事务。导入服务先完成文件存档，再提交数据库；若数据库写入失败，它会检查该存档是否已被其他记录引用，并在安全时删除本次新建的存档。这是一种补偿清理，不是跨文件系统和数据库的真正事务。
+原始文件存档属于文件系统，不能参加 SQLite 事务。导入服务先完成文件存档，再提交数据库；若数据库写入失败，它会检查该存档是否已被其他记录引用，并在安全时删除本次新建的存档。这是一种补偿清理，不是跨文件系统和数据库的真正事务。阶段 5 将“存档提升—数据库注册—必要时补偿删除”串行化，避免多个 I/O 工作者对同一内容并发操作时误删另一个任务即将使用的存档。
 
 ### 保存分析任务和结果
 
-GUI 只把所选 `signalRecordId` 交给分析服务。分析服务先通过 `SignalRepository::findByRecordId()` 重新加载可信的 `Signal` 和 `sample_hash`，不会采用 GUI 传入的样本或哈希；任务仓库创建任务时还会再次核对记录编号与输入哈希。任务直接以 `RUNNING` 状态写入，并同时记录操作日志。分析成功后，全部 `feature_result`、任务的 `SUCCEEDED` 状态、输出哈希和操作日志在一个事务中提交。
+GUI 只把所选 `signalRecordId` 交给后台分析服务。计算工作者中的 `AnalysisService` 先通过 `SignalRepository::findByRecordId()` 重新加载可信的 `Signal` 和 `sample_hash`，不会采用 GUI 传入的样本或哈希；任务仓库创建任务时还会再次核对记录编号与输入哈希。分析记录先以 `PENDING` 写入，再用 `WHERE status = 'PENDING'` 的条件更新取得启动权并转为 `RUNNING`。分析成功后，全部 `feature_result`、任务的 `SUCCEEDED` 状态、输出哈希和操作日志在一个事务中提交。
 
 如果任一特征写入或完成更新失败，完成事务会先整体回滚，所以不会留下部分特征。随后仓库用一个新事务把任务标记为 `FAILED`，写入完成时间和错误信息，并保持空输出哈希。空特征名和 NaN 也会使任务失败；正负无穷以 SQL `NULL` 数值配合文本 `inf` 或 `-inf` 保存。
 
-程序正常启动时会把所有遗留的 `RUNNING` 任务统一改为 `INTERRUPTED`，写入完成时间和原因。这样异常退出不会让任务永久显示为运行中。
+取消请求使用 `std::stop_token` 传入信号加载和算法。`DatabaseExecutor` 的可取消等待会在令牌停止后及时把控制权还给计算工作者；具体信号仓库也会在 BLOB 校验、解码边界检查令牌。在提交特征前观察到取消时，仓库把 `PENDING` 或 `RUNNING` 记录改为 `CANCELLED`，删除任何未完成特征并记录原因。若成功事务已经提交，晚到的取消请求不会把 `SUCCEEDED` 倒退为 `CANCELLED`。调度器中尚未开始便被移出队列的分析动作不会创建数据库记录，因为 `AnalysisService` 尚未执行。
+
+程序正常启动时会把所有遗留的 `PENDING` 和 `RUNNING` 任务统一改为 `INTERRUPTED`，写入完成时间和原因。这样异常退出不会让任务永久显示为排队或运行中。
 
 脚本历史以及显式的任务失败同样使用事务，并和相应操作日志一起提交。
 
@@ -151,7 +156,7 @@ GUI 只把所选 `signalRecordId` 交给分析服务。分析服务先通过 `Si
 
 `DatabaseConnection` 在构造时记住当前线程。打开、查询、提交和关闭前都会检查线程；跨线程访问会返回错误。连接销毁时先释放 `QSqlDatabase` 句柄，再调用 Qt 的 `removeDatabase()`。
 
-当前阶段的数据库工作都在主线程同步执行。后续把分析移到工作线程时，不能把现有连接或 SQLite 仓库对象传过去；工作线程必须在自己的线程内创建、使用并销毁独立连接。
+阶段 5 的 `DatabaseExecutor` 在一个固定线程内创建、使用并销毁 `DatabaseConnection`、迁移器和三个 SQLite 仓库。GUI、计算工作者和 I/O 工作者调用的是代理；代理把命令放入队列并等待所属线程返回 `Result`，不会把连接或具体仓库跨线程传递。可取消的信号读取把停止令牌传到数据库线程；BLOB 哈希和解码按块检查令牌，代理在已入队命令真正停止后才向调用方返回取消，因此后续关闭不会再等待隐藏的读取尾巴。数据库连接不会被跨线程强行中断。`start()` 和 `shutdown()` 可重复调用；关闭会先拒绝新命令、排空已接收命令，再在数据库线程销毁 Qt SQL 对象。
 
 ## 当前限制
 
@@ -160,4 +165,5 @@ GUI 只把所选 `signalRecordId` 交给分析服务。分析服务先通过 `Si
 - 信号样本整体存为一个 BLOB，恢复时也会整体读入内存；当前未实现超大信号的分块存储或流式读取。
 - 参数 JSON 的规范性由应用服务保证，SQLite 只检查它非空。
 - 文件存档位于数据库外，只能使用补偿清理；备份正在运行的项目时，应同时考虑数据库、WAL 辅助文件和 `data/imports/`。
+- 所有 SQLite 操作由一个执行线程串行处理，保证线程归属和简单事务语义，但长查询仍可能让其他数据库调用排队；当前没有连接池。
 - `script_history` 仓库已经实现，但脚本编辑与执行界面属于后续阶段。

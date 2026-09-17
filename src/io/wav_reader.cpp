@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <fstream>
 #include <limits>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -13,6 +14,8 @@
 
 namespace signallab::io {
 namespace {
+
+constexpr std::size_t fileBlockSize = 64U * 1024U;
 
 struct ParsedWav {
     std::vector<std::uint8_t> bytes;
@@ -42,6 +45,18 @@ core::Result<T> wavFailure(
     return core::Result<T>::failure(
         code,
         describeError(path, byteOffset, detail));
+}
+
+template<typename T>
+core::Result<T> cancelledWav(
+    const std::filesystem::path& path,
+    std::size_t byteOffset)
+{
+    return wavFailure<T>(
+        core::ErrorCode::Cancelled,
+        path,
+        byteOffset,
+        "WAV reading was cancelled");
 }
 
 bool matchesFourCharacterCode(
@@ -94,8 +109,13 @@ double normalizedSample(
 }
 
 core::Result<std::vector<std::uint8_t>> readFileBytes(
-    const std::filesystem::path& path)
+    const std::filesystem::path& path,
+    const std::stop_token& stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledWav<std::vector<std::uint8_t>>(path, 0);
+    }
+
     std::ifstream input(path, std::ios::binary | std::ios::ate);
     if (!input) {
         std::error_code fileSystemError;
@@ -143,32 +163,61 @@ core::Result<std::vector<std::uint8_t>> readFileBytes(
     std::vector<std::uint8_t> bytes(static_cast<std::size_t>(fileSize));
     input.seekg(0, std::ios::beg);
 
-    if (!bytes.empty()) {
+    std::size_t totalBytesRead = 0;
+    while (totalBytesRead < bytes.size()) {
+        if (stopToken.stop_requested()) {
+            return cancelledWav<std::vector<std::uint8_t>>(
+                path,
+                totalBytesRead);
+        }
+
+        const std::size_t bytesRemaining = bytes.size() - totalBytesRead;
+        const std::size_t nextBlockSize =
+            std::min(fileBlockSize, bytesRemaining);
         input.read(
-            reinterpret_cast<char*>(bytes.data()),
-            static_cast<std::streamsize>(bytes.size()));
-        if (input.gcount() != static_cast<std::streamsize>(bytes.size())) {
-            const std::size_t bytesRead =
-                static_cast<std::size_t>(std::max<std::streamsize>(0, input.gcount()));
+            reinterpret_cast<char*>(bytes.data() + totalBytesRead),
+            static_cast<std::streamsize>(nextBlockSize));
+
+        const std::size_t blockBytesRead = static_cast<std::size_t>(
+            std::max<std::streamsize>(0, input.gcount()));
+        if (stopToken.stop_requested()) {
+            return cancelledWav<std::vector<std::uint8_t>>(
+                path,
+                totalBytesRead + blockBytesRead);
+        }
+        if (blockBytesRead != nextBlockSize) {
             return wavFailure<std::vector<std::uint8_t>>(
                 core::ErrorCode::TruncatedFile,
                 path,
-                bytesRead,
+                totalBytesRead + blockBytesRead,
                 "file ended while reading WAV data");
         }
+
+        totalBytesRead += blockBytesRead;
+    }
+
+    if (stopToken.stop_requested()) {
+        return cancelledWav<std::vector<std::uint8_t>>(
+            path,
+            totalBytesRead);
     }
 
     return core::Result<std::vector<std::uint8_t>>::success(std::move(bytes));
 }
 
-core::Result<ParsedWav> parseWav(const std::filesystem::path& path)
+core::Result<ParsedWav> parseWav(
+    const std::filesystem::path& path,
+    const std::stop_token& stopToken)
 {
-    auto bytesResult = readFileBytes(path);
+    auto bytesResult = readFileBytes(path, stopToken);
     if (!bytesResult) {
         return core::Result<ParsedWav>::failure(bytesResult.error());
     }
 
     std::vector<std::uint8_t> bytes = std::move(bytesResult).value();
+    if (stopToken.stop_requested()) {
+        return cancelledWav<ParsedWav>(path, bytes.size());
+    }
     if (bytes.size() < 12) {
         return wavFailure<ParsedWav>(
             core::ErrorCode::TruncatedFile,
@@ -218,6 +267,10 @@ core::Result<ParsedWav> parseWav(const std::filesystem::path& path)
 
     std::size_t chunkOffset = 12;
     while (chunkOffset < riffEnd) {
+        if (stopToken.stop_requested()) {
+            return cancelledWav<ParsedWav>(path, chunkOffset);
+        }
+
         if (riffEnd - chunkOffset < 8) {
             const bool fileAlsoEndsInsideHeader =
                 bytes.size() - chunkOffset < 8;
@@ -359,6 +412,10 @@ core::Result<ParsedWav> parseWav(const std::filesystem::path& path)
             "data chunk ends inside a sample frame");
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledWav<ParsedWav>(path, dataOffset + dataSize);
+    }
+
     ParsedWav parsed;
     parsed.bytes = std::move(bytes);
     parsed.channelCount = channelCount;
@@ -389,9 +446,10 @@ double sampleForChannel(
 
 core::Result<repository::ImportPreview> previewWav(
     const std::filesystem::path& path,
-    std::size_t maxSamples)
+    std::size_t maxSamples,
+    std::stop_token stopToken)
 {
-    auto parsedResult = parseWav(path);
+    auto parsedResult = parseWav(path, stopToken);
     if (!parsedResult) {
         return core::Result<repository::ImportPreview>::failure(
             parsedResult.error());
@@ -417,6 +475,12 @@ core::Result<repository::ImportPreview> previewWav(
     preview.rows.reserve(previewCount);
 
     for (std::size_t frame = 0; frame < previewCount; ++frame) {
+        if (stopToken.stop_requested()) {
+            return cancelledWav<repository::ImportPreview>(
+                path,
+                wav.dataOffset + frame * wav.blockAlign);
+        }
+
         std::vector<std::string> row;
         row.reserve(wav.channelCount);
         for (std::size_t channel = 0; channel < wav.channelCount; ++channel) {
@@ -425,15 +489,22 @@ core::Result<repository::ImportPreview> previewWav(
         preview.rows.push_back(std::move(row));
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledWav<repository::ImportPreview>(
+            path,
+            wav.dataOffset + previewCount * wav.blockAlign);
+    }
+
     return core::Result<repository::ImportPreview>::success(
         std::move(preview));
 }
 
 core::Result<core::Signal> readWav(
     const std::filesystem::path& path,
-    const repository::WavImportOptions& options)
+    const repository::WavImportOptions& options,
+    std::stop_token stopToken)
 {
-    auto parsedResult = parseWav(path);
+    auto parsedResult = parseWav(path, stopToken);
     if (!parsedResult) {
         return core::Result<core::Signal>::failure(parsedResult.error());
     }
@@ -441,8 +512,18 @@ core::Result<core::Signal> readWav(
     const ParsedWav& wav = parsedResult.value();
     const std::size_t sampleCount = frameCount(wav);
     std::vector<double> samples(sampleCount);
+    const std::size_t framesPerBlock = std::max<std::size_t>(
+        1U,
+        fileBlockSize / wav.blockAlign);
 
     for (std::size_t frame = 0; frame < sampleCount; ++frame) {
+        if (frame % framesPerBlock == 0U
+            && stopToken.stop_requested()) {
+            return cancelledWav<core::Signal>(
+                path,
+                wav.dataOffset + frame * wav.blockAlign);
+        }
+
         const double left = sampleForChannel(wav, frame, 0);
 
         if (wav.channelCount == 1
@@ -457,6 +538,12 @@ core::Result<core::Signal> readWav(
         } else {
             samples[frame] = (left + right) / 2.0;
         }
+    }
+
+    if (stopToken.stop_requested()) {
+        return cancelledWav<core::Signal>(
+            path,
+            wav.dataOffset + wav.dataSize);
     }
 
     return core::Signal::create(

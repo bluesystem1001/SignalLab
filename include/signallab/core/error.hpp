@@ -21,7 +21,8 @@ enum class ErrorCode {
     FileWriteFailed,
     DatabaseOpenFailed,
     DatabaseQueryFailed,
-    MigrationFailed
+    MigrationFailed,
+    Cancelled
 };
 
 struct Error {

@@ -7,6 +7,7 @@
 #include <QString>
 
 #include <cstddef>
+#include <stop_token>
 #include <string>
 
 #include "signallab/core/error.hpp"
@@ -21,11 +22,24 @@ std::string pathForMessage(const std::filesystem::path& path)
     return path.generic_string();
 }
 
+core::Result<std::string> cancelledHash(
+    const std::filesystem::path& path)
+{
+    return core::Result<std::string>::failure(
+        core::ErrorCode::Cancelled,
+        "File hashing was cancelled: " + pathForMessage(path));
+}
+
 }  // namespace
 
 core::Result<std::string> calculateSha256(
-    const std::filesystem::path& path)
+    const std::filesystem::path& path,
+    std::stop_token stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledHash(path);
+    }
+
     QFile file(QString::fromStdWString(path.wstring()));
 
     if (!file.exists()) {
@@ -44,12 +58,20 @@ core::Result<std::string> calculateSha256(
     QCryptographicHash hash(QCryptographicHash::Sha256);
 
     while (!file.atEnd()) {
+        if (stopToken.stop_requested()) {
+            return cancelledHash(path);
+        }
+
         const QByteArray block = file.read(hashBlockSize);
         if (block.isEmpty() && file.error() != QFileDevice::NoError) {
             return core::Result<std::string>::failure(
                 core::ErrorCode::FileOpenFailed,
                 "Cannot read file while hashing: " + pathForMessage(path)
                     + " (" + file.errorString().toStdString() + ")");
+        }
+
+        if (stopToken.stop_requested()) {
+            return cancelledHash(path);
         }
 
         hash.addData(block);
@@ -60,6 +82,10 @@ core::Result<std::string> calculateSha256(
             core::ErrorCode::FileOpenFailed,
             "Cannot finish reading file for hashing: " + pathForMessage(path)
                 + " (" + file.errorString().toStdString() + ")");
+    }
+
+    if (stopToken.stop_requested()) {
+        return cancelledHash(path);
     }
 
     return core::Result<std::string>::success(

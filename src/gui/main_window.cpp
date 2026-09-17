@@ -9,8 +9,11 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QMessageBox>
+#include <QMetaObject>
 #include <QPainter>
+#include <QPointer>
 #include <QPushButton>
+#include <QSignalBlocker>
 #include <QStatusBar>
 #include <QString>
 #include <QStringList>
@@ -29,6 +32,7 @@
 #include <cstddef>
 #include <filesystem>
 #include <string>
+#include <utility>
 
 #include "signallab/app/analysis_service.hpp"
 #include "signallab/app/display_downsampler.hpp"
@@ -90,6 +94,28 @@ QString taskStatusText(signallab::repository::AnalysisTaskStatus status)
         return "失败";
     case AnalysisTaskStatus::Interrupted:
         return "已中断";
+    case AnalysisTaskStatus::Cancelled:
+        return "已取消";
+    }
+
+    return "未知";
+}
+
+QString taskStatusText(signallab::task::TaskStatus status)
+{
+    using signallab::task::TaskStatus;
+
+    switch (status) {
+    case TaskStatus::Pending:
+        return "等待中";
+    case TaskStatus::Running:
+        return "运行中";
+    case TaskStatus::Succeeded:
+        return "成功";
+    case TaskStatus::Failed:
+        return "失败";
+    case TaskStatus::Cancelled:
+        return "已取消";
     }
 
     return "未知";
@@ -105,10 +131,16 @@ QString textOrDash(const std::string& text)
 MainWindow::MainWindow(
     signallab::app::ImportService& importService,
     signallab::app::AnalysisService& analysisService,
+    signallab::app::BackgroundFileService& backgroundFileService,
+    signallab::app::BackgroundAnalysisService& backgroundAnalysisService,
+    signallab::task::Scheduler& scheduler,
     QWidget* parent)
     : QMainWindow(parent),
       importService_(importService),
       analysisService_(analysisService),
+      backgroundFileService_(backgroundFileService),
+      backgroundAnalysisService_(backgroundAnalysisService),
+      scheduler_(scheduler),
       signalList_(nullptr),
       nameValue_(nullptr),
       sampleRateValue_(nullptr),
@@ -125,7 +157,10 @@ MainWindow::MainWindow(
       timeChartView_(nullptr),
       spectrumChartView_(nullptr),
       historyList_(nullptr),
-      historyDetails_(nullptr)
+      historyDetails_(nullptr),
+      taskList_(nullptr),
+      cancelTaskButton_(nullptr),
+      retryTaskButton_(nullptr)
 {
     setWindowTitle("SignalLab " SIGNALLAB_VERSION_STRING);
     resize(1080, 680);
@@ -161,7 +196,7 @@ MainWindow::MainWindow(
     auto* analyzeButton = new QPushButton("分析所选信号", centralWidget);
     signalLayout->addWidget(analyzeButton);
 
-    auto* featureGroup = new QGroupBox("同步分析结果", centralWidget);
+    auto* featureGroup = new QGroupBox("后台分析结果", centralWidget);
     auto* featureLayout = new QFormLayout(featureGroup);
     meanValue_ = new QLabel("—", featureGroup);
     varianceValue_ = new QLabel("—", featureGroup);
@@ -198,6 +233,23 @@ MainWindow::MainWindow(
     historyLayout->addWidget(historyDetails_, 1);
     chartTabs_->addTab(historyPage, "历史任务");
 
+    auto* taskPage = new QWidget(chartTabs_);
+    auto* taskLayout = new QVBoxLayout(taskPage);
+    taskList_ = new QListWidget(taskPage);
+    taskList_->setSelectionMode(QAbstractItemView::SingleSelection);
+    taskLayout->addWidget(taskList_);
+
+    auto* taskButtonLayout = new QHBoxLayout;
+    cancelTaskButton_ = new QPushButton("取消所选任务", taskPage);
+    retryTaskButton_ = new QPushButton("重试所选任务", taskPage);
+    cancelTaskButton_->setEnabled(false);
+    retryTaskButton_->setEnabled(false);
+    taskButtonLayout->addWidget(cancelTaskButton_);
+    taskButtonLayout->addWidget(retryTaskButton_);
+    taskButtonLayout->addStretch();
+    taskLayout->addLayout(taskButtonLayout);
+    chartTabs_->addTab(taskPage, "后台任务");
+
     signalLayout->addWidget(chartTabs_);
     windowLayout->addLayout(signalLayout, 1);
 
@@ -232,16 +284,87 @@ MainWindow::MainWindow(
         &QListWidget::currentRowChanged,
         this,
         [this](int row) { showHistoryTask(row); });
+    connect(
+        taskList_,
+        &QListWidget::currentRowChanged,
+        this,
+        [this](int row) {
+            const bool valid = row >= 0
+                && static_cast<std::size_t>(row) < visibleTaskIds_.size();
+            if (!valid) {
+                cancelTaskButton_->setEnabled(false);
+                retryTaskButton_->setEnabled(false);
+                return;
+            }
+
+            const auto snapshot = scheduler_.snapshot(
+                visibleTaskIds_[static_cast<std::size_t>(row)]);
+            if (!snapshot.has_value()) {
+                cancelTaskButton_->setEnabled(false);
+                retryTaskButton_->setEnabled(false);
+                return;
+            }
+
+            cancelTaskButton_->setEnabled(
+                !signallab::task::isTerminal(snapshot->status));
+            retryTaskButton_->setEnabled(
+                signallab::task::isTerminal(snapshot->status));
+        });
+    connect(
+        cancelTaskButton_,
+        &QPushButton::clicked,
+        this,
+        [this]() { cancelSelectedTask(); });
+    connect(
+        retryTaskButton_,
+        &QPushButton::clicked,
+        this,
+        [this]() { retrySelectedTask(); });
+
+    const QPointer<MainWindow> guardedWindow(this);
+    backgroundAnalysisService_.setEventNotifier([guardedWindow]() {
+        if (!guardedWindow) {
+            return;
+        }
+        QMetaObject::invokeMethod(
+            guardedWindow.data(),
+            [guardedWindow]() {
+                if (guardedWindow) {
+                    guardedWindow->processBackgroundAnalysisEvents();
+                }
+            },
+            Qt::QueuedConnection);
+    });
+    backgroundFileService_.setEventNotifier([guardedWindow]() {
+        if (!guardedWindow) {
+            return;
+        }
+        QMetaObject::invokeMethod(
+            guardedWindow.data(),
+            [guardedWindow]() {
+                if (guardedWindow) {
+                    guardedWindow->processBackgroundFileEvents();
+                }
+            },
+            Qt::QueuedConnection);
+    });
 
     refreshSignalList();
     refreshHistory();
+    refreshTaskList();
     if (!importService_.entries().empty()) {
         QTimer::singleShot(
             0,
             this,
             [this]() { signalList_->setCurrentRow(0); });
     }
-    statusBar()->showMessage("可导入 CSV 或 PCM16 WAV 文件");
+    statusBar()->showMessage("文件导入和信号分析将在后台运行");
+}
+
+MainWindow::~MainWindow()
+{
+    backgroundAnalysisService_.clearEventNotifier();
+    backgroundFileService_.clearEventNotifier();
 }
 
 void MainWindow::importCsv()
@@ -345,39 +468,21 @@ void MainWindow::importCsv()
     options.metadata.source = fileName.toStdString();
 
     const std::filesystem::path sourcePath = toPath(fileName);
-    auto previewResult = importService_.previewCsv(sourcePath, options);
-    if (!previewResult) {
+    auto submitted = backgroundFileService_.previewCsv(sourcePath, options);
+    if (!submitted) {
         QMessageBox::warning(
             this,
-            "CSV 无法导入",
-            QString::fromStdString(previewResult.error().message));
+            "CSV 预览无法排队",
+            QString::fromStdString(submitted.error().message));
         return;
     }
 
-    if (QMessageBox::question(
-            this,
-            "确认导入 CSV",
-            previewDescription(previewResult.value()) + "\n\n确认导入吗？")
-        != QMessageBox::Yes) {
-        return;
-    }
-
-    auto importResult = importService_.importCsv(sourcePath, options);
-    if (!importResult) {
-        const auto icon = importResult.error().code
-                == signallab::core::ErrorCode::DuplicateFile
-            ? QMessageBox::Information
-            : QMessageBox::Warning;
-        QMessageBox messageBox(icon, "CSV 导入结果",
-            QString::fromStdString(importResult.error().message),
-            QMessageBox::Ok, this);
-        messageBox.exec();
-        return;
-    }
-
-    refreshSignalList();
-    signalList_->setCurrentRow(static_cast<int>(importResult.value()));
-    statusBar()->showMessage("CSV 导入成功", 4000);
+    csvPreviewOptions_.insert_or_assign(submitted.value(), options);
+    refreshTaskList();
+    statusBar()->showMessage(
+        QString("CSV 预览任务 #%1 已排队")
+            .arg(static_cast<qulonglong>(submitted.value())),
+        4000);
 }
 
 void MainWindow::importWav()
@@ -392,73 +497,20 @@ void MainWindow::importWav()
     }
 
     const std::filesystem::path sourcePath = toPath(fileName);
-    auto previewResult = importService_.previewWav(sourcePath);
-    if (!previewResult) {
+    auto submitted = backgroundFileService_.previewWav(sourcePath);
+    if (!submitted) {
         QMessageBox::warning(
             this,
-            "WAV 无法导入",
-            QString::fromStdString(previewResult.error().message));
+            "WAV 预览无法排队",
+            QString::fromStdString(submitted.error().message));
         return;
     }
 
-    signallab::repository::WavImportOptions options;
-    const QFileInfo fileInformation(fileName);
-    options.metadata.name = fileInformation.completeBaseName().toStdString();
-    options.metadata.unit = "幅值";
-    options.metadata.source = fileName.toStdString();
-
-    QString selectedChannel = "单声道";
-
-    if (previewResult.value().channelCount == 2) {
-        bool accepted = false;
-        const QString channel = QInputDialog::getItem(
-            this,
-            "立体声通道",
-            "选择要导入的通道：",
-            {"左右平均", "左声道", "右声道"},
-            0,
-            false,
-            &accepted);
-        if (!accepted) {
-            return;
-        }
-
-        if (channel == "左声道") {
-            options.channel = signallab::repository::StereoChannel::Left;
-        } else if (channel == "右声道") {
-            options.channel = signallab::repository::StereoChannel::Right;
-        } else {
-            options.channel = signallab::repository::StereoChannel::Average;
-        }
-        selectedChannel = channel;
-    }
-
-    if (QMessageBox::question(
-            this,
-            "确认导入 WAV",
-            previewDescription(previewResult.value())
-                + "\n导入通道：" + selectedChannel
-                + "\n\n确认导入吗？")
-        != QMessageBox::Yes) {
-        return;
-    }
-
-    auto importResult = importService_.importWav(sourcePath, options);
-    if (!importResult) {
-        const auto icon = importResult.error().code
-                == signallab::core::ErrorCode::DuplicateFile
-            ? QMessageBox::Information
-            : QMessageBox::Warning;
-        QMessageBox messageBox(icon, "WAV 导入结果",
-            QString::fromStdString(importResult.error().message),
-            QMessageBox::Ok, this);
-        messageBox.exec();
-        return;
-    }
-
-    refreshSignalList();
-    signalList_->setCurrentRow(static_cast<int>(importResult.value()));
-    statusBar()->showMessage("WAV 导入成功", 4000);
+    refreshTaskList();
+    statusBar()->showMessage(
+        QString("WAV 预览任务 #%1 已排队")
+            .arg(static_cast<qulonglong>(submitted.value())),
+        4000);
 }
 
 void MainWindow::analyzeSelectedSignal()
@@ -480,19 +532,28 @@ void MainWindow::analyzeSelectedSignal()
 
     const auto& entry = entries[entryIndex];
     signallab::app::AnalysisOptions options;
-    auto analysisResult = analysisService_.analyze(
+    auto submitted = backgroundAnalysisService_.submit(
         entry.recordId,
         options);
-    if (!analysisResult) {
-        refreshHistory();
+    if (!submitted) {
         QMessageBox::warning(
             this,
-            "分析失败",
-            QString::fromStdString(analysisResult.error().message));
+            "分析无法排队",
+            QString::fromStdString(submitted.error().message));
         return;
     }
 
-    const auto& result = analysisResult.value();
+    refreshTaskList();
+    statusBar()->showMessage(
+        QString("分析任务 #%1 已排队；可在“后台任务”页取消")
+            .arg(static_cast<qulonglong>(submitted.value())),
+        5000);
+}
+
+void MainWindow::showAnalysisResult(
+    const signallab::app::AnalysisResult& result,
+    bool focusSpectrum)
+{
     meanValue_->setText(QString::number(result.features.mean, 'g', 8));
     varianceValue_->setText(
         QString::number(result.features.variance, 'g', 8));
@@ -517,12 +578,281 @@ void MainWindow::analyzeSelectedSignal()
         : QString("不可计算"));
 
     showSpectrum(result.spectrum);
-    refreshHistory();
-    chartTabs_->setCurrentWidget(spectrumChartView_);
+    if (focusSpectrum) {
+        chartTabs_->setCurrentWidget(spectrumChartView_);
+        statusBar()->showMessage(
+            QString("后台分析完成：FFT %1 点，检测到 %2 个峰值")
+                .arg(static_cast<qulonglong>(result.spectrum.fftSize))
+                .arg(static_cast<qulonglong>(result.peaks.size())),
+            5000);
+    }
+}
+
+void MainWindow::processBackgroundAnalysisEvents()
+{
+    auto events = backgroundAnalysisService_.takeEvents();
+    bool historyMayHaveChanged = false;
+
+    for (const auto& event : events) {
+        if (!signallab::task::isTerminal(event.task.status)) {
+            continue;
+        }
+
+        historyMayHaveChanged = true;
+        if (event.task.status == signallab::task::TaskStatus::Succeeded) {
+            if (event.result) {
+                const int selectedRow = signalList_->currentRow();
+                const auto& entries = importService_.entries();
+                const bool resultMatchesSelection = selectedRow >= 0
+                    && static_cast<std::size_t>(selectedRow) < entries.size()
+                    && entries[static_cast<std::size_t>(selectedRow)].recordId
+                        == event.signalRecordId;
+                if (resultMatchesSelection) {
+                    showAnalysisResult(*event.result, true);
+                } else {
+                    statusBar()->showMessage(
+                        QString("信号 #%1 的后台分析已完成")
+                            .arg(event.signalRecordId),
+                        5000);
+                }
+            } else {
+                QMessageBox::warning(
+                    this,
+                    "后台分析失败",
+                    "任务报告成功，但没有返回分析结果。");
+            }
+        } else if (event.task.status
+                   == signallab::task::TaskStatus::Failed) {
+            QMessageBox::warning(
+                this,
+                "后台分析失败",
+                QString::fromStdString(event.task.errorMessage));
+        } else if (event.task.status
+                   == signallab::task::TaskStatus::Cancelled) {
+            statusBar()->showMessage(
+                QString("分析任务 #%1 已取消")
+                    .arg(static_cast<qulonglong>(event.task.id)),
+                4000);
+        }
+    }
+
+    refreshTaskList();
+    if (historyMayHaveChanged) {
+        refreshHistory();
+    }
+}
+
+void MainWindow::processBackgroundFileEvents()
+{
+    auto events = backgroundFileService_.takeEvents();
+
+    for (auto& event : events) {
+        if (!signallab::task::isTerminal(event.task.status)) {
+            continue;
+        }
+
+        if (event.task.status == signallab::task::TaskStatus::Cancelled) {
+            statusBar()->showMessage(
+                QString("文件任务 #%1 已取消")
+                    .arg(static_cast<qulonglong>(event.task.id)),
+                4000);
+            continue;
+        }
+
+        if (event.task.status == signallab::task::TaskStatus::Failed) {
+            QMessageBox messageBox(
+                QMessageBox::Warning,
+                "后台文件任务失败",
+                QString::fromStdString(event.task.errorMessage),
+                QMessageBox::Ok,
+                this);
+            messageBox.exec();
+            continue;
+        }
+
+        if (event.operation
+            == signallab::app::BackgroundFileOperation::PreviewCsv) {
+            const auto options = csvPreviewOptions_.find(event.task.id);
+            if (!event.preview || options == csvPreviewOptions_.end()) {
+                QMessageBox::warning(
+                    this,
+                    "CSV 预览失败",
+                    "预览任务没有返回完整的导入参数。");
+                continue;
+            }
+
+            if (QMessageBox::question(
+                    this,
+                    "确认导入 CSV",
+                    previewDescription(*event.preview)
+                        + "\n\n确认导入吗？")
+                != QMessageBox::Yes) {
+                continue;
+            }
+
+            auto submitted = backgroundFileService_.importCsv(
+                event.sourcePath,
+                options->second);
+            if (!submitted) {
+                QMessageBox::warning(
+                    this,
+                    "CSV 导入无法排队",
+                    QString::fromStdString(submitted.error().message));
+            } else {
+                statusBar()->showMessage(
+                    QString("CSV 导入任务 #%1 已排队")
+                        .arg(static_cast<qulonglong>(submitted.value())),
+                    4000);
+            }
+            continue;
+        }
+
+        if (event.operation
+            == signallab::app::BackgroundFileOperation::PreviewWav) {
+            if (!event.preview) {
+                QMessageBox::warning(
+                    this,
+                    "WAV 预览失败",
+                    "预览任务没有返回文件信息。");
+                continue;
+            }
+
+            signallab::repository::WavImportOptions options;
+            const QString sourceName = QString::fromStdWString(
+                event.sourcePath.wstring());
+            const QFileInfo fileInformation(sourceName);
+            options.metadata.name =
+                fileInformation.completeBaseName().toStdString();
+            options.metadata.unit = "幅值";
+            options.metadata.source = sourceName.toStdString();
+
+            QString selectedChannel = "单声道";
+            if (event.preview->channelCount == 2) {
+                bool accepted = false;
+                const QString channel = QInputDialog::getItem(
+                    this,
+                    "立体声通道",
+                    "选择要导入的通道：",
+                    {"左右平均", "左声道", "右声道"},
+                    0,
+                    false,
+                    &accepted);
+                if (!accepted) {
+                    continue;
+                }
+
+                if (channel == "左声道") {
+                    options.channel =
+                        signallab::repository::StereoChannel::Left;
+                } else if (channel == "右声道") {
+                    options.channel =
+                        signallab::repository::StereoChannel::Right;
+                } else {
+                    options.channel =
+                        signallab::repository::StereoChannel::Average;
+                }
+                selectedChannel = channel;
+            }
+
+            if (QMessageBox::question(
+                    this,
+                    "确认导入 WAV",
+                    previewDescription(*event.preview)
+                        + "\n导入通道：" + selectedChannel
+                        + "\n\n确认导入吗？")
+                != QMessageBox::Yes) {
+                continue;
+            }
+
+            auto submitted = backgroundFileService_.importWav(
+                event.sourcePath,
+                options);
+            if (!submitted) {
+                QMessageBox::warning(
+                    this,
+                    "WAV 导入无法排队",
+                    QString::fromStdString(submitted.error().message));
+            } else {
+                statusBar()->showMessage(
+                    QString("WAV 导入任务 #%1 已排队")
+                        .arg(static_cast<qulonglong>(submitted.value())),
+                    4000);
+            }
+            continue;
+        }
+
+        if (!event.importedSignal) {
+            QMessageBox::warning(
+                this,
+                "后台导入失败",
+                "导入任务报告成功，但没有返回信号。");
+            continue;
+        }
+
+        const std::size_t index = importService_.acceptImportedSignal(
+            std::move(*event.importedSignal));
+        refreshSignalList();
+        signalList_->setCurrentRow(static_cast<int>(index));
+        statusBar()->showMessage(
+            event.operation
+                    == signallab::app::BackgroundFileOperation::ImportCsv
+                ? "CSV 导入成功"
+                : "WAV 导入成功",
+            4000);
+    }
+
+    refreshTaskList();
+}
+
+void MainWindow::cancelSelectedTask()
+{
+    const int row = taskList_->currentRow();
+    if (row < 0 || static_cast<std::size_t>(row) >= visibleTaskIds_.size()) {
+        return;
+    }
+
+    const auto id = visibleTaskIds_[static_cast<std::size_t>(row)];
+    if (!scheduler_.cancel(id)) {
+        statusBar()->showMessage("所选任务已经结束，无法取消", 3000);
+    } else {
+        statusBar()->showMessage(
+            QString("已请求取消任务 #%1")
+                .arg(static_cast<qulonglong>(id)),
+            3000);
+    }
+    refreshTaskList();
+}
+
+void MainWindow::retrySelectedTask()
+{
+    const int row = taskList_->currentRow();
+    if (row < 0 || static_cast<std::size_t>(row) >= visibleTaskIds_.size()) {
+        return;
+    }
+
+    const auto originalId = visibleTaskIds_[static_cast<std::size_t>(row)];
+    auto retried = scheduler_.retry(originalId);
+    if (!retried) {
+        QMessageBox::warning(
+            this,
+            "任务无法重试",
+            QString::fromStdString(retried.error().message));
+        return;
+    }
+
+    const auto csvOptions = csvPreviewOptions_.find(originalId);
+    if (csvOptions != csvPreviewOptions_.end()) {
+        csvPreviewOptions_.insert_or_assign(
+            retried.value(),
+            csvOptions->second);
+    }
+
+    refreshTaskList();
     statusBar()->showMessage(
-        QString("同步分析完成：FFT %1 点，检测到 %2 个峰值")
-            .arg(static_cast<qulonglong>(result.spectrum.fftSize))
-            .arg(static_cast<qulonglong>(result.peaks.size())));
+        QString("重试任务 #%1 已排队（来源 #%2）")
+            .arg(static_cast<qulonglong>(retried.value()))
+            .arg(static_cast<qulonglong>(originalId)),
+        4000);
 }
 
 void MainWindow::clearAnalysis()
@@ -540,6 +870,69 @@ void MainWindow::clearAnalysis()
     QChart* oldChart = spectrumChartView_->chart();
     spectrumChartView_->setChart(chart);
     delete oldChart;
+}
+
+void MainWindow::refreshTaskList()
+{
+    signallab::task::TaskId selectedId = 0;
+    const int selectedRow = taskList_->currentRow();
+    if (selectedRow >= 0
+        && static_cast<std::size_t>(selectedRow) < visibleTaskIds_.size()) {
+        selectedId = visibleTaskIds_[static_cast<std::size_t>(selectedRow)];
+    }
+
+    const auto snapshots = scheduler_.snapshots();
+    const QSignalBlocker blocker(taskList_);
+    taskList_->clear();
+    visibleTaskIds_.clear();
+    visibleTaskIds_.reserve(snapshots.size());
+
+    int rowToSelect = -1;
+    for (const auto& snapshot : snapshots) {
+        visibleTaskIds_.push_back(snapshot.id);
+        QString details = QString("#%1  [%2]  %3")
+            .arg(static_cast<qulonglong>(snapshot.id))
+            .arg(taskStatusText(snapshot.status))
+            .arg(QString::fromStdString(snapshot.name));
+        if (snapshot.status == signallab::task::TaskStatus::Running) {
+            details += QString("  %1%").arg(snapshot.progressPercent);
+            if (!snapshot.progressMessage.empty()) {
+                details += "  "
+                    + QString::fromStdString(snapshot.progressMessage);
+            }
+        } else if (!snapshot.errorMessage.empty()) {
+            details += "  — "
+                + QString::fromStdString(snapshot.errorMessage);
+        }
+        if (snapshot.retryOf != 0) {
+            details += QString("  （重试 #%1）")
+                .arg(static_cast<qulonglong>(snapshot.retryOf));
+        }
+        taskList_->addItem(details);
+
+        if (snapshot.id == selectedId) {
+            rowToSelect = static_cast<int>(visibleTaskIds_.size() - 1U);
+        }
+    }
+
+    if (rowToSelect < 0 && !visibleTaskIds_.empty()) {
+        rowToSelect = static_cast<int>(visibleTaskIds_.size() - 1U);
+    }
+    taskList_->setCurrentRow(rowToSelect);
+
+    if (rowToSelect < 0) {
+        cancelTaskButton_->setEnabled(false);
+        retryTaskButton_->setEnabled(false);
+        return;
+    }
+
+    const auto selectedSnapshot = scheduler_.snapshot(
+        visibleTaskIds_[static_cast<std::size_t>(rowToSelect)]);
+    const bool hasSnapshot = selectedSnapshot.has_value();
+    cancelTaskButton_->setEnabled(
+        hasSnapshot && !signallab::task::isTerminal(selectedSnapshot->status));
+    retryTaskButton_->setEnabled(
+        hasSnapshot && signallab::task::isTerminal(selectedSnapshot->status));
 }
 
 void MainWindow::refreshHistory()

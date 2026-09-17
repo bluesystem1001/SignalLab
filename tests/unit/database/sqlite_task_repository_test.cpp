@@ -1,3 +1,5 @@
+#include <QSqlQuery>
+
 #include <gtest/gtest.h>
 
 #include <algorithm>
@@ -65,6 +67,9 @@ TEST(SqliteTaskRepositoryTest, PersistsSuccessfulHistoryFeaturesAndStableHash)
 
     const auto firstTask = repository.createTask(makeTask("First signal"));
     ASSERT_TRUE(firstTask);
+    const auto firstStart = repository.startTask(firstTask.value());
+    ASSERT_TRUE(firstStart);
+    ASSERT_TRUE(firstStart.value());
     const auto firstCompletion = repository.completeTask(
         firstTask.value(), features);
     ASSERT_TRUE(firstCompletion);
@@ -75,6 +80,9 @@ TEST(SqliteTaskRepositoryTest, PersistsSuccessfulHistoryFeaturesAndStableHash)
 
     const auto secondTask = repository.createTask(makeTask("Second signal"));
     ASSERT_TRUE(secondTask);
+    const auto secondStart = repository.startTask(secondTask.value());
+    ASSERT_TRUE(secondStart);
+    ASSERT_TRUE(secondStart.value());
     const std::vector<repository::FeatureValue> reversedFeatures{
         features.rbegin(), features.rend()};
     const auto secondCompletion = repository.completeTask(
@@ -84,6 +92,9 @@ TEST(SqliteTaskRepositoryTest, PersistsSuccessfulHistoryFeaturesAndStableHash)
 
     const auto thirdTask = repository.createTask(makeTask("Third signal"));
     ASSERT_TRUE(thirdTask);
+    const auto thirdStart = repository.startTask(thirdTask.value());
+    ASSERT_TRUE(thirdStart);
+    ASSERT_TRUE(thirdStart.value());
     auto changedFeatures = features;
     changedFeatures.front().value = 0.75;
     const auto thirdCompletion = repository.completeTask(
@@ -195,6 +206,9 @@ TEST(SqliteTaskRepositoryTest, RollsBackPartialFeaturesAndMarksTaskFailed)
 
     const auto task = repository.createTask(makeTask("Failure injection"));
     ASSERT_TRUE(task);
+    const auto start = repository.startTask(task.value());
+    ASSERT_TRUE(start);
+    ASSERT_TRUE(start.value());
     const std::vector<repository::FeatureValue> duplicateFeatures{
         {"mean", 1.0, "V"},
         {"mean", 2.0, "V"},
@@ -228,6 +242,9 @@ TEST(SqliteTaskRepositoryTest, RejectsNaNWithoutLeavingFeatureRows)
 
     const auto task = repository.createTask(makeTask("NaN feature"));
     ASSERT_TRUE(task);
+    const auto start = repository.startTask(task.value());
+    ASSERT_TRUE(start);
+    ASSERT_TRUE(start.value());
     const std::vector<repository::FeatureValue> features{
         {"mean", 1.0, "V"},
         {"invalid", std::numeric_limits<double>::quiet_NaN(), "V"},
@@ -250,10 +267,11 @@ TEST(SqliteTaskRepositoryTest, RejectsNaNWithoutLeavingFeatureRows)
     EXPECT_TRUE(failedTask->outputHash.empty());
 }
 
-TEST(SqliteTaskRepositoryTest, MarksRunningTasksInterruptedAfterRestart)
+TEST(SqliteTaskRepositoryTest, MarksPendingAndRunningTasksInterruptedAfterRestart)
 {
     test::TemporaryProject project("task-interrupted");
-    std::int64_t taskId = 0;
+    std::int64_t pendingTaskId = 0;
+    std::int64_t runningTaskId = 0;
 
     {
         DatabaseConnection connection(project.databasePath());
@@ -261,9 +279,18 @@ TEST(SqliteTaskRepositoryTest, MarksRunningTasksInterruptedAfterRestart)
         MigrationRunner runner(connection);
         ASSERT_TRUE(runner.run(test::migrationsDirectory()));
         SqliteTaskRepository repository(connection);
-        const auto task = repository.createTask(makeTask("Interrupted signal"));
-        ASSERT_TRUE(task);
-        taskId = task.value();
+        const auto pendingTask = repository.createTask(
+            makeTask("Pending signal"));
+        ASSERT_TRUE(pendingTask);
+        pendingTaskId = pendingTask.value();
+
+        const auto runningTask = repository.createTask(
+            makeTask("Running signal"));
+        ASSERT_TRUE(runningTask);
+        runningTaskId = runningTask.value();
+        const auto start = repository.startTask(runningTaskId);
+        ASSERT_TRUE(start);
+        ASSERT_TRUE(start.value());
     }
 
     DatabaseConnection restartedConnection(project.databasePath());
@@ -274,16 +301,99 @@ TEST(SqliteTaskRepositoryTest, MarksRunningTasksInterruptedAfterRestart)
 
     const auto interrupted = restartedRepository.interruptRunningTasks();
     ASSERT_TRUE(interrupted);
-    EXPECT_EQ(interrupted.value(), 1U);
+    EXPECT_EQ(interrupted.value(), 2U);
 
     const auto tasks = restartedRepository.listTasks(10);
     ASSERT_TRUE(tasks);
-    const auto* restoredTask = findTask(tasks.value(), taskId);
-    ASSERT_NE(restoredTask, nullptr);
+    const auto* restoredPending = findTask(tasks.value(), pendingTaskId);
+    ASSERT_NE(restoredPending, nullptr);
     EXPECT_EQ(
-        restoredTask->status,
+        restoredPending->status,
         repository::AnalysisTaskStatus::Interrupted);
-    EXPECT_FALSE(restoredTask->finishedUtc.empty());
+    EXPECT_TRUE(restoredPending->startedUtc.empty());
+    EXPECT_FALSE(restoredPending->finishedUtc.empty());
+
+    const auto* restoredRunning = findTask(tasks.value(), runningTaskId);
+    ASSERT_NE(restoredRunning, nullptr);
+    EXPECT_EQ(
+        restoredRunning->status,
+        repository::AnalysisTaskStatus::Interrupted);
+    EXPECT_FALSE(restoredRunning->startedUtc.empty());
+    EXPECT_FALSE(restoredRunning->finishedUtc.empty());
+}
+
+TEST(SqliteTaskRepositoryTest, PersistsPendingStartAndCancellationTransitions)
+{
+    test::TemporaryProject project("task-cancel");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+    SqliteTaskRepository repository(connection);
+
+    const auto pendingTask = repository.createTask(makeTask("Cancel pending"));
+    ASSERT_TRUE(pendingTask);
+    auto history = repository.listTasks(10);
+    ASSERT_TRUE(history);
+    const auto* pending = findTask(history.value(), pendingTask.value());
+    ASSERT_NE(pending, nullptr);
+    EXPECT_EQ(pending->status, repository::AnalysisTaskStatus::Pending);
+    EXPECT_TRUE(pending->startedUtc.empty());
+    EXPECT_TRUE(pending->finishedUtc.empty());
+
+    const auto cancelPending = repository.cancelTask(
+        pendingTask.value(), "");
+    ASSERT_TRUE(cancelPending);
+    EXPECT_TRUE(cancelPending.value());
+
+    const auto runningTask = repository.createTask(makeTask("Cancel running"));
+    ASSERT_TRUE(runningTask);
+    const auto start = repository.startTask(runningTask.value());
+    ASSERT_TRUE(start);
+    EXPECT_TRUE(start.value());
+    const auto secondStart = repository.startTask(runningTask.value());
+    ASSERT_TRUE(secondStart);
+    EXPECT_FALSE(secondStart.value());
+
+    const auto cancelRunning = repository.cancelTask(
+        runningTask.value(), "Cancelled by the test.");
+    ASSERT_TRUE(cancelRunning);
+    EXPECT_TRUE(cancelRunning.value());
+    const auto secondCancel = repository.cancelTask(
+        runningTask.value(), "A repeated request.");
+    ASSERT_TRUE(secondCancel);
+    EXPECT_FALSE(secondCancel.value());
+
+    QSqlQuery logQuery(connection.database());
+    ASSERT_TRUE(logQuery.prepare(
+        "SELECT detail, typeof(detail) FROM operation_log "
+        "WHERE operation IN ('START_TASK', 'CANCEL_TASK') "
+        "ORDER BY id"));
+    ASSERT_TRUE(logQuery.exec());
+    int stateLogCount = 0;
+    while (logQuery.next()) {
+        EXPECT_FALSE(logQuery.value(0).isNull());
+        EXPECT_EQ(logQuery.value(1).toString(), "text");
+        ++stateLogCount;
+    }
+    EXPECT_EQ(stateLogCount, 3);
+
+    history = repository.listTasks(10);
+    ASSERT_TRUE(history);
+    for (const std::int64_t taskId : {
+             pendingTask.value(), runningTask.value()}) {
+        const auto* cancelled = findTask(history.value(), taskId);
+        ASSERT_NE(cancelled, nullptr);
+        EXPECT_EQ(
+            cancelled->status,
+            repository::AnalysisTaskStatus::Cancelled);
+        EXPECT_TRUE(cancelled->outputHash.empty());
+        EXPECT_FALSE(cancelled->finishedUtc.empty());
+
+        const auto features = repository.listFeatureResults(taskId);
+        ASSERT_TRUE(features);
+        EXPECT_TRUE(features.value().empty());
+    }
 }
 
 }  // namespace

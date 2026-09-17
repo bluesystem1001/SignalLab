@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cmath>
 #include <numbers>
+#include <stop_token>
 #include <utility>
 #include <vector>
 
@@ -12,11 +13,20 @@
 namespace signallab::algorithm {
 namespace {
 
+constexpr std::size_t cancellationBatchOperationCount = 4096U;
+
 core::Result<std::vector<double>> coefficientError(const char* message)
 {
     return core::Result<std::vector<double>>::failure(
         core::ErrorCode::InvalidParameter,
         message);
+}
+
+core::Result<core::Signal> cancelledFir()
+{
+    return core::Result<core::Signal>::failure(
+        core::ErrorCode::Cancelled,
+        "FIR filtering was cancelled.");
 }
 
 bool areDesignParametersValid(
@@ -118,7 +128,8 @@ core::Result<std::vector<double>> designHighPassFir(
 core::Result<core::Signal> applyFir(
     const core::Signal& signal,
     std::span<const double> coefficients,
-    FirBoundaryStrategy boundary)
+    FirBoundaryStrategy boundary,
+    std::stop_token stopToken)
 {
     if (boundary != FirBoundaryStrategy::ZeroPadding) {
         return core::Result<core::Signal>::failure(
@@ -132,16 +143,29 @@ core::Result<core::Signal> applyFir(
             "An FIR filter must contain at least one coefficient.");
     }
 
-    for (double coefficient : coefficients) {
-        if (!std::isfinite(coefficient)) {
+    if (stopToken.stop_requested()) {
+        return cancelledFir();
+    }
+
+    for (std::size_t index = 0; index < coefficients.size(); ++index) {
+        if (index % cancellationBatchOperationCount == 0U
+            && stopToken.stop_requested()) {
+            return cancelledFir();
+        }
+        if (!std::isfinite(coefficients[index])) {
             return core::Result<core::Signal>::failure(
                 core::ErrorCode::InvalidParameter,
                 "Every FIR coefficient must be finite.");
         }
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledFir();
+    }
+
     const std::span<const double> input = signal.samples();
     std::vector<double> output(input.size(), 0.0);
+    std::size_t operationsSinceCancellationCheck = 0;
 
     for (std::size_t outputIndex = 0;
          outputIndex < input.size();
@@ -153,12 +177,25 @@ core::Result<core::Signal> applyFir(
         for (std::size_t coefficientIndex = 0;
              coefficientIndex < usableCoefficientCount;
              ++coefficientIndex) {
+            if (operationsSinceCancellationCheck
+                == cancellationBatchOperationCount) {
+                if (stopToken.stop_requested()) {
+                    return cancelledFir();
+                }
+                operationsSinceCancellationCheck = 0;
+            }
+
             value += static_cast<long double>(coefficients[coefficientIndex])
                 * static_cast<long double>(
                     input[outputIndex - coefficientIndex]);
+            ++operationsSinceCancellationCheck;
         }
 
         output[outputIndex] = static_cast<double>(value);
+    }
+
+    if (stopToken.stop_requested()) {
+        return cancelledFir();
     }
 
     return core::Signal::create(

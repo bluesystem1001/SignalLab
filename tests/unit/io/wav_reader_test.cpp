@@ -6,6 +6,7 @@
 #include <filesystem>
 #include <fstream>
 #include <stdexcept>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <system_error>
@@ -426,6 +427,32 @@ TEST(WavReaderTest, DistinguishesAnInvalidRiffHeader)
     EXPECT_EQ(result.error().code, core::ErrorCode::InvalidParameter);
     EXPECT_NE(result.error().message.find("invalid RIFF/WAVE"), std::string::npos);
     EXPECT_NE(result.error().message.find("byte offset"), std::string::npos);
+}
+
+TEST(WavReaderTest, HonorsAPreRequestedCancellation)
+{
+    const TemporaryWavFile file(makeWavBytes(
+        1,
+        16,
+        1,
+        48000,
+        {0, 1000, -1000}));
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto previewResult = previewWav(
+        file.path(),
+        5,
+        stopSource.get_token());
+    const auto readResult = readWav(
+        file.path(),
+        optionsFor(StereoChannel::Average),
+        stopSource.get_token());
+
+    ASSERT_FALSE(previewResult.hasValue());
+    EXPECT_EQ(previewResult.error().code, core::ErrorCode::Cancelled);
+    ASSERT_FALSE(readResult.hasValue());
+    EXPECT_EQ(readResult.error().code, core::ErrorCode::Cancelled);
 }
 
 }  // namespace

@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <span>
+#include <stop_token>
 #include <string_view>
 #include <vector>
 
@@ -33,6 +34,7 @@ enum class FirBoundaryStrategy {
 [[nodiscard]] core::Result<core::Signal> applyFir(
     const core::Signal& signal,
     std::span<const double> coefficients,
-    FirBoundaryStrategy boundary = FirBoundaryStrategy::ZeroPadding);
+    FirBoundaryStrategy boundary = FirBoundaryStrategy::ZeroPadding,
+    std::stop_token stopToken = {});
 
 }  // namespace signallab::algorithm

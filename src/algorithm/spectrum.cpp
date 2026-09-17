@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <limits>
 #include <span>
+#include <stop_token>
 #include <string>
 #include <utility>
 #include <vector>
@@ -14,6 +15,8 @@
 
 namespace signallab::algorithm {
 namespace {
+
+constexpr std::size_t cancellationBatchSize = 4096U;
 
 core::Result<Spectrum> spectrumFailure(core::ErrorCode code, std::string message)
 {
@@ -25,12 +28,28 @@ bool isNyquistBin(std::size_t index, std::size_t fftSize)
     return fftSize > 1U && index == fftSize / 2U;
 }
 
+bool shouldStop(
+    const std::stop_token& stopToken,
+    std::size_t completedItemCount)
+{
+    return completedItemCount % cancellationBatchSize == 0U
+        && stopToken.stop_requested();
+}
+
+core::Result<Spectrum> cancelledSpectrum()
+{
+    return spectrumFailure(
+        core::ErrorCode::Cancelled,
+        "Spectrum calculation was cancelled.");
+}
+
 }  // namespace
 
 core::Result<Spectrum> computeSpectrum(
     std::span<const double> samples,
     double sampleRate,
-    WindowType windowType)
+    WindowType windowType,
+    std::stop_token stopToken)
 {
     if (samples.empty()) {
         return spectrumFailure(
@@ -44,7 +63,15 @@ core::Result<Spectrum> computeSpectrum(
             "Spectrum sample rate must be finite and greater than zero.");
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledSpectrum();
+    }
+
     for (std::size_t index = 0; index < samples.size(); ++index) {
+        if (shouldStop(stopToken, index)) {
+            return cancelledSpectrum();
+        }
+
         if (!std::isfinite(samples[index])) {
             return spectrumFailure(
                 core::ErrorCode::NonFiniteSample,
@@ -65,6 +92,9 @@ core::Result<Spectrum> computeSpectrum(
     if (!windowResult.hasValue()) {
         return core::Result<Spectrum>::failure(windowResult.error());
     }
+    if (stopToken.stop_requested()) {
+        return cancelledSpectrum();
+    }
 
     const auto gainResult = coherentGain(windowResult.value());
     if (!gainResult.hasValue()) {
@@ -78,7 +108,13 @@ core::Result<Spectrum> computeSpectrum(
     }
 
     double windowEnergy = 0.0;
-    for (const double coefficient : windowResult.value()) {
+    for (std::size_t index = 0;
+         index < windowResult.value().size();
+         ++index) {
+        if (shouldStop(stopToken, index)) {
+            return cancelledSpectrum();
+        }
+        const double coefficient = windowResult.value()[index];
         windowEnergy += coefficient * coefficient;
     }
     if (!std::isfinite(windowEnergy) || windowEnergy <= 0.0) {
@@ -90,10 +126,13 @@ core::Result<Spectrum> computeSpectrum(
     const std::size_t fftSize = std::bit_ceil(samples.size());
     std::vector<std::complex<double>> fftInput(fftSize, {0.0, 0.0});
     for (std::size_t index = 0; index < samples.size(); ++index) {
+        if (shouldStop(stopToken, index)) {
+            return cancelledSpectrum();
+        }
         fftInput[index] = samples[index] * windowResult.value()[index];
     }
 
-    auto fftResult = radix2Fft(fftInput);
+    auto fftResult = radix2Fft(fftInput, stopToken);
     if (!fftResult.hasValue()) {
         return core::Result<Spectrum>::failure(fftResult.error());
     }
@@ -119,6 +158,10 @@ core::Result<Spectrum> computeSpectrum(
     const double powerDenominator = static_cast<double>(fftSize) * windowEnergy;
 
     for (std::size_t index = 0; index < binCount; ++index) {
+        if (shouldStop(stopToken, index)) {
+            return cancelledSpectrum();
+        }
+
         const bool doubleOneSidedValue = index != 0U && !isNyquistBin(index, fftSize);
         const double oneSidedFactor = doubleOneSidedValue ? 2.0 : 1.0;
         const double frequency =
@@ -153,12 +196,23 @@ core::Result<Spectrum> computeSpectrum(
         spectrum.powers.push_back(power);
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledSpectrum();
+    }
+
     return core::Result<Spectrum>::success(std::move(spectrum));
 }
 
-core::Result<Spectrum> computeSpectrum(const core::Signal& signal, WindowType windowType)
+core::Result<Spectrum> computeSpectrum(
+    const core::Signal& signal,
+    WindowType windowType,
+    std::stop_token stopToken)
 {
-    return computeSpectrum(signal.samples(), signal.sampleRate(), windowType);
+    return computeSpectrum(
+        signal.samples(),
+        signal.sampleRate(),
+        windowType,
+        stopToken);
 }
 
 }  // namespace signallab::algorithm

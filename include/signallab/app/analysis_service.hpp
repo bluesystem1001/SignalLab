@@ -2,7 +2,9 @@
 
 #include <cstddef>
 #include <cstdint>
+#include <functional>
 #include <optional>
+#include <stop_token>
 #include <string>
 #include <string_view>
 #include <vector>
@@ -18,7 +20,9 @@
 namespace signallab::app {
 
 inline constexpr std::string_view kAnalysisServiceVersion{
-    "analysis-service/1.0.0"};
+    "analysis-service/1.1.0"};
+
+using AnalysisProgressCallback = std::function<void(int, std::string)>;
 
 struct AnalysisOptions {
     algorithm::WindowType windowType{algorithm::WindowType::Hann};
@@ -40,15 +44,17 @@ struct AnalysisResult {
     std::optional<double> thdPercent;
 };
 
-// Runs one complete analysis synchronously. Stage 5 will move this call to a
-// background task without changing the algorithm interfaces.
+// Runs one complete analysis. A caller may use a stop token and a lightweight
+// progress callback; leaving both empty keeps the simple synchronous form.
 [[nodiscard]] core::Result<AnalysisResult> analyzeSignal(
     const core::Signal& signal,
-    const AnalysisOptions& options = {});
+    const AnalysisOptions& options = {},
+    std::stop_token stopToken = {},
+    AnalysisProgressCallback progressCallback = {});
 
 // Adds persistence and history around the pure analyzeSignal function. The
-// algorithm remains synchronous in stage 4; stage 5 can schedule this service
-// without changing the repository contract.
+// service itself stays synchronous so callers can use it directly in tests;
+// BackgroundAnalysisService schedules it without changing this contract.
 class AnalysisService {
 public:
     AnalysisService(
@@ -59,7 +65,9 @@ public:
 
     [[nodiscard]] core::Result<AnalysisResult> analyze(
         std::int64_t signalRecordId,
-        const AnalysisOptions& options = {});
+        const AnalysisOptions& options = {},
+        std::stop_token stopToken = {},
+        AnalysisProgressCallback progressCallback = {});
 
     [[nodiscard]] core::Result<std::vector<repository::AnalysisTaskRecord>>
     history(std::size_t maximumCount = 100);
