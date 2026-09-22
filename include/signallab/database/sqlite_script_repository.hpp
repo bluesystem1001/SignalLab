@@ -9,10 +9,15 @@ class SqliteScriptRepository final : public repository::ScriptRepository {
 public:
     explicit SqliteScriptRepository(DatabaseConnection& connection);
 
-    [[nodiscard]] core::Result<std::int64_t> addScriptHistory(
-        const std::string& scriptText,
-        const std::string& status,
-        const std::string& errorMessage) override;
+    [[nodiscard]] core::Result<std::int64_t> createScriptHistory(
+        std::string scriptText) override;
+
+    [[nodiscard]] core::Result<bool> finishScriptHistory(
+        std::int64_t historyId,
+        repository::ScriptHistoryFinish finish) override;
+
+    [[nodiscard]] core::Result<std::size_t>
+    interruptRunningScripts() override;
 
     [[nodiscard]] core::Result<std::vector<repository::ScriptHistoryRecord>>
     listScriptHistory(std::size_t maximumCount) override;

@@ -210,7 +210,7 @@ core::Result<AnalysisResult> analyzeSignal(
             "The THD harmonic count must be at least two.");
     }
 
-    auto featuresResult = algorithm::calculateBasicFeatures(signal);
+    auto featuresResult = algorithm::calculateBasicFeatures(signal, stopToken);
     if (!featuresResult) {
         return core::Result<AnalysisResult>::failure(
             featuresResult.error());
@@ -220,7 +220,7 @@ core::Result<AnalysisResult> analyzeSignal(
     }
     reportProgress(progressCallback, 15, "Calculated time-domain features");
 
-    auto centeredSignalResult = algorithm::removeDc(signal);
+    auto centeredSignalResult = algorithm::removeDc(signal, stopToken);
     if (!centeredSignalResult) {
         return core::Result<AnalysisResult>::failure(
             centeredSignalResult.error());
@@ -300,7 +300,8 @@ core::Result<AnalysisResult> analyzeSignal(
         auto snrResult = algorithm::calculateSnrDb(
             spectrum,
             dominantPeak->frequencyHz,
-            options.metricGuardBins);
+            options.metricGuardBins,
+            stopToken);
         if (snrResult) {
             snrDb = snrResult.value();
         }
@@ -309,7 +310,8 @@ core::Result<AnalysisResult> analyzeSignal(
             spectrum,
             dominantPeak->frequencyHz,
             options.thdHarmonicCount,
-            options.metricGuardBins);
+            options.metricGuardBins,
+            stopToken);
         if (thdResult) {
             thdPercent = thdResult.value();
         }

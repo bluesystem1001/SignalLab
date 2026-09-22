@@ -3,6 +3,7 @@
 #include <cmath>
 #include <cstddef>
 #include <limits>
+#include <stop_token>
 #include <utility>
 #include <vector>
 
@@ -135,6 +136,32 @@ TEST(QualityMetricsTest, RejectsOverlappingThdNeighborhoods)
 
     ASSERT_FALSE(result);
     EXPECT_EQ(result.error().code, core::ErrorCode::InvalidParameter);
+}
+
+TEST(QualityMetricsTest, HonorsCancellation)
+{
+    const Spectrum spectrum = makeSpectrum(
+        {0.0, 4.0, 1.0, 0.0, 0.0},
+        80.0);
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto snr = calculateSnrDb(
+        spectrum,
+        10.0,
+        0U,
+        stopSource.get_token());
+    const auto thd = calculateThdPercent(
+        spectrum,
+        10.0,
+        5U,
+        0U,
+        stopSource.get_token());
+
+    ASSERT_FALSE(snr);
+    EXPECT_EQ(snr.error().code, core::ErrorCode::Cancelled);
+    ASSERT_FALSE(thd);
+    EXPECT_EQ(thd.error().code, core::ErrorCode::Cancelled);
 }
 
 }  // namespace

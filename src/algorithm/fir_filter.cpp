@@ -201,7 +201,8 @@ core::Result<core::Signal> applyFir(
     return core::Signal::create(
         std::move(output),
         signal.sampleRate(),
-        signal.metadata());
+        signal.metadata(),
+        stopToken);
 }
 
 }  // namespace signallab::algorithm

@@ -38,6 +38,21 @@ target_link_libraries(signallab_algorithm_tests
 signallab_set_compiler_warnings(signallab_algorithm_tests)
 gtest_discover_tests(signallab_algorithm_tests)
 
+add_executable(signallab_parser_tests
+    unit/parser/signal_script_frontend_test.cpp
+)
+
+target_compile_features(signallab_parser_tests PRIVATE cxx_std_20)
+
+target_link_libraries(signallab_parser_tests
+    PRIVATE
+        GTest::gtest_main
+        signallab_parser
+)
+
+signallab_set_compiler_warnings(signallab_parser_tests)
+gtest_discover_tests(signallab_parser_tests)
+
 add_executable(signallab_task_tests
     unit/task/scheduler_test.cpp
     unit/task/task_queue_test.cpp
@@ -61,6 +76,7 @@ add_executable(signallab_io_tests
     unit/app/display_downsampler_test.cpp
     unit/app/import_service_test.cpp
     unit/io/csv_reader_test.cpp
+    unit/io/script_file_gateway_test.cpp
     unit/io/wav_reader_test.cpp
 )
 
@@ -104,6 +120,29 @@ target_link_libraries(signallab_background_service_tests
 
 signallab_set_compiler_warnings(signallab_background_service_tests)
 gtest_discover_tests(signallab_background_service_tests)
+
+add_executable(signallab_script_integration_tests
+    unit/database/database_test_main.cpp
+    integration/script_execution_test.cpp
+)
+
+target_compile_features(signallab_script_integration_tests PRIVATE cxx_std_20)
+
+target_compile_definitions(signallab_script_integration_tests
+    PRIVATE
+        SIGNALLAB_SOURCE_DIR="${PROJECT_SOURCE_DIR}"
+)
+
+target_link_libraries(signallab_script_integration_tests
+    PRIVATE
+        GTest::gtest
+        signallab_app
+        signallab_database
+        signallab_io
+)
+
+signallab_set_compiler_warnings(signallab_script_integration_tests)
+gtest_discover_tests(signallab_script_integration_tests)
 
 add_executable(signallab_database_tests
     unit/database/database_test_main.cpp

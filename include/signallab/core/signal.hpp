@@ -2,6 +2,7 @@
 
 #include <cstddef>
 #include <span>
+#include <stop_token>
 #include <string>
 #include <utility>
 #include <vector>
@@ -21,7 +22,8 @@ public:
     [[nodiscard]] static Result<Signal> create(
         std::vector<double> samples,
         double sample_rate,
-        SignalMetadata metadata);
+        SignalMetadata metadata,
+        std::stop_token stopToken = {});
 
     [[nodiscard]] std::span<const double> samples() const noexcept;
     [[nodiscard]] double sampleRate() const noexcept;

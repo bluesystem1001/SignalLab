@@ -81,6 +81,13 @@ int main(int argc, char* argv[])
         return 1;
     }
 
+    auto scriptInterruptionResult =
+        databaseExecutor.interruptRunningScripts();
+    if (!scriptInterruptionResult) {
+        showStartupError(scriptInterruptionResult.error().message);
+        return 1;
+    }
+
     auto restoreResult = importService.restoreSignals();
     if (!restoreResult) {
         showStartupError(restoreResult.error().message);

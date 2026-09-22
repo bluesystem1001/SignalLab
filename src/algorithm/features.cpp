@@ -85,11 +85,22 @@ std::optional<core::Error> validateSpectrum(const Spectrum& spectrum)
     return std::nullopt;
 }
 
+core::Result<BasicFeatures> cancelledFeatures()
+{
+    return core::Result<BasicFeatures>::failure(
+        core::ErrorCode::Cancelled,
+        "Basic feature calculation was cancelled.");
+}
+
 }  // namespace
 
 core::Result<BasicFeatures> calculateBasicFeatures(
-    std::span<const double> samples)
+    std::span<const double> samples,
+    std::stop_token stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledFeatures();
+    }
     if (samples.empty()) {
         return core::Result<BasicFeatures>::failure(
             core::ErrorCode::EmptySamples,
@@ -101,7 +112,11 @@ core::Result<BasicFeatures> calculateBasicFeatures(
     double minimum = samples.front();
     double maximum = samples.front();
 
-    for (double sample : samples) {
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+        if ((index % 4096U) == 0U && stopToken.stop_requested()) {
+            return cancelledFeatures();
+        }
+        const double sample = samples[index];
         if (!std::isfinite(sample)) {
             return core::Result<BasicFeatures>::failure(
                 core::ErrorCode::NonFiniteSample,
@@ -120,7 +135,11 @@ core::Result<BasicFeatures> calculateBasicFeatures(
     const long double mean = sum / sampleCount;
 
     long double squaredDifferenceSum = 0.0L;
-    for (double sample : samples) {
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+        if ((index % 4096U) == 0U && stopToken.stop_requested()) {
+            return cancelledFeatures();
+        }
+        const double sample = samples[index];
         const long double difference =
             static_cast<long double>(sample) - mean;
         squaredDifferenceSum += difference * difference;
@@ -141,12 +160,17 @@ core::Result<BasicFeatures> calculateBasicFeatures(
             "Basic feature calculation exceeded the finite numeric range.");
     }
 
+    if (stopToken.stop_requested()) {
+        return cancelledFeatures();
+    }
     return core::Result<BasicFeatures>::success(features);
 }
 
-core::Result<BasicFeatures> calculateBasicFeatures(const core::Signal& signal)
+core::Result<BasicFeatures> calculateBasicFeatures(
+    const core::Signal& signal,
+    std::stop_token stopToken)
 {
-    return calculateBasicFeatures(signal.samples());
+    return calculateBasicFeatures(signal.samples(), stopToken);
 }
 
 core::Result<double> calculateBandEnergy(

@@ -1,6 +1,6 @@
 # SignalLab 架构说明
 
-本文描述 `0.5.0` 当前已经接入的结构。阶段 5 的工程实现以及 Debug/Release 自动化验证已经完成，当前停在用户交互观感验收点。
+本文描述 `0.6.0` 当前已经接入的结构。阶段 4 的持久化和阶段 5 的后台任务边界保持不变；阶段 6 在 GUI 之外增加 SignalScript 前端、静态检查、受限解释运行时、脚本文件网关和执行历史。脚本编辑器与控制台仍属于阶段 7，因此当前主窗口只展示既有交互能力。
 
 ## 阶段 1 的历史切片
 
@@ -61,13 +61,14 @@ auto value = std::move(result).value();
 SignalLab（组装根）
 ├─> signallab_gui -> signallab_app
 │                    ├─> signallab_algorithm -> signallab_core
+│                    ├─> signallab_parser -> signallab_core
 │                    ├─> repository 接口 -> signallab_core
 │                    └─> signallab_task -> signallab_core
 ├─> signallab_io       -> repository 接口 + signallab_core + Qt Core
 └─> signallab_database -> repository 接口 + Qt Core + Qt Sql
 ```
 
-`repository` 目录只声明文件、信号、任务和脚本历史的抽象接口。`ImportService` 和 `AnalysisService` 只依赖这些接口，不知道 SQLite 或文件系统细节。`main.cpp` 创建 `FilesystemFileRepository`、`DatabaseExecutor`、`Scheduler` 和两个后台适配服务，再通过构造函数装配应用与界面。`DatabaseExecutor` 同时实现信号、任务和脚本仓库接口，但把具体 SQLite 仓库隐藏在其专属线程内。[ADR 0006](adr/0006-stage2-import-service-boundary.md) 的退出条件因此已满足。
+`repository` 目录只声明文件、信号、任务、脚本历史和脚本文件能力的抽象接口。`ImportService`、`AnalysisService` 和 `ScriptService` 只依赖这些接口，不知道 SQLite 语句或文件安全检查的具体实现。`main.cpp` 创建 `FilesystemFileRepository`、`DatabaseExecutor`、`Scheduler` 和两个后台适配服务，再通过构造函数装配现有应用与界面；阶段 6 还在启动时通过数据库代理清理遗留脚本执行。`DatabaseExecutor` 同时实现信号、任务和脚本仓库接口，但把具体 SQLite 仓库隐藏在其专属线程内。`FilesystemScriptFileGateway` 则实现受限的输入根/输出根访问，解释器永远不会获得原始文件系统对象。[ADR 0006](adr/0006-stage2-import-service-boundary.md) 的退出条件因此已满足。
 
 当前文件预览和导入的数据流是：
 
@@ -120,7 +121,7 @@ GUI 只把所选记录编号交给后台分析适配器，当前数据流是：
 
 ## SQLite 追溯闭环
 
-`DatabaseExecutor` 启动专属线程，在该线程内打开 `data/signallab.sqlite3`，再按顺序执行 `migrations/` 中尚未记录的 SQL 迁移。`001_init.sql` 建立初始业务表；`002_task_scheduler.sql` 在保留既有任务编号、历史和特征的前提下扩展任务状态约束，加入 `CANCELLED`。`schema_migration` 由迁移执行器管理。连接开启外键、WAL 和 5000 ms busy timeout。
+`DatabaseExecutor` 启动专属线程，在该线程内打开 `data/signallab.sqlite3`，再按顺序执行 `migrations/` 中尚未记录的 SQL 迁移。`001_init.sql` 建立初始业务表；`002_task_scheduler.sql` 在保留既有任务编号、历史和特征的前提下扩展任务状态约束，加入 `CANCELLED`；`003_signal_script.sql` 为脚本历史增加源码哈希、错误行列和阶段 6 终态约束。`schema_migration` 由迁移执行器管理。连接开启外键、WAL 和 5000 ms busy timeout。
 
 当前分析与追溯数据流是：
 
@@ -156,6 +157,33 @@ GUI 只把所选记录编号交给后台分析适配器，当前数据流是：
 - `MainWindow` 的通知器用 `QPointer` 保护窗口寿命，再通过 `QMetaObject::invokeMethod(..., Qt::QueuedConnection)` 请求 GUI 线程排空事件。工作线程不直接访问控件；导入成功后的 `SignalEntry` 也由 GUI 线程接纳进界面列表。
 - 退出顺序固定为：清除跨线程 UI 通知器，停止调度并取消/等待工作线程，随后让数据库执行器停止接收命令、排空已接收命令并在所属线程关闭 SQLite。重复关闭是安全的。
 
+## 阶段 6 的 SignalScript 边界
+
+SignalScript 拆成四段，前端和算法都不依赖 GUI：
+
+```text
+UTF-8 source
+    -> Lexer -> Token + LEX diagnostics
+    -> Parser -> AST + PAR diagnostics（分号同步恢复）
+    -> SemanticChecker -> 类型/符号表/绑定调用 + SEM diagnostics
+    -> ScriptService -> Evaluator -> ImportService / 既有算法
+                                  -> ScriptFileGateway
+                                  -> 结构化 plot 请求
+    -> ScriptRepository -> script_history + operation_log
+```
+
+`signallab_parser` 负责源位置、Token、AST、递归下降分析和语义绑定。AST 的每个表达式都有稳定的本次解析节点编号与源范围；语义模型用节点编号保存表达式类型和内建调用的参数绑定。管道没有单独的动态调度规则，而是在检查时把左侧值绑定为右侧白名单函数的首参数。解析器在错误后丢弃到下一个分号或文件末尾，再继续建立后续可恢复语句；任一前端错误都会阻止解释执行。
+
+静态类型为 `Number`、`String`、`Boolean`、`Signal`、`Spectrum`、`FeatureSet`、`Unit` 和内部错误占位 `Invalid`。可执行内建只有 `normalize`、`lowpass`、`fft` 和 `features`；`load`、`plot`、`save` 是专用语句。`fft` 调用与 GUI 相同的 `analyzeSignal()` 算法路径，`features` 复用基本特征和质量指标实现。解释值持有不可变 `Signal`、完整分析结果或特征集合；`plot` 返回数据和标题，不直接引用 Qt Charts。
+
+脚本的 `load` 使用 `ImportService::openCsv/openWav`，与 GUI 的“重复导入即提示”用例分开。脚本入口按“文件内容 SHA-256 + 规范化解析选项”查找逻辑来源：相同内容和选项会复用已经持久化的信号，使重复加载具备幂等性；原路径内容改变时会形成新的文件版本和逻辑信号。它只返回脚本计算所需的 `SignalEntry`，不读取或修改 `ImportService::entries()`，因此后台解释不会和 GUI 项目模型竞态；阶段 7 再由 GUI 线程显式刷新或接纳脚本产生的持久化信号。这个保证只覆盖 `load`：包含 `save` 的完整脚本再次执行时仍会因禁止覆盖已有输出而失败，先前已提交的导入或输出也不会因后续语句失败而整体回滚。
+
+`ScriptService` 是用例边界：它在任何词法处理前创建 `RUNNING` 历史，组合 `LEX/PAR/SEM` 三类前端诊断，并把独立的 `RUN` 运行时问题与语言错误一起包装为正常的执行结果；只有无法可靠创建或完成历史等基础设施问题才使用外层 `Result` 失败。运行时接受 `std::stop_token`，取消、成功和失败都会尝试完成同一历史记录。
+
+`ScriptFileGateway` 是运行时唯一文件能力。`FilesystemScriptFileGateway` 分别固定输入根和输出根，只接受根内相对路径，拒绝空路径、绝对路径、`..`、Windows 备用数据流以及符号链接/junction 逃逸。输入必须是普通文件；输出以临时文件写完后原子发布，若目标存在则失败且不覆盖。解释器未获得进程、Shell、网络、动态库或任意文件 API。
+
+完整语法、内建参数和文件格式见 [SignalScript 说明](signalscript.md)。阶段 6 提供语言服务、执行结果和历史接口；把编辑器、运行操作、诊断导航及结构化绘图请求接入 `MainWindow` 是阶段 7 的职责。
+
 ## 显示下采样
 
 原始 `Signal` 和完整 `Spectrum` 都不会因为绘图而改变。小信号/小频谱逐点显示；较大数据按图表像素宽度分桶，每桶按原索引顺序保留最小值和最大值。因此提交给 Qt Charts 的点数最多约为 `2 × 像素宽度`，时域瞬态和频域尖峰仍能保留。
@@ -164,4 +192,6 @@ GUI 只把所选记录编号交给后台分析适配器，当前数据流是：
 
 ## 后续边界
 
-数据库、迁移、后台调度、取消和进程内重试均已实现，阶段 5 的 Debug/Release 164/164 项测试和并发重复验证已经通过；当前只等待用户按 README 确认交互观感。阶段 6 的 SignalScript 解释器尚未实现，`script_history` 及其仓库接口目前只提供持久化基础，不代表脚本语法已经可用。后续模块会继续遵守“核心与算法模块不依赖 GUI”的方向。
+数据库、迁移、后台调度、取消和进程内重试继续沿用阶段 5 已验证的边界。阶段 6 的 SignalScript 前端、解释执行、受限文件网关和历史生命周期已经落入 `0.6.0` 代码；Debug 与 Release 均无警告构建成功并通过 216/216 项测试。阶段完成版本由 `v0.6` 与 `stage-6-complete` 标记，并生成仓库外 Git bundle。
+
+阶段 7 将在不把 Qt 依赖反向带入 parser、algorithm 或 core 的前提下，把脚本编辑、执行状态、诊断定位、历史查询和绘图请求接到主窗口。批处理、插件化任意函数、网络数据源和系统命令不在 `0.6.0` 的语言能力内。

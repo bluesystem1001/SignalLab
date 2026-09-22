@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     SignalLab
-    VERSION 0.5.0
+    VERSION 0.6.0
     LANGUAGES CXX
 )
 
@@ -42,6 +42,7 @@ signallab_set_compiler_warnings(signallab_core)
 
 add_library(signallab_repository INTERFACE
     include/signallab/repository/file_repository.hpp
+    include/signallab/repository/script_file_gateway.hpp
     include/signallab/repository/script_repository.hpp
     include/signallab/repository/signal_repository.hpp
     include/signallab/repository/task_repository.hpp
@@ -83,6 +84,29 @@ target_compile_features(signallab_algorithm PUBLIC cxx_std_20)
 target_link_libraries(signallab_algorithm PUBLIC signallab_core)
 signallab_set_compiler_warnings(signallab_algorithm)
 
+add_library(signallab_parser STATIC
+    include/signallab/parser/ast.hpp
+    include/signallab/parser/diagnostic.hpp
+    include/signallab/parser/lexer.hpp
+    include/signallab/parser/parser.hpp
+    include/signallab/parser/semantic_checker.hpp
+    include/signallab/parser/source_location.hpp
+    include/signallab/parser/token.hpp
+    src/parser/ast.cpp
+    src/parser/lexer.cpp
+    src/parser/parser.cpp
+    src/parser/semantic_checker.cpp
+)
+
+target_include_directories(signallab_parser
+    PUBLIC
+        "${PROJECT_SOURCE_DIR}/include"
+)
+
+target_compile_features(signallab_parser PUBLIC cxx_std_20)
+target_link_libraries(signallab_parser PUBLIC signallab_core)
+signallab_set_compiler_warnings(signallab_parser)
+
 add_library(signallab_task STATIC
     include/signallab/task/scheduler.hpp
     include/signallab/task/task.hpp
@@ -105,11 +129,13 @@ signallab_set_compiler_warnings(signallab_task)
 add_library(signallab_io STATIC
     include/signallab/io/csv_reader.hpp
     include/signallab/io/filesystem_file_repository.hpp
+    include/signallab/io/filesystem_script_file_gateway.hpp
     include/signallab/io/hash_service.hpp
     include/signallab/io/import_types.hpp
     include/signallab/io/wav_reader.hpp
     src/io/csv_reader.cpp
     src/io/filesystem_file_repository.cpp
+    src/io/filesystem_script_file_gateway.cpp
     src/io/hash_service.cpp
     src/io/wav_reader.cpp
 )
@@ -163,11 +189,16 @@ add_library(signallab_app STATIC
     include/signallab/app/background_file_service.hpp
     include/signallab/app/display_downsampler.hpp
     include/signallab/app/import_service.hpp
+    include/signallab/app/script_runtime/evaluator.hpp
+    include/signallab/app/script_runtime/value.hpp
+    include/signallab/app/script_service.hpp
     src/app/analysis_service.cpp
     src/app/background_analysis_service.cpp
     src/app/background_file_service.cpp
     src/app/display_downsampler.cpp
     src/app/import_service.cpp
+    src/app/script_runtime/evaluator.cpp
+    src/app/script_service.cpp
 )
 
 target_include_directories(signallab_app
@@ -181,6 +212,7 @@ target_link_libraries(signallab_app
         signallab_core
         signallab_algorithm
         signallab_repository
+        signallab_parser
         signallab_task
 )
 signallab_set_compiler_warnings(signallab_app)

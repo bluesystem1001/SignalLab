@@ -12,8 +12,20 @@
 namespace signallab::algorithm {
 namespace {
 
-std::optional<core::Error> validateSpectrum(const Spectrum& spectrum)
+std::optional<core::Error> cancelledQualityMetric()
 {
+    return core::Error{
+        core::ErrorCode::Cancelled,
+        "Quality metric calculation was cancelled."};
+}
+
+std::optional<core::Error> validateSpectrum(
+    const Spectrum& spectrum,
+    std::stop_token stopToken)
+{
+    if (stopToken.stop_requested()) {
+        return cancelledQualityMetric();
+    }
     const std::size_t expectedBinCount = spectrum.fftSize / 2 + 1;
 
     if (!std::isfinite(spectrum.sampleRate) || spectrum.sampleRate <= 0.0 ||
@@ -39,6 +51,9 @@ std::optional<core::Error> validateSpectrum(const Spectrum& spectrum)
     }
 
     for (std::size_t index = 0; index < expectedBinCount; ++index) {
+        if ((index % 4096U) == 0U && stopToken.stop_requested()) {
+            return cancelledQualityMetric();
+        }
         const double frequency = spectrum.frequenciesHz[index];
         const double amplitude = spectrum.amplitudes[index];
         const double power = spectrum.powers[index];
@@ -129,16 +144,25 @@ std::size_t neighborhoodEnd(
     return center + guardBins;
 }
 
-long double sumPower(
+core::Result<long double> sumPower(
     const Spectrum& spectrum,
     std::size_t firstBin,
-    std::size_t lastBin)
+    std::size_t lastBin,
+    std::stop_token stopToken)
 {
     long double result = 0.0L;
     for (std::size_t index = firstBin; index <= lastBin; ++index) {
+        if ((index % 4096U) == 0U && stopToken.stop_requested()) {
+            return core::Result<long double>::failure(
+                *cancelledQualityMetric());
+        }
         result += static_cast<long double>(spectrum.powers[index]);
     }
-    return result;
+    if (stopToken.stop_requested()) {
+        return core::Result<long double>::failure(
+            *cancelledQualityMetric());
+    }
+    return core::Result<long double>::success(result);
 }
 
 }  // namespace
@@ -146,9 +170,11 @@ long double sumPower(
 core::Result<double> calculateSnrDb(
     const Spectrum& spectrum,
     double fundamentalHz,
-    std::size_t guardBins)
+    std::size_t guardBins,
+    std::stop_token stopToken)
 {
-    if (const auto error = validateSpectrum(spectrum); error.has_value()) {
+    if (const auto error = validateSpectrum(spectrum, stopToken);
+        error.has_value()) {
         return core::Result<double>::failure(*error);
     }
 
@@ -169,9 +195,20 @@ core::Result<double> calculateSnrDb(
     const std::size_t lastSignalBin =
         neighborhoodEnd(center, guardBins, lastBin);
 
-    const long double signalPower =
-        sumPower(spectrum, firstSignalBin, lastSignalBin);
-    const long double totalNonDcPower = sumPower(spectrum, 1, lastBin);
+    auto signalPowerResult = sumPower(
+        spectrum,
+        firstSignalBin,
+        lastSignalBin,
+        stopToken);
+    if (!signalPowerResult) {
+        return core::Result<double>::failure(signalPowerResult.error());
+    }
+    auto totalPowerResult = sumPower(spectrum, 1, lastBin, stopToken);
+    if (!totalPowerResult) {
+        return core::Result<double>::failure(totalPowerResult.error());
+    }
+    const long double signalPower = signalPowerResult.value();
+    const long double totalNonDcPower = totalPowerResult.value();
     long double noisePower = totalNonDcPower - signalPower;
 
     if (signalPower <= 0.0L) {
@@ -205,9 +242,11 @@ core::Result<double> calculateThdPercent(
     const Spectrum& spectrum,
     double fundamentalHz,
     std::size_t harmonicCount,
-    std::size_t guardBins)
+    std::size_t guardBins,
+    std::stop_token stopToken)
 {
-    if (const auto error = validateSpectrum(spectrum); error.has_value()) {
+    if (const auto error = validateSpectrum(spectrum, stopToken);
+        error.has_value()) {
         return core::Result<double>::failure(*error);
     }
 
@@ -230,10 +269,16 @@ core::Result<double> calculateThdPercent(
         neighborhoodStart(fundamentalBin, guardBins);
     const std::size_t lastFundamentalBin =
         neighborhoodEnd(fundamentalBin, guardBins, lastBin);
-    const long double fundamentalPower = sumPower(
+    auto fundamentalPowerResult = sumPower(
         spectrum,
         firstFundamentalBin,
-        lastFundamentalBin);
+        lastFundamentalBin,
+        stopToken);
+    if (!fundamentalPowerResult) {
+        return core::Result<double>::failure(
+            fundamentalPowerResult.error());
+    }
+    const long double fundamentalPower = fundamentalPowerResult.value();
 
     if (fundamentalPower <= 0.0L) {
         return core::Result<double>::failure(
@@ -246,6 +291,10 @@ core::Result<double> calculateThdPercent(
     const double maximumFrequency = spectrum.frequenciesHz.back();
 
     for (std::size_t harmonic = 2; harmonic <= harmonicCount; ++harmonic) {
+        if (stopToken.stop_requested()) {
+            return core::Result<double>::failure(
+                *cancelledQualityMetric());
+        }
         const double harmonicFrequency =
             static_cast<double>(harmonic) * fundamentalHz;
         if (!std::isfinite(harmonicFrequency) ||
@@ -271,10 +320,16 @@ core::Result<double> calculateThdPercent(
                 "Fundamental and harmonic guard neighborhoods must not overlap.");
         }
 
-        harmonicPower += sumPower(
+        auto harmonicPowerResult = sumPower(
             spectrum,
             firstHarmonicBin,
-            lastHarmonicBin);
+            lastHarmonicBin,
+            stopToken);
+        if (!harmonicPowerResult) {
+            return core::Result<double>::failure(
+                harmonicPowerResult.error());
+        }
+        harmonicPower += harmonicPowerResult.value();
         previousNeighborhoodEnd = lastHarmonicBin;
     }
 

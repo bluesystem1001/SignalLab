@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <limits>
+#include <stop_token>
 #include <utility>
 #include <vector>
 
@@ -82,6 +83,24 @@ TEST(PreprocessingTest, RejectsInvalidTargetPeaks)
         EXPECT_EQ(result.error().code, core::ErrorCode::InvalidParameter);
         EXPECT_FALSE(result.error().message.empty());
     }
+}
+
+TEST(PreprocessingTest, HonorsCancellation)
+{
+    const core::Signal signal = makeTestSignal({1.0, -1.0, 0.5});
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto removeResult = removeDc(signal, stopSource.get_token());
+    const auto normalizeResult = normalizePeak(
+        signal,
+        1.0,
+        stopSource.get_token());
+
+    ASSERT_FALSE(removeResult);
+    EXPECT_EQ(removeResult.error().code, core::ErrorCode::Cancelled);
+    ASSERT_FALSE(normalizeResult);
+    EXPECT_EQ(normalizeResult.error().code, core::ErrorCode::Cancelled);
 }
 
 TEST(PreprocessingTest, SlicesSamplesAndKeepsSignalProperties)

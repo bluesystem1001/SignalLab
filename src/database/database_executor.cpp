@@ -444,15 +444,34 @@ DatabaseExecutor::listFeatureResults(std::int64_t taskId)
         });
 }
 
-core::Result<std::int64_t> DatabaseExecutor::addScriptHistory(
-    const std::string& scriptText,
-    const std::string& status,
-    const std::string& errorMessage)
+core::Result<std::int64_t> DatabaseExecutor::createScriptHistory(
+    std::string scriptText)
 {
     return implementation_->execute<std::int64_t>(
-        [scriptText, status, errorMessage](Impl::RepositorySet& repositories) {
-            return repositories.script.addScriptHistory(
-                scriptText, status, errorMessage);
+        [scriptText = std::move(scriptText)](
+            Impl::RepositorySet& repositories) mutable {
+            return repositories.script.createScriptHistory(
+                std::move(scriptText));
+        });
+}
+
+core::Result<bool> DatabaseExecutor::finishScriptHistory(
+    std::int64_t historyId,
+    repository::ScriptHistoryFinish finish)
+{
+    return implementation_->execute<bool>(
+        [historyId, finish = std::move(finish)](
+            Impl::RepositorySet& repositories) mutable {
+            return repositories.script.finishScriptHistory(
+                historyId, std::move(finish));
+        });
+}
+
+core::Result<std::size_t> DatabaseExecutor::interruptRunningScripts()
+{
+    return implementation_->execute<std::size_t>(
+        [](Impl::RepositorySet& repositories) {
+            return repositories.script.interruptRunningScripts();
         });
 }
 

@@ -342,6 +342,23 @@ core::Result<SignalEntry> ImportService::loadCsv(
     const repository::CsvImportOptions& options,
     std::stop_token stopToken)
 {
+    return loadCsvImpl(sourcePath, options, stopToken, false);
+}
+
+core::Result<SignalEntry> ImportService::openCsv(
+    const std::filesystem::path& sourcePath,
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken)
+{
+    return loadCsvImpl(sourcePath, options, stopToken, true);
+}
+
+core::Result<SignalEntry> ImportService::loadCsvImpl(
+    const std::filesystem::path& sourcePath,
+    const repository::CsvImportOptions& options,
+    std::stop_token stopToken,
+    bool reuseExisting)
+{
     std::lock_guard importLock(importMutex_);
     auto fileImportResult = fileRepository_.importCsv(
         sourcePath,
@@ -355,13 +372,31 @@ core::Result<SignalEntry> ImportService::loadCsv(
         std::move(fileImportResult).value(),
         csvParametersJson(options),
         csvLogicalOptionsJson(options),
-        stopToken);
+        stopToken,
+        reuseExisting);
 }
 
 core::Result<SignalEntry> ImportService::loadWav(
     const std::filesystem::path& sourcePath,
     const repository::WavImportOptions& options,
     std::stop_token stopToken)
+{
+    return loadWavImpl(sourcePath, options, stopToken, false);
+}
+
+core::Result<SignalEntry> ImportService::openWav(
+    const std::filesystem::path& sourcePath,
+    const repository::WavImportOptions& options,
+    std::stop_token stopToken)
+{
+    return loadWavImpl(sourcePath, options, stopToken, true);
+}
+
+core::Result<SignalEntry> ImportService::loadWavImpl(
+    const std::filesystem::path& sourcePath,
+    const repository::WavImportOptions& options,
+    std::stop_token stopToken,
+    bool reuseExisting)
 {
     std::lock_guard importLock(importMutex_);
     auto fileImportResult = fileRepository_.importWav(
@@ -376,7 +411,8 @@ core::Result<SignalEntry> ImportService::loadWav(
         std::move(fileImportResult).value(),
         wavParametersJson(options),
         wavLogicalOptionsJson(options),
-        stopToken);
+        stopToken,
+        reuseExisting);
 }
 
 std::size_t ImportService::acceptImportedSignal(SignalEntry entry)
@@ -400,7 +436,8 @@ core::Result<SignalEntry> ImportService::registerImportedSignal(
     repository::FileImport fileImport,
     std::string parametersJson,
     std::string logicalOptionsJson,
-    std::stop_token stopToken)
+    std::stop_token stopToken,
+    bool reuseExisting)
 {
     auto cleanNewArchive = [this, &fileImport](core::Error& error) {
         if (!fileImport.createdStoredFile) {
@@ -473,6 +510,9 @@ core::Result<SignalEntry> ImportService::registerImportedSignal(
                 return core::Result<SignalEntry>::failure(
                     std::move(duplicateError));
             }
+        }
+        if (reuseExisting) {
+            return core::Result<SignalEntry>::success(makeEntry(existing));
         }
         return core::Result<SignalEntry>::failure(
             duplicateFileError(fileImport.sourcePath));

@@ -1,3 +1,4 @@
+#include <QSqlError>
 #include <QSqlQuery>
 #include <QVariant>
 
@@ -38,7 +39,7 @@ TEST(MigrationRunnerTest, CreatesTheSchemaOnceAndConfiguresTheConnection)
     const auto secondRun = runner.run(test::migrationsDirectory());
 
     ASSERT_TRUE(firstRun);
-    EXPECT_EQ(firstRun.value(), 2U);
+    EXPECT_EQ(firstRun.value(), 3U);
     ASSERT_TRUE(secondRun);
     EXPECT_EQ(secondRun.value(), 0U);
 
@@ -145,6 +146,72 @@ TEST(MigrationRunnerTest, StageFiveMigrationPreservesTasksAndFeatures)
     EXPECT_FALSE(foreignKeyCheck.next());
 }
 
+TEST(MigrationRunnerTest, StageSixMigrationPreservesLegacyScriptHistory)
+{
+    test::TemporaryProject project("migration-stage-six");
+    const auto migrations = project.root() / "migrations";
+    std::filesystem::create_directories(migrations);
+    std::filesystem::copy_file(
+        test::migrationsDirectory() / "001_init.sql",
+        migrations / "001_init.sql");
+    std::filesystem::copy_file(
+        test::migrationsDirectory() / "002_task_scheduler.sql",
+        migrations / "002_task_scheduler.sql");
+
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    const auto initialMigration = runner.run(migrations);
+    ASSERT_TRUE(initialMigration);
+    ASSERT_EQ(initialMigration.value(), 2U);
+
+    QSqlQuery legacyInsert(connection.database());
+    ASSERT_TRUE(legacyInsert.prepare(
+        "INSERT INTO script_history("
+        "script_text, status, created_utc, finished_utc, error_message"
+        ") VALUES (?, ?, ?, ?, ?)"));
+    legacyInsert.addBindValue(QStringLiteral("legacy source\n"));
+    legacyInsert.addBindValue(QStringLiteral("CUSTOM_LEGACY_STATUS"));
+    legacyInsert.addBindValue(QStringLiteral("2026-01-02T03:04:05.006Z"));
+    legacyInsert.addBindValue(QStringLiteral("2026-01-02T03:04:06.007Z"));
+    legacyInsert.addBindValue(QStringLiteral("legacy message"));
+    ASSERT_TRUE(legacyInsert.exec());
+    const auto legacyId = legacyInsert.lastInsertId().toLongLong();
+
+    std::filesystem::copy_file(
+        test::migrationsDirectory() / "003_signal_script.sql",
+        migrations / "003_signal_script.sql");
+    const auto stageSixMigration = runner.run(migrations);
+    ASSERT_TRUE(stageSixMigration);
+    EXPECT_EQ(stageSixMigration.value(), 1U);
+    const auto repeatedMigration = runner.run(migrations);
+    ASSERT_TRUE(repeatedMigration);
+    EXPECT_EQ(repeatedMigration.value(), 0U);
+
+    SqliteScriptRepository repository(connection);
+    const auto history = repository.listScriptHistory(10);
+    ASSERT_TRUE(history);
+    ASSERT_EQ(history.value().size(), 1U);
+    const auto& legacy = history.value().front();
+    EXPECT_EQ(legacy.id, legacyId);
+    EXPECT_EQ(legacy.scriptText, "legacy source\n");
+    EXPECT_TRUE(legacy.sourceHash.empty());
+    EXPECT_EQ(legacy.status, repository::ScriptHistoryStatus::Legacy);
+    EXPECT_EQ(legacy.statusText, "CUSTOM_LEGACY_STATUS");
+    EXPECT_EQ(legacy.createdUtc, "2026-01-02T03:04:05.006Z");
+    EXPECT_EQ(legacy.finishedUtc, "2026-01-02T03:04:06.007Z");
+    EXPECT_FALSE(legacy.errorLocation.has_value());
+    EXPECT_EQ(legacy.errorMessage, "legacy message");
+
+    const auto newHistory = repository.createScriptHistory("new source");
+    ASSERT_TRUE(newHistory);
+    EXPECT_GT(newHistory.value(), legacyId);
+
+    QSqlQuery foreignKeyCheck(connection.database());
+    ASSERT_TRUE(foreignKeyCheck.exec("PRAGMA foreign_key_check"));
+    EXPECT_FALSE(foreignKeyCheck.next());
+}
+
 TEST(DatabaseConnectionTest, RejectsAConnectionThatCannotUseWal)
 {
     DatabaseConnection connection(std::filesystem::path(":memory:"));
@@ -225,7 +292,7 @@ TEST(MigrationRunnerTest, RejectsRepositoryUseFromAnotherThread)
     EXPECT_EQ(errorCode, core::ErrorCode::DatabaseQueryFailed);
 }
 
-TEST(MigrationRunnerTest, StoresTheReservedScriptHistoryTable)
+TEST(SqliteScriptRepositoryTest, StoresHashAndTerminalDiagnostic)
 {
     test::TemporaryProject project("script-history");
     DatabaseConnection connection(project.databasePath());
@@ -234,18 +301,295 @@ TEST(MigrationRunnerTest, StoresTheReservedScriptHistoryTable)
     ASSERT_TRUE(runner.run(test::migrationsDirectory()));
 
     SqliteScriptRepository repository(connection);
-    const auto saved = repository.addScriptHistory(
-        "signal = load(1)",
-        "FAILED",
-        "Parser is introduced in stage 6");
-    ASSERT_TRUE(saved);
+    const auto created = repository.createScriptHistory("signal = load(1)");
+    ASSERT_TRUE(created);
+
+    const auto running = repository.listScriptHistory(10);
+    ASSERT_TRUE(running);
+    ASSERT_EQ(running.value().size(), 1U);
+    EXPECT_EQ(
+        running.value().front().status,
+        repository::ScriptHistoryStatus::Running);
+    EXPECT_TRUE(running.value().front().finishedUtc.empty());
+    EXPECT_EQ(
+        running.value().front().sourceHash,
+        "4ac4e3e179447c117e43b0e8f09c78bc1c8c7e4767aa4565b40830bd170c6e50");
+
+    const auto invalidLocation = repository.finishScriptHistory(
+        created.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Failed,
+            repository::ScriptErrorLocation{0, 4},
+            "Invalid location"});
+    ASSERT_FALSE(invalidLocation);
+    EXPECT_EQ(
+        invalidLocation.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto finished = repository.finishScriptHistory(
+        created.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Failed,
+            repository::ScriptErrorLocation{2, 9},
+            "Expected an expression."});
+    ASSERT_TRUE(finished);
+    EXPECT_TRUE(finished.value());
+
+    const auto repeated = repository.finishScriptHistory(
+        created.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Cancelled,
+            std::nullopt,
+            "Too late."});
+    ASSERT_TRUE(repeated);
+    EXPECT_FALSE(repeated.value());
 
     const auto history = repository.listScriptHistory(10);
     ASSERT_TRUE(history);
     ASSERT_EQ(history.value().size(), 1U);
-    EXPECT_EQ(history.value().front().id, saved.value());
-    EXPECT_EQ(history.value().front().status, "FAILED");
-    EXPECT_FALSE(history.value().front().createdUtc.empty());
+    const auto& record = history.value().front();
+    EXPECT_EQ(record.id, created.value());
+    EXPECT_EQ(record.status, repository::ScriptHistoryStatus::Failed);
+    EXPECT_EQ(record.statusText, "FAILED");
+    ASSERT_TRUE(record.errorLocation.has_value());
+    EXPECT_EQ(record.errorLocation->line, 2);
+    EXPECT_EQ(record.errorLocation->column, 9);
+    EXPECT_EQ(record.errorMessage, "Expected an expression.");
+    EXPECT_FALSE(record.createdUtc.empty());
+    EXPECT_FALSE(record.finishedUtc.empty());
+}
+
+TEST(SqliteScriptRepositoryTest, PreservesExactUtf8SourceBytes)
+{
+    test::TemporaryProject project("script-history-utf8");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+
+    // Construct the non-ASCII bytes explicitly so this test remains
+    // independent of the compiler's source-file execution encoding.
+    const std::string source =
+        "load \""
+        "\xE4\xB8\xAD\xE6\x96\x87"
+        ".csv\" as raw;\r\n# exact\r\n";
+    SqliteScriptRepository repository(connection);
+    const auto created = repository.createScriptHistory(source);
+    ASSERT_TRUE(created) << created.error().message;
+
+    const auto history = repository.listScriptHistory(10);
+    ASSERT_TRUE(history) << history.error().message;
+    ASSERT_EQ(history.value().size(), 1U);
+    EXPECT_EQ(history.value().front().scriptText, source);
+    EXPECT_EQ(
+        history.value().front().sourceHash,
+        "235becb2266c1867b4a20b955a68601e35c65ea152eca5e0ca6d592a57d544c9");
+
+    const std::string invalidUtf8{"\xC0\xAF", 2};
+    const auto rejected = repository.createScriptHistory(invalidUtf8);
+    ASSERT_FALSE(rejected);
+    EXPECT_EQ(rejected.error().code, core::ErrorCode::InvalidParameter);
+}
+
+TEST(SqliteScriptRepositoryTest, DoesNotMutateLegacyRunningHistory)
+{
+    test::TemporaryProject project("script-legacy-running");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+
+    QSqlQuery insert(connection.database());
+    ASSERT_TRUE(insert.prepare(
+        "INSERT INTO script_history("
+        "script_text, status, created_utc, finished_utc, error_message"
+        ") VALUES (?, 'RUNNING', ?, ?, '')"));
+    insert.addBindValue(QStringLiteral("legacy running label"));
+    insert.addBindValue(QStringLiteral("2026-01-02T03:04:05.006Z"));
+    insert.addBindValue(QStringLiteral("2026-01-02T03:04:06.007Z"));
+    ASSERT_TRUE(insert.exec()) << insert.lastError().text().toStdString();
+    const auto legacyId = insert.lastInsertId().toLongLong();
+
+    SqliteScriptRepository repository(connection);
+    const auto finish = repository.finishScriptHistory(
+        legacyId,
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Failed,
+            std::nullopt,
+            "Must remain unchanged."});
+    ASSERT_TRUE(finish) << finish.error().message;
+    EXPECT_FALSE(finish.value());
+
+    const auto interrupted = repository.interruptRunningScripts();
+    ASSERT_TRUE(interrupted) << interrupted.error().message;
+    EXPECT_EQ(interrupted.value(), 0U);
+
+    const auto history = repository.listScriptHistory(10);
+    ASSERT_TRUE(history) << history.error().message;
+    ASSERT_EQ(history.value().size(), 1U);
+    EXPECT_EQ(history.value().front().id, legacyId);
+    EXPECT_TRUE(history.value().front().sourceHash.empty());
+    EXPECT_EQ(
+        history.value().front().status,
+        repository::ScriptHistoryStatus::Running);
+    EXPECT_EQ(history.value().front().statusText, "RUNNING");
+    EXPECT_EQ(
+        history.value().front().finishedUtc,
+        "2026-01-02T03:04:06.007Z");
+    EXPECT_TRUE(history.value().front().errorMessage.empty());
+}
+
+TEST(SqliteScriptRepositoryTest, InterruptsOnlyRunningScripts)
+{
+    test::TemporaryProject project("script-interruption");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+
+    SqliteScriptRepository repository(connection);
+    const auto completedId = repository.createScriptHistory("completed");
+    const auto runningId = repository.createScriptHistory("running");
+    ASSERT_TRUE(completedId);
+    ASSERT_TRUE(runningId);
+    const auto completed = repository.finishScriptHistory(
+        completedId.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Succeeded,
+            std::nullopt,
+            ""});
+    ASSERT_TRUE(completed);
+    ASSERT_TRUE(completed.value());
+
+    const auto interrupted = repository.interruptRunningScripts();
+    ASSERT_TRUE(interrupted);
+    EXPECT_EQ(interrupted.value(), 1U);
+    const auto repeated = repository.interruptRunningScripts();
+    ASSERT_TRUE(repeated);
+    EXPECT_EQ(repeated.value(), 0U);
+
+    const auto history = repository.listScriptHistory(10);
+    ASSERT_TRUE(history);
+    ASSERT_EQ(history.value().size(), 2U);
+    EXPECT_EQ(history.value()[0].id, runningId.value());
+    EXPECT_EQ(
+        history.value()[0].status,
+        repository::ScriptHistoryStatus::Interrupted);
+    EXPECT_FALSE(history.value()[0].errorMessage.empty());
+    EXPECT_EQ(history.value()[1].id, completedId.value());
+    EXPECT_EQ(
+        history.value()[1].status,
+        repository::ScriptHistoryStatus::Succeeded);
+}
+
+TEST(SqliteScriptRepositoryTest, MigrationConstraintsRejectInvalidNewRows)
+{
+    test::TemporaryProject project("script-constraints");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+
+    SqliteScriptRepository repository(connection);
+    const auto created = repository.createScriptHistory("constrained");
+    ASSERT_TRUE(created);
+
+    QSqlQuery invalidHash(connection.database());
+    invalidHash.prepare(
+        "UPDATE script_history SET source_hash = ? WHERE id = ?");
+    invalidHash.addBindValue(QString(64, QChar('A')));
+    invalidHash.addBindValue(created.value());
+    EXPECT_FALSE(invalidHash.exec());
+
+    QSqlQuery invalidStatus(connection.database());
+    invalidStatus.prepare(
+        "UPDATE script_history SET status = 'UNKNOWN' WHERE id = ?");
+    invalidStatus.addBindValue(created.value());
+    EXPECT_FALSE(invalidStatus.exec());
+
+    QSqlQuery incompleteLocation(connection.database());
+    incompleteLocation.prepare(
+        "UPDATE script_history SET error_line = 1, error_column = NULL "
+        "WHERE id = ?");
+    incompleteLocation.addBindValue(created.value());
+    EXPECT_FALSE(incompleteLocation.exec());
+
+    QSqlQuery successWithError(connection.database());
+    successWithError.prepare(
+        "UPDATE script_history SET status = 'SUCCEEDED', finished_utc = ?, "
+        "error_message = 'not allowed' WHERE id = ?");
+    successWithError.addBindValue(QStringLiteral("2026-09-17T00:00:00.000Z"));
+    successWithError.addBindValue(created.value());
+    EXPECT_FALSE(successWithError.exec());
+
+    QSqlQuery fractionalLocation(connection.database());
+    fractionalLocation.prepare(
+        "UPDATE script_history SET status = 'FAILED', finished_utc = ?, "
+        "error_message = 'invalid location', error_line = 1.5, "
+        "error_column = 2 WHERE id = ?");
+    fractionalLocation.addBindValue(
+        QStringLiteral("2026-09-17T00:00:00.000Z"));
+    fractionalLocation.addBindValue(created.value());
+    EXPECT_FALSE(fractionalLocation.exec());
+}
+
+TEST(SqliteScriptRepositoryTest, DetectsSourceHashMismatch)
+{
+    test::TemporaryProject project("script-hash-mismatch");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+
+    SqliteScriptRepository repository(connection);
+    const auto created = repository.createScriptHistory("original");
+    ASSERT_TRUE(created);
+    QSqlQuery tamper(connection.database());
+    tamper.prepare("UPDATE script_history SET script_text = ? WHERE id = ?");
+    tamper.addBindValue(QStringLiteral("tampered"));
+    tamper.addBindValue(created.value());
+    ASSERT_TRUE(tamper.exec());
+
+    const auto history = repository.listScriptHistory(10);
+    ASSERT_FALSE(history);
+    EXPECT_EQ(history.error().code, core::ErrorCode::DatabaseQueryFailed);
+}
+
+TEST(SqliteScriptRepositoryTest, RollsBackFinishWhenLogCannotBeWritten)
+{
+    test::TemporaryProject project("script-transaction");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+
+    SqliteScriptRepository repository(connection);
+    const auto created = repository.createScriptHistory("rolled back");
+    ASSERT_TRUE(created);
+    QSqlQuery dropLog(connection.database());
+    ASSERT_TRUE(dropLog.exec("DROP TABLE operation_log"));
+
+    const auto finished = repository.finishScriptHistory(
+        created.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Failed,
+            repository::ScriptErrorLocation{3, 7},
+            "This update must roll back."});
+    ASSERT_FALSE(finished);
+    EXPECT_EQ(finished.error().code, core::ErrorCode::DatabaseQueryFailed);
+
+    QSqlQuery state(connection.database());
+    state.prepare(
+        "SELECT status, finished_utc, error_line, error_column, "
+        "error_message FROM script_history WHERE id = ?");
+    state.addBindValue(created.value());
+    ASSERT_TRUE(state.exec());
+    ASSERT_TRUE(state.next());
+    EXPECT_EQ(state.value(0).toString(), "RUNNING");
+    EXPECT_TRUE(state.value(1).toString().isEmpty());
+    EXPECT_TRUE(state.value(2).isNull());
+    EXPECT_TRUE(state.value(3).isNull());
+    EXPECT_TRUE(state.value(4).toString().isEmpty());
 }
 
 TEST(DatabaseExecutorTest, ProxiesEveryRepositoryOnItsDatabaseThread)
@@ -292,9 +636,16 @@ TEST(DatabaseExecutorTest, ProxiesEveryRepositoryOnItsDatabaseThread)
     ASSERT_TRUE(executor.completeTask(
         task.value(), {{"rms", 0.5, "V"}}));
 
-    const auto script = executor.addScriptHistory(
-        "signal = load(1)", "SUCCEEDED", "");
+    const auto script = executor.createScriptHistory("signal = load(1)");
     ASSERT_TRUE(script);
+    const auto scriptFinished = executor.finishScriptHistory(
+        script.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Succeeded,
+            std::nullopt,
+            ""});
+    ASSERT_TRUE(scriptFinished);
+    ASSERT_TRUE(scriptFinished.value());
 
     constexpr int callerCount = 12;
     std::atomic<int> successfulCalls{0};
@@ -302,11 +653,18 @@ TEST(DatabaseExecutorTest, ProxiesEveryRepositoryOnItsDatabaseThread)
     callers.reserve(callerCount);
     for (int index = 0; index < callerCount; ++index) {
         callers.emplace_back([&executor, &successfulCalls, index]() {
-            const auto result = executor.addScriptHistory(
-                "concurrent script " + std::to_string(index),
-                "SUCCEEDED",
-                "");
-            if (result) {
+            const auto created = executor.createScriptHistory(
+                "concurrent script " + std::to_string(index));
+            if (!created) {
+                return;
+            }
+            const auto finished = executor.finishScriptHistory(
+                created.value(),
+                repository::ScriptHistoryFinish{
+                    repository::ScriptHistoryStatus::Succeeded,
+                    std::nullopt,
+                    ""});
+            if (finished && finished.value()) {
                 ++successfulCalls;
             }
         });
@@ -329,6 +687,35 @@ TEST(DatabaseExecutorTest, ProxiesEveryRepositoryOnItsDatabaseThread)
     ASSERT_TRUE(scripts);
     EXPECT_EQ(scripts.value().size(), callerCount + 1U);
 
+    const auto raced = executor.createScriptHistory("terminal race");
+    ASSERT_TRUE(raced);
+    std::atomic<int> finishWinners{0};
+    std::thread firstFinisher([&]() {
+        const auto result = executor.finishScriptHistory(
+            raced.value(),
+            repository::ScriptHistoryFinish{
+                repository::ScriptHistoryStatus::Failed,
+                repository::ScriptErrorLocation{1, 1},
+                "First terminal result."});
+        if (result && result.value()) {
+            ++finishWinners;
+        }
+    });
+    std::thread secondFinisher([&]() {
+        const auto result = executor.finishScriptHistory(
+            raced.value(),
+            repository::ScriptHistoryFinish{
+                repository::ScriptHistoryStatus::Cancelled,
+                std::nullopt,
+                "Second terminal result."});
+        if (result && result.value()) {
+            ++finishWinners;
+        }
+    });
+    firstFinisher.join();
+    secondFinisher.join();
+    EXPECT_EQ(finishWinners.load(), 1);
+
     ASSERT_TRUE(executor.shutdown());
     ASSERT_TRUE(executor.shutdown());
     EXPECT_FALSE(executor.isRunning());
@@ -343,7 +730,7 @@ TEST(DatabaseExecutorTest, ProxiesEveryRepositoryOnItsDatabaseThread)
     QSqlQuery count(verification.database());
     ASSERT_TRUE(count.exec("SELECT COUNT(*) FROM script_history"));
     ASSERT_TRUE(count.next());
-    EXPECT_EQ(count.value(0).toInt(), callerCount + 1);
+    EXPECT_EQ(count.value(0).toInt(), callerCount + 2);
 }
 
 TEST(DatabaseExecutorTest, CancelsAndDrainsALargeSignalLookupPromptly)

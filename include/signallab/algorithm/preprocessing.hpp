@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <stop_token>
 #include <string_view>
 
 #include "signallab/core/result.hpp"
@@ -12,12 +13,14 @@ inline constexpr std::string_view kPreprocessingAlgorithmVersion = "0.3.0";
 
 // Time complexity: O(N). Extra space: O(N), where N is the sample count.
 [[nodiscard]] core::Result<core::Signal> removeDc(
-    const core::Signal& signal);
+    const core::Signal& signal,
+    std::stop_token stopToken = {});
 
 // Time complexity: O(N). Extra space: O(N), where N is the sample count.
 [[nodiscard]] core::Result<core::Signal> normalizePeak(
     const core::Signal& signal,
-    double targetPeak = 1.0);
+    double targetPeak = 1.0,
+    std::stop_token stopToken = {});
 
 // Time complexity: O(K). Extra space: O(K), where K is sampleCount.
 [[nodiscard]] core::Result<core::Signal> sliceSignal(

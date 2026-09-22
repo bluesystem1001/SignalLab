@@ -10,8 +10,14 @@ namespace signallab::core {
 Result<Signal> Signal::create(
     std::vector<double> samples,
     double sample_rate,
-    SignalMetadata metadata)
+    SignalMetadata metadata,
+    std::stop_token stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return Result<Signal>::failure(
+            ErrorCode::Cancelled,
+            "Signal creation was cancelled.");
+    }
     if (!std::isfinite(sample_rate) || sample_rate <= 0.0) {
         return Result<Signal>::failure(
             ErrorCode::InvalidSampleRate,
@@ -24,12 +30,23 @@ Result<Signal> Signal::create(
             "A signal must contain at least one sample.");
     }
 
-    for (double sample : samples) {
-        if (!std::isfinite(sample)) {
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+        if ((index % 4096U) == 0U && stopToken.stop_requested()) {
+            return Result<Signal>::failure(
+                ErrorCode::Cancelled,
+                "Signal creation was cancelled.");
+        }
+        if (!std::isfinite(samples[index])) {
             return Result<Signal>::failure(
                 ErrorCode::NonFiniteSample,
                 "Every sample must be a finite number.");
         }
+    }
+
+    if (stopToken.stop_requested()) {
+        return Result<Signal>::failure(
+            ErrorCode::Cancelled,
+            "Signal creation was cancelled.");
     }
 
     return Result<Signal>::success(

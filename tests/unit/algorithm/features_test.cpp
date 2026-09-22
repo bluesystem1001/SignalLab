@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <limits>
 #include <random>
+#include <stop_token>
 #include <utility>
 #include <vector>
 
@@ -84,6 +85,20 @@ TEST(FeaturesTest, RejectsEmptyAndNonFiniteInput)
     EXPECT_EQ(emptyResult.error().code, core::ErrorCode::EmptySamples);
     ASSERT_FALSE(nonFiniteResult);
     EXPECT_EQ(nonFiniteResult.error().code, core::ErrorCode::NonFiniteSample);
+}
+
+TEST(FeaturesTest, HonorsCancellation)
+{
+    const std::vector<double> samples{1.0, 2.0, 3.0};
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto result = calculateBasicFeatures(
+        samples,
+        stopSource.get_token());
+
+    ASSERT_FALSE(result);
+    EXPECT_EQ(result.error().code, core::ErrorCode::Cancelled);
 }
 
 TEST(FeaturesTest, CalculatesEnergyInsideAnInclusiveFrequencyBand)

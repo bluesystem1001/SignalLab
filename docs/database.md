@@ -1,6 +1,6 @@
-# SignalLab 阶段 4—5 数据库说明
+# SignalLab 阶段 4—6 数据库说明
 
-阶段 4 使用 SQLite 保存信号、分析任务和结果；阶段 5 在不改变仓库抽象边界的前提下增加数据库专属执行线程、排队状态和取消状态。程序通过 Qt 的 `QSQLITE` 驱动访问数据库，界面和应用服务都不直接编写 SQL。本文对应已经完成 Debug/Release 自动化验证的 `0.5.0` 代码。
+阶段 4 使用 SQLite 保存信号、分析任务和结果；阶段 5 在不改变仓库抽象边界的前提下增加数据库专属执行线程、排队状态和取消状态；阶段 6 为 SignalScript 增加可校验的源码身份、单次终态转换和错误行列。程序通过 Qt 的 `QSQLITE` 驱动访问数据库，界面和应用服务都不直接编写 SQL。本文对应已完成验证的 `0.6.0` 结构；Debug 与 Release 全量 216/216 项测试均通过，阶段版本由 `v0.6` 与 `stage-6-complete` 标记并另存仓库外 bundle。
 
 ## 文件位置与启动顺序
 
@@ -17,8 +17,9 @@ data/signallab.sqlite3
 1. 启动 `DatabaseExecutor` 专属线程，并在该线程打开数据库、应用连接设置。
 2. 在同一线程执行尚未应用的迁移。
 3. 把上次异常退出后遗留的 `PENDING` 或 `RUNNING` 分析任务改为 `INTERRUPTED`。
-4. 从数据库恢复信号；对于 CSV/WAV，还会检查存档文件及其 SHA-256。
-5. 读取历史任务和特征结果，供“历史任务”页显示。
+4. 把阶段 6 遗留且带源码哈希的 `RUNNING` 脚本执行改为 `INTERRUPTED`。
+5. 从数据库恢复信号；对于 CSV/WAV，还会检查存档文件及其 SHA-256。
+6. 读取历史任务和特征结果，供现有“历史任务”页显示；脚本历史的 GUI 展示属于阶段 7。
 
 如果数据库、迁移、存档或信号完整性检查失败，程序会显示启动错误，而不是带着不完整数据继续运行。正常退出时则先停止后台调度器，等工作线程退出后，再让数据库执行器排空已接收的命令并在所属线程关闭连接。
 
@@ -33,9 +34,9 @@ GUI -> app 应用服务 -> repository 抽象接口
            DatabaseExecutor / io 具体实现
 ```
 
-- `include/signallab/repository/` 定义信号、任务、脚本和文件仓库接口，不依赖 SQLite。
+- `include/signallab/repository/` 定义信号、任务、脚本历史、普通导入文件和脚本受限文件网关接口，不依赖 SQLite。
 - `src/database/` 实现 SQLite 信号仓库、任务仓库和脚本历史仓库；`DatabaseExecutor` 在专属线程内拥有这些具体对象，并作为三个仓库接口的线程安全串行代理。
-- `src/io/` 实现文件预览、解析、存档和校验。
+- `src/io/` 实现文件预览、解析、存档和校验，并实现固定输入根/输出根的 `FilesystemScriptFileGateway`；脚本运行时不直接访问文件系统。
 - 可执行程序在 `main.cpp` 中创建文件仓库和数据库执行器，并把接口引用传给应用服务。
 
 因此，`app` 只知道仓库接口，GUI 不知道 SQL，`core` 和 `algorithm` 也不依赖 Qt SQL。
@@ -58,6 +59,7 @@ GUI -> app 应用服务 -> repository 抽象接口
 
 - `001_init.sql`：建立阶段 4 的初始业务表、约束和索引。
 - `002_task_scheduler.sql`：重建任务及特征表以扩展状态约束，加入 `CANCELLED`；迁移复制既有编号、任务历史和特征结果后再替换旧表。
+- `003_signal_script.sql`：在不重建 `script_history` 的前提下增加 `source_hash`、`error_line` 和 `error_column`，并对阶段 6 的非空哈希记录约束状态、完成时间和错误字段组合；旧行保留原编号、原状态与空哈希。
 
 运行器自己创建 `schema_migration` 表：
 
@@ -68,7 +70,7 @@ GUI -> app 应用服务 -> repository 抽象接口
 
 一个迁移文件只执行一次。文件中的全部语句和迁移记录放在同一事务中；任一语句失败时整体回滚，不会留下“执行了一半”的结构。
 
-已经发布的迁移文件不应修改。需要改变结构时，应新增编号更大的迁移文件，例如 `002_add_xxx.sql`。
+已经发布的迁移文件不应修改。需要改变结构时，应使用下一个未占用编号新增迁移文件，例如当前应从 `004_add_xxx.sql` 开始。
 
 ## 表和关系
 
@@ -81,8 +83,8 @@ GUI -> app 应用服务 -> repository 抽象接口
 | `signal_record` | 采样率、样本数、样本 BLOB、样本哈希和信号元数据 | 每个 `signal_source` 恰好对应一个记录；删除来源时级联删除记录 |
 | `analysis_task` | `PENDING/RUNNING/SUCCEEDED/FAILED/INTERRUPTED/CANCELLED` 状态、信号名、算法名/版本、参数、输入/输出哈希、时间和错误 | 可选关联一个 `signal_record`；删除信号记录时任务保留，外键改为 `NULL` |
 | `feature_result` | 一次任务产生的特征名、数值、文本值和单位 | 多条结果属于一个任务；任务删除时级联删除；同一任务内特征名唯一 |
-| `script_history` | 脚本文本、状态、开始/结束时间和错误 | 当前独立保存，为后续脚本界面使用 |
-| `operation_log` | 保存信号、创建/完成/失败任务等写操作日志 | 用 `entity_type` 和可选 `entity_id` 指向业务对象，不设置外键 |
+| `script_history` | 原始脚本文本、源码 SHA-256、`RUNNING/SUCCEEDED/FAILED/CANCELLED/INTERRUPTED` 状态、开始/结束时间及可选错误行列和消息 | 与信号/分析表独立；阶段 6 服务已经读写，脚本历史界面在阶段 7 接入 |
+| `operation_log` | 保存信号、创建/完成/失败任务，以及脚本历史创建、完成和批量中断等写操作日志 | 用 `entity_type` 和可选 `entity_id` 指向业务对象，不设置外键 |
 
 主要关系可以简化为：
 
@@ -114,7 +116,19 @@ GUI 只把所选 `signalRecordId` 交给后台分析服务。计算工作者中�
 
 程序正常启动时会把所有遗留的 `PENDING` 和 `RUNNING` 任务统一改为 `INTERRUPTED`，写入完成时间和原因。这样异常退出不会让任务永久显示为排队或运行中。
 
-脚本历史以及显式的任务失败同样使用事务，并和相应操作日志一起提交。
+### SignalScript 执行历史
+
+`ScriptService` 在词法分析之前调用 `createScriptHistory()`。仓库验证源码是 UTF-8，按原始字节（包括空白和换行差异）计算 lowercase SHA-256，并在一个事务中插入 `RUNNING` 记录和 `CREATE_SCRIPT_HISTORY` 操作日志。此时 `finished_utc` 与错误消息为空，错误行列为 `NULL`。
+
+一次执行只允许从 `RUNNING` 转为一个终态。`finishScriptHistory()` 使用 `WHERE id = ? AND status = 'RUNNING' AND source_hash <> ''` 条件更新，并在同一事务写入 `FINISH_SCRIPT_HISTORY` 操作日志：
+
+- `SUCCEEDED` 必须有完成时间，且不得保存错误位置或消息。
+- `FAILED`、`CANCELLED` 必须保存非空错误消息；若有源位置，行和列必须同时存在且从 1 开始。
+- `INTERRUPTED` 用于下次启动清理上一进程遗留的 `RUNNING`，保存原因但不伪造源位置。
+
+若另一个完成动作已经赢得竞态，条件更新不会改写终态。脚本历史创建、单条完成和批量中断都与各自操作日志一起提交或一起回滚。阶段 6 记录还会在读取时重新计算源码 SHA-256；哈希不一致、未知的新状态或不完整错误位置会作为数据库完整性错误返回。
+
+`003_signal_script.sql` 特意让迁移前记录保持空 `source_hash`。这些旧行保留原始状态文本；仓库映射已知状态，其他旧拼写归为 `Legacy`。它们不参加新的终态更新和启动中断，避免把历史数据误认成正在执行的阶段 6 脚本。
 
 ## 可复现记录
 
@@ -166,4 +180,4 @@ GUI 只把所选 `signalRecordId` 交给后台分析服务。计算工作者中�
 - 参数 JSON 的规范性由应用服务保证，SQLite 只检查它非空。
 - 文件存档位于数据库外，只能使用补偿清理；备份正在运行的项目时，应同时考虑数据库、WAL 辅助文件和 `data/imports/`。
 - 所有 SQLite 操作由一个执行线程串行处理，保证线程归属和简单事务语义，但长查询仍可能让其他数据库调用排队；当前没有连接池。
-- `script_history` 仓库已经实现，但脚本编辑与执行界面属于后续阶段。
+- `ScriptService`、`script_history` 生命周期和历史查询已经实现，但 `0.6.0` 的主窗口尚未组装脚本编辑、执行和历史控件；这些 GUI 能力属于阶段 7。

@@ -77,6 +77,21 @@ public:
         const repository::WavImportOptions& options,
         std::stop_token stopToken = {});
 
+    // Script execution is declarative and may be replayed. These variants
+    // register a new logical signal when needed or return the already
+    // persisted signal for the same content and parsing options. They do not
+    // mutate entries(), so a background script worker never races the UI
+    // model; stage 7 can refresh the project list on the GUI thread.
+    [[nodiscard]] core::Result<SignalEntry> openCsv(
+        const std::filesystem::path& sourcePath,
+        const repository::CsvImportOptions& options,
+        std::stop_token stopToken = {});
+
+    [[nodiscard]] core::Result<SignalEntry> openWav(
+        const std::filesystem::path& sourcePath,
+        const repository::WavImportOptions& options,
+        std::stop_token stopToken = {});
+
     [[nodiscard]] std::size_t acceptImportedSignal(SignalEntry entry);
 
     [[nodiscard]] const std::vector<SignalEntry>& entries() const noexcept;
@@ -86,7 +101,20 @@ private:
         repository::FileImport fileImport,
         std::string parametersJson,
         std::string logicalOptionsJson,
-        std::stop_token stopToken);
+        std::stop_token stopToken,
+        bool reuseExisting);
+
+    [[nodiscard]] core::Result<SignalEntry> loadCsvImpl(
+        const std::filesystem::path& sourcePath,
+        const repository::CsvImportOptions& options,
+        std::stop_token stopToken,
+        bool reuseExisting);
+
+    [[nodiscard]] core::Result<SignalEntry> loadWavImpl(
+        const std::filesystem::path& sourcePath,
+        const repository::WavImportOptions& options,
+        std::stop_token stopToken,
+        bool reuseExisting);
 
     repository::FileRepository& fileRepository_;
     repository::SignalRepository& signalRepository_;

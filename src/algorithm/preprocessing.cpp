@@ -8,12 +8,35 @@
 #include "signallab/core/error.hpp"
 
 namespace signallab::algorithm {
+namespace {
 
-core::Result<core::Signal> removeDc(const core::Signal& signal)
+constexpr std::size_t cancellationBatchSize = 4096U;
+
+core::Result<core::Signal> cancelledPreprocessing()
 {
+    return core::Result<core::Signal>::failure(
+        core::ErrorCode::Cancelled,
+        "Signal preprocessing was cancelled.");
+}
+
+}  // namespace
+
+core::Result<core::Signal> removeDc(
+    const core::Signal& signal,
+    std::stop_token stopToken)
+{
+    if (stopToken.stop_requested()) {
+        return cancelledPreprocessing();
+    }
+
     long double sum = 0.0L;
-    for (double sample : signal.samples()) {
-        sum += static_cast<long double>(sample);
+    const auto samples = signal.samples();
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+        if ((index % cancellationBatchSize) == 0U
+            && stopToken.stop_requested()) {
+            return cancelledPreprocessing();
+        }
+        sum += static_cast<long double>(samples[index]);
     }
 
     const long double mean =
@@ -21,7 +44,12 @@ core::Result<core::Signal> removeDc(const core::Signal& signal)
 
     std::vector<double> output;
     output.reserve(signal.sampleCount());
-    for (double sample : signal.samples()) {
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+        if ((index % cancellationBatchSize) == 0U
+            && stopToken.stop_requested()) {
+            return cancelledPreprocessing();
+        }
+        const double sample = samples[index];
         output.push_back(static_cast<double>(
             static_cast<long double>(sample) - mean));
     }
@@ -29,13 +57,18 @@ core::Result<core::Signal> removeDc(const core::Signal& signal)
     return core::Signal::create(
         std::move(output),
         signal.sampleRate(),
-        signal.metadata());
+        signal.metadata(),
+        stopToken);
 }
 
 core::Result<core::Signal> normalizePeak(
     const core::Signal& signal,
-    double targetPeak)
+    double targetPeak,
+    std::stop_token stopToken)
 {
+    if (stopToken.stop_requested()) {
+        return cancelledPreprocessing();
+    }
     if (!std::isfinite(targetPeak) || targetPeak <= 0.0) {
         return core::Result<core::Signal>::failure(
             core::ErrorCode::InvalidParameter,
@@ -43,8 +76,13 @@ core::Result<core::Signal> normalizePeak(
     }
 
     double currentPeak = 0.0;
-    for (double sample : signal.samples()) {
-        currentPeak = std::max(currentPeak, std::abs(sample));
+    const auto samples = signal.samples();
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+        if ((index % cancellationBatchSize) == 0U
+            && stopToken.stop_requested()) {
+            return cancelledPreprocessing();
+        }
+        currentPeak = std::max(currentPeak, std::abs(samples[index]));
     }
 
     if (currentPeak == 0.0) {
@@ -55,14 +93,19 @@ core::Result<core::Signal> normalizePeak(
 
     std::vector<double> output;
     output.reserve(signal.sampleCount());
-    for (double sample : signal.samples()) {
-        output.push_back((sample / currentPeak) * targetPeak);
+    for (std::size_t index = 0; index < samples.size(); ++index) {
+        if ((index % cancellationBatchSize) == 0U
+            && stopToken.stop_requested()) {
+            return cancelledPreprocessing();
+        }
+        output.push_back((samples[index] / currentPeak) * targetPeak);
     }
 
     return core::Signal::create(
         std::move(output),
         signal.sampleRate(),
-        signal.metadata());
+        signal.metadata(),
+        stopToken);
 }
 
 core::Result<core::Signal> sliceSignal(
