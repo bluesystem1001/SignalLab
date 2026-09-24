@@ -16,6 +16,7 @@ namespace signallab::app {
 struct BackgroundAnalysisEvent {
     task::TaskSnapshot task;
     std::int64_t signalRecordId{0};
+    AnalysisOptions options;
     std::shared_ptr<const AnalysisResult> result;
 };
 

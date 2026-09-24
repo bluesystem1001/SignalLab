@@ -17,6 +17,12 @@ struct DisplayPoint {
     const core::Signal& signal,
     std::size_t pixelWidth);
 
+[[nodiscard]] std::vector<DisplayPoint> makeDisplayPoints(
+    const core::Signal& signal,
+    std::size_t pixelWidth,
+    std::size_t firstIndex,
+    std::size_t pastLastIndex);
+
 struct SpectrumDisplayPoint {
     double frequencyHz;
     double amplitude;
@@ -25,5 +31,11 @@ struct SpectrumDisplayPoint {
 [[nodiscard]] std::vector<SpectrumDisplayPoint> makeSpectrumDisplayPoints(
     const algorithm::Spectrum& spectrum,
     std::size_t pixelWidth);
+
+[[nodiscard]] std::vector<SpectrumDisplayPoint> makeSpectrumDisplayPoints(
+    const algorithm::Spectrum& spectrum,
+    std::size_t pixelWidth,
+    std::size_t firstIndex,
+    std::size_t pastLastIndex);
 
 }  // namespace signallab::app

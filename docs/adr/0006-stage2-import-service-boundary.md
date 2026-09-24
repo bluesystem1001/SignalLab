@@ -3,7 +3,7 @@
 - 状态：已执行并关闭（阶段 4 退出条件已满足）
 - 日期：2026-09-08
 - 关闭日期：2026-09-11
-- 最近复核：2026-09-22（阶段 5 后台导入与阶段 6 SignalScript 仍保持该边界）
+- 最近复核：2026-09-24（阶段 7 GUI 接线仍保持该边界）
 
 ## 背景
 
@@ -47,4 +47,10 @@
 - 脚本文件权限由 repository 层的 `ScriptFileGateway` 抽象表达，文件系统实现仍位于 `signallab_io`；解释器没有获得原始文件系统、数据库或 Qt GUI 对象。
 - 当前 `signallab_app` 的 CMake 依赖为 `core`、`algorithm`、`repository`、`parser` 和 `task`，没有重新链接 `signallab_io` 或 `signallab_database`。
 
-对应自动化测试覆盖内容寻址存档复用、不同解析选项、恢复与失败补偿、后台工作线程到 GUI 线程的交接，以及脚本重复加载和输入内容变化。2026-09-22 的最终复核中，Debug 与 Release 均无警告构建成功并通过 216/216 项测试。上述代码边界持续满足退出条件，因此本 ADR 的临时例外保持关闭；后续新增基础设施能力也必须先通过 repository 抽象进入 `app`，不能以本 ADR 为依据恢复直接依赖。
+### 阶段 7：GUI 接线复核
+
+- `BackgroundScriptService` 只组合 `ScriptService` 与 `Scheduler`；脚本执行进入计算通道，历史读取进入 I/O 通道，均通过终态事件把结果交还 GUI。
+- 解释器返回的 `openedSignals` 由 GUI 线程显式交给 `ImportService::acceptImportedSignal()`，随后刷新 `SignalListModel`；工作线程仍不读取或修改面向界面的 `entries()`。
+- `MainWindow` 只依赖应用服务、调度器和 repository 数据类型，不持有 SQLite 连接，也不直接调用 CSV/WAV 解析器或文件系统实现。`signallab_app` 的 CMake 依赖边界保持不变。
+
+对应自动化测试覆盖内容寻址存档复用、不同解析选项、恢复与失败补偿、后台工作线程到 GUI 线程的交接，以及脚本重复加载、输入内容变化和 GUI 终态接纳。2026-09-24 的最终复核中，Debug 与 Release 均无警告构建成功并通过 233/233 项测试。上述代码边界持续满足退出条件，因此本 ADR 的临时例外保持关闭；后续新增基础设施能力也必须先通过 repository 抽象进入 `app`，不能以本 ADR 为依据恢复直接依赖。

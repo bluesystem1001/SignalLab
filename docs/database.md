@@ -1,6 +1,6 @@
-# SignalLab 阶段 4—6 数据库说明
+# SignalLab 阶段 4—7 数据库说明
 
-阶段 4 使用 SQLite 保存信号、分析任务和结果；阶段 5 在不改变仓库抽象边界的前提下增加数据库专属执行线程、排队状态和取消状态；阶段 6 为 SignalScript 增加可校验的源码身份、单次终态转换和错误行列。程序通过 Qt 的 `QSQLITE` 驱动访问数据库，界面和应用服务都不直接编写 SQL。本文对应已完成验证的 `0.6.0` 结构；Debug 与 Release 全量 216/216 项测试均通过，阶段版本由 `v0.6` 与 `stage-6-complete` 标记并另存仓库外 bundle。
+阶段 4 使用 SQLite 保存信号、分析任务和结果；阶段 5 在不改变仓库抽象边界的前提下增加数据库专属执行线程、排队状态和取消状态；阶段 6 为 SignalScript 增加可校验的源码身份、单次终态转换和错误行列；阶段 7 在 GUI 中接入分析/脚本历史模型，但没有改变数据库结构。程序通过 Qt 的 `QSQLITE` 驱动访问数据库，界面和应用服务都不直接编写 SQL。本文对应应用 `0.7.0` 的结构；Debug 与 Release 全量 233/233 项自动化测试均通过，真实窗口人工检查清单尚未执行。
 
 ## 文件位置与启动顺序
 
@@ -19,9 +19,9 @@ data/signallab.sqlite3
 3. 把上次异常退出后遗留的 `PENDING` 或 `RUNNING` 分析任务改为 `INTERRUPTED`。
 4. 把阶段 6 遗留且带源码哈希的 `RUNNING` 脚本执行改为 `INTERRUPTED`。
 5. 从数据库恢复信号；对于 CSV/WAV，还会检查存档文件及其 SHA-256。
-6. 读取历史任务和特征结果，供现有“历史任务”页显示；脚本历史的 GUI 展示属于阶段 7。
+6. 构造主窗口时读取分析历史，供“分析历史”页显示；同时把脚本历史查询提交给 `BackgroundScriptService` 的 I/O 队列，完成后更新脚本历史模型。
 
-如果数据库、迁移、存档或信号完整性检查失败，程序会显示启动错误，而不是带着不完整数据继续运行。正常退出时则先停止后台调度器，等工作线程退出后，再让数据库执行器排空已接收的命令并在所属线程关闭连接。
+如果数据库、迁移、存档或信号完整性检查失败，程序会显示启动错误，而不是带着不完整数据继续运行。正常退出时依次清除脚本、文件和分析适配器的跨线程 UI 通知器，调用 `Scheduler::shutdownAndWait()` 取消并等待工作线程，再让数据库执行器拒绝新命令、排空已接收命令并在所属线程关闭连接，最后才销毁窗口与应用服务。
 
 ## 分层方式
 
@@ -37,9 +37,11 @@ GUI -> app 应用服务 -> repository 抽象接口
 - `include/signallab/repository/` 定义信号、任务、脚本历史、普通导入文件和脚本受限文件网关接口，不依赖 SQLite。
 - `src/database/` 实现 SQLite 信号仓库、任务仓库和脚本历史仓库；`DatabaseExecutor` 在专属线程内拥有这些具体对象，并作为三个仓库接口的线程安全串行代理。
 - `src/io/` 实现文件预览、解析、存档和校验，并实现固定输入根/输出根的 `FilesystemScriptFileGateway`；脚本运行时不直接访问文件系统。
-- 可执行程序在 `main.cpp` 中创建文件仓库和数据库执行器，并把接口引用传给应用服务。
+- 可执行程序在 `main.cpp` 中创建文件仓库、脚本受限文件网关、数据库执行器和调度器，再装配 `BackgroundFileService`、`BackgroundAnalysisService` 与 `BackgroundScriptService` 三个后台适配器。
 
 因此，`app` 只知道仓库接口，GUI 不知道 SQL，`core` 和 `algorithm` 也不依赖 Qt SQL。
+
+正常交互中的持久化写入由文件导入、分析或脚本执行的后台任务调用应用服务，再经 `DatabaseExecutor` 在数据库线程完成；GUI 线程不执行 SQL 写入。读取路径并非全部异步：脚本历史通过 `BackgroundScriptService` 的 I/O 队列查询并以 queued 事件更新 `ScriptHistoryModel`，但分析历史与所选任务的特征结果目前由 GUI 调用 `AnalysisService`，同步等待 `DatabaseExecutor` 代理返回。后者的 SQL 仍只在数据库线程执行，但等待者是 GUI 线程。
 
 ## 连接设置
 
@@ -60,6 +62,8 @@ GUI -> app 应用服务 -> repository 抽象接口
 - `001_init.sql`：建立阶段 4 的初始业务表、约束和索引。
 - `002_task_scheduler.sql`：重建任务及特征表以扩展状态约束，加入 `CANCELLED`；迁移复制既有编号、任务历史和特征结果后再替换旧表。
 - `003_signal_script.sql`：在不重建 `script_history` 的前提下增加 `source_hash`、`error_line` 和 `error_column`，并对阶段 6 的非空哈希记录约束状态、完成时间和错误字段组合；旧行保留原编号、原状态与空哈希。
+
+阶段 7 只增加 GUI 模型和后台适配边界，没有新增字段、表或约束，因此 `0.7.0` 仍只应用 `001`—`003`，不存在阶段 7 的 `004` 迁移。
 
 运行器自己创建 `schema_migration` 表：
 
@@ -83,7 +87,7 @@ GUI -> app 应用服务 -> repository 抽象接口
 | `signal_record` | 采样率、样本数、样本 BLOB、样本哈希和信号元数据 | 每个 `signal_source` 恰好对应一个记录；删除来源时级联删除记录 |
 | `analysis_task` | `PENDING/RUNNING/SUCCEEDED/FAILED/INTERRUPTED/CANCELLED` 状态、信号名、算法名/版本、参数、输入/输出哈希、时间和错误 | 可选关联一个 `signal_record`；删除信号记录时任务保留，外键改为 `NULL` |
 | `feature_result` | 一次任务产生的特征名、数值、文本值和单位 | 多条结果属于一个任务；任务删除时级联删除；同一任务内特征名唯一 |
-| `script_history` | 原始脚本文本、源码 SHA-256、`RUNNING/SUCCEEDED/FAILED/CANCELLED/INTERRUPTED` 状态、开始/结束时间及可选错误行列和消息 | 与信号/分析表独立；阶段 6 服务已经读写，脚本历史界面在阶段 7 接入 |
+| `script_history` | 原始脚本文本、源码 SHA-256、`RUNNING/SUCCEEDED/FAILED/CANCELLED/INTERRUPTED` 状态、开始/结束时间及可选错误行列和消息 | 与信号/分析表独立；阶段 6 服务负责生命周期，阶段 7 的脚本历史模型已经接入查询与源码重新载入 |
 | `operation_log` | 保存信号、创建/完成/失败任务，以及脚本历史创建、完成和批量中断等写操作日志 | 用 `entity_type` 和可选 `entity_id` 指向业务对象，不设置外键 |
 
 主要关系可以简化为：
@@ -130,6 +134,8 @@ GUI 只把所选 `signalRecordId` 交给后台分析服务。计算工作者中�
 
 `003_signal_script.sql` 特意让迁移前记录保持空 `source_hash`。这些旧行保留原始状态文本；仓库映射已知状态，其他旧拼写归为 `Legacy`。它们不参加新的终态更新和启动中断，避免把历史数据误认成正在执行的阶段 6 脚本。
 
+阶段 7 没有为 GUI 新增脚本历史写入语义。脚本执行仍在 `BackgroundScriptService` 的计算队列中调用 `ScriptService` 创建并完成记录；历史按钮和执行后的刷新则在 I/O 队列调用 `ScriptService::history()`，将记录移动进 `ScriptHistoryModel`。GUI 只显示记录或把所选历史源码重新放回编辑器，不直接更新 `script_history`。
+
 ## 可复现记录
 
 ### 规范参数 JSON
@@ -170,7 +176,7 @@ GUI 只把所选 `signalRecordId` 交给后台分析服务。计算工作者中�
 
 `DatabaseConnection` 在构造时记住当前线程。打开、查询、提交和关闭前都会检查线程；跨线程访问会返回错误。连接销毁时先释放 `QSqlDatabase` 句柄，再调用 Qt 的 `removeDatabase()`。
 
-阶段 5 的 `DatabaseExecutor` 在一个固定线程内创建、使用并销毁 `DatabaseConnection`、迁移器和三个 SQLite 仓库。GUI、计算工作者和 I/O 工作者调用的是代理；代理把命令放入队列并等待所属线程返回 `Result`，不会把连接或具体仓库跨线程传递。可取消的信号读取把停止令牌传到数据库线程；BLOB 哈希和解码按块检查令牌，代理在已入队命令真正停止后才向调用方返回取消，因此后续关闭不会再等待隐藏的读取尾巴。数据库连接不会被跨线程强行中断。`start()` 和 `shutdown()` 可重复调用；关闭会先拒绝新命令、排空已接收命令，再在数据库线程销毁 Qt SQL 对象。
+阶段 5 的 `DatabaseExecutor` 在一个固定线程内创建、使用并销毁 `DatabaseConnection`、迁移器和三个 SQLite 仓库。GUI、计算工作者和 I/O 工作者调用的是代理；代理把命令放入队列并同步等待所属线程返回 `Result`，不会把连接或具体仓库跨线程传递。调用方可能是后台工作者，也可能是当前分析历史/特征结果读取的 GUI 线程；线程归属安全不等同于调用方一定异步。可取消的信号读取把停止令牌传到数据库线程；BLOB 哈希和解码按块检查令牌，代理在已入队命令真正停止后才向调用方返回取消，因此后续关闭不会再等待隐藏的读取尾巴。数据库连接不会被跨线程强行中断。`start()` 和 `shutdown()` 可重复调用；关闭会先拒绝新命令、排空已接收命令，再在数据库线程销毁 Qt SQL 对象。
 
 ## 当前限制
 
@@ -180,4 +186,4 @@ GUI 只把所选 `signalRecordId` 交给后台分析服务。计算工作者中�
 - 参数 JSON 的规范性由应用服务保证，SQLite 只检查它非空。
 - 文件存档位于数据库外，只能使用补偿清理；备份正在运行的项目时，应同时考虑数据库、WAL 辅助文件和 `data/imports/`。
 - 所有 SQLite 操作由一个执行线程串行处理，保证线程归属和简单事务语义，但长查询仍可能让其他数据库调用排队；当前没有连接池。
-- `ScriptService`、`script_history` 生命周期和历史查询已经实现，但 `0.6.0` 的主窗口尚未组装脚本编辑、执行和历史控件；这些 GUI 能力属于阶段 7。
+- 分析历史列表和单条特征结果当前会让 GUI 同步等待数据库代理；SQL 不在 GUI 线程执行，也没有 UI 线程 SQL 写入，但很长的读取仍可能影响界面响应。脚本历史已经通过 I/O 队列异步读取。

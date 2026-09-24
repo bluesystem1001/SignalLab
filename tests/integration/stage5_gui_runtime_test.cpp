@@ -1,7 +1,7 @@
 #include <QCoreApplication>
 #include <QElapsedTimer>
 #include <QEventLoop>
-#include <QListWidget>
+#include <QListView>
 #include <QTimer>
 
 #include <gtest/gtest.h>
@@ -148,14 +148,10 @@ TEST(Stage5GuiRuntimeTest, ThreeLargeAnalysesKeepTheQtEventLoopResponsive)
         scheduler);
     window.show();
 
-    QListWidget* signalList = nullptr;
-    for (auto* list : window.findChildren<QListWidget*>()) {
-        if (list->count() == 2) {
-            signalList = list;
-            break;
-        }
-    }
+    auto* signalList = window.findChild<QListView*>("signalListView");
     ASSERT_NE(signalList, nullptr);
+    ASSERT_NE(signalList->model(), nullptr);
+    ASSERT_EQ(signalList->model()->rowCount(), 2);
 
     for (int index = 0; index < 3; ++index) {
         const auto submitted = backgroundAnalysis.submit(stored.recordId);
@@ -185,7 +181,9 @@ TEST(Stage5GuiRuntimeTest, ThreeLargeAnalysesKeepTheQtEventLoopResponsive)
 
     QTimer interactionTimer;
     QObject::connect(&interactionTimer, &QTimer::timeout, [&]() {
-        signalList->setCurrentRow(signalList->currentRow() == 0 ? 1 : 0);
+        const int currentRow = signalList->currentIndex().row();
+        const int nextRow = currentRow == 0 ? 1 : 0;
+        signalList->setCurrentIndex(signalList->model()->index(nextRow, 0));
         ++signalSwitchCount;
         const int widthDelta = signalSwitchCount % 2 == 0 ? -1 : 1;
         window.resize(window.width() + widthDelta, window.height());

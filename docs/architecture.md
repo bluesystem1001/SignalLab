@@ -1,6 +1,6 @@
 # SignalLab 架构说明
 
-本文描述 `0.6.0` 当前已经接入的结构。阶段 4 的持久化和阶段 5 的后台任务边界保持不变；阶段 6 在 GUI 之外增加 SignalScript 前端、静态检查、受限解释运行时、脚本文件网关和执行历史。脚本编辑器与控制台仍属于阶段 7，因此当前主窗口只展示既有交互能力。
+本文描述应用 `0.7.0` 当前已经接入的结构。阶段 4 的持久化、阶段 5 的后台任务边界和阶段 6 的 SignalScript 语言服务保持不变；阶段 7 在不把 Qt 依赖反向带入 `core`、`algorithm` 或 `parser` 的前提下，完成主窗口的 Model/View 组装、交互式图表、脚本编辑/执行/历史界面，以及第三个后台适配器 `BackgroundScriptService`。
 
 ## 阶段 1 的历史切片
 
@@ -25,7 +25,7 @@
 - 样本不能为空。
 - 每个样本都必须是有限数，不能包含 NaN 或无穷大。
 
-创建成功后，样本只能通过 `std::span<const double>` 读取，没有公开修改函数。`Signal` 自己拥有底层 `std::vector<double>`，因此只要 `Signal` 仍然存在，读取视图就有效。
+创建成功后，样本只能通过 `std::span<const double>` 读取，没有公开修改函数。底层样本保存在 `std::shared_ptr<const std::vector<double>>` 指向的共享不可变缓冲区中；复制 `Signal` 只共享样本缓冲区，元数据仍按值复制，不会为脚本与 GUI 之间的百万点信号再复制整段样本。只要任一持有该缓冲区的 `Signal` 仍然存在，读取视图就有效。
 
 当前时间定义为：
 
@@ -68,7 +68,13 @@ SignalLab（组装根）
 └─> signallab_database -> repository 接口 + Qt Core + Qt Sql
 ```
 
-`repository` 目录只声明文件、信号、任务、脚本历史和脚本文件能力的抽象接口。`ImportService`、`AnalysisService` 和 `ScriptService` 只依赖这些接口，不知道 SQLite 语句或文件安全检查的具体实现。`main.cpp` 创建 `FilesystemFileRepository`、`DatabaseExecutor`、`Scheduler` 和两个后台适配服务，再通过构造函数装配现有应用与界面；阶段 6 还在启动时通过数据库代理清理遗留脚本执行。`DatabaseExecutor` 同时实现信号、任务和脚本仓库接口，但把具体 SQLite 仓库隐藏在其专属线程内。`FilesystemScriptFileGateway` 则实现受限的输入根/输出根访问，解释器永远不会获得原始文件系统对象。[ADR 0006](adr/0006-stage2-import-service-boundary.md) 的退出条件因此已满足。
+`repository` 目录只声明文件、信号、任务、脚本历史和脚本文件能力的抽象接口。`ImportService`、`AnalysisService` 和 `ScriptService` 只依赖这些接口，不知道 SQLite 语句或文件安全检查的具体实现。`main.cpp` 创建 `FilesystemFileRepository`、`FilesystemScriptFileGateway`、`DatabaseExecutor`、`Scheduler`，以及文件、分析、脚本三个后台适配服务，再通过构造函数装配应用与界面；启动时还通过数据库代理清理遗留的分析与脚本执行。`DatabaseExecutor` 同时实现信号、任务和脚本仓库接口，但把具体 SQLite 仓库隐藏在其专属线程内。`FilesystemScriptFileGateway` 实现受限的输入根/输出根访问，解释器永远不会获得原始文件系统对象。[ADR 0006](adr/0006-stage2-import-service-boundary.md) 的退出条件因此已满足。
+
+三个后台适配器共用“调度器任务 + 线程安全事件队列 + Qt queued 调用”的交付方式，但使用与工作负载相符的队列：
+
+- `BackgroundFileService` 把预览和导入提交到 I/O 队列。
+- `BackgroundAnalysisService` 把分析提交到计算队列。
+- `BackgroundScriptService` 把可能执行 FFT/FIR 的脚本提交到计算队列，把脚本历史查询提交到 I/O 队列；执行事件保留本次源码快照，终态事件独占可移动的结构化结果。
 
 当前文件预览和导入的数据流是：
 
@@ -134,17 +140,18 @@ GUI 只把所选记录编号交给后台分析适配器，当前数据流是：
        ├─ 成功 -> 特征结果 + 输出哈希 + SUCCEEDED（一个事务）
        ├─ 取消 -> CANCELLED + 原因
        └─ 其他失败 -> FAILED + 错误文本
-    -> 历史任务页签
+    -> 分析历史页签
 ```
 
 - 参数 JSON 使用固定键顺序、无多余空白和与区域无关的数字格式，便于重现同一次分析。
 - 任务保存算法名/版本、参数 JSON、输入/输出 SHA-256 和 UTC 时间。输出哈希由稳定排序后的特征数据计算，不受调用者传入顺序影响。
 - 特征写入和任务转为 `SUCCEEDED` 必须一起提交。中途任一 SQL 失败时，整组特征回滚，然后用新事务把任务标为 `FAILED`，不留孤立 `feature_result`。
 - 启动时先把上次异常终止后遗留的 `PENDING` 或 `RUNNING` 分析任务批量改为 `INTERRUPTED`，再恢复信号并打开界面。
-- “历史任务”页签通过 `AnalysisService` 读取仓库，展示状态、算法版本、参数、哈希、UTC 时间、错误与特征值；GUI 不包含 SQL。
+- “分析历史”页签通过 `AnalysisService` 读取仓库，展示状态、算法版本、参数、哈希、UTC 时间、错误与特征值；GUI 不包含 SQL。当前这条历史与特征读取路径会在 GUI 调用点同步等待 `DatabaseExecutor` 代理返回，SQL 仍只在数据库线程执行，因此不能把所有历史读取描述成异步。
 - `QSqlDatabase` 连接、迁移器和具体仓库都在数据库专属线程中创建和销毁。来自 GUI、计算池或 I/O 池的仓库调用通过命令队列串行执行，不会跨线程传递 Qt SQL 连接。
+- 正常交互产生的 SQL 写入由文件、分析或脚本后台动作中的应用服务发起，再交给数据库线程执行；GUI 线程不直接执行 SQL 写入。脚本历史查询则由 `BackgroundScriptService` 经 I/O 队列异步交付给 `ScriptHistoryModel`。
 
-调度器中的文件任务和分析任务拥有进程内编号；只有 `AnalysisService` 创建的分析记录会持久化到 `analysis_task`。因此“后台任务”的重试来源和文件任务不会在重启后恢复，“历史任务”则可以跨重启查询。
+调度器中的文件、分析和脚本任务都拥有进程内编号；`AnalysisService` 创建的分析记录持久化到 `analysis_task`，`ScriptService` 创建的脚本记录持久化到 `script_history`。因此“任务中心”的快照与重试来源不会在重启后恢复，而“分析历史”和脚本历史可以跨重启查询。
 
 ## 阶段 5 的调度、通知与关闭
 
@@ -154,8 +161,8 @@ GUI 只把所选记录编号交给后台分析适配器，当前数据流是：
 - 取消是协作式的。排队任务会从队列移除；运行任务收到 `std::stop_token`，CSV/WAV 读取、数据库信号加载与 FFT 等长循环在安全点检查。大 BLOB 的哈希和解码按块检查令牌；数据库代理只在已入队命令真正观察取消并停止后返回，避免任务表面结束而数据库线程仍留有大块读取尾巴。动作成功返回是提交边界，晚到的取消请求不会覆盖已经提交的成功结果。
 - 只有终态任务可以重试。重试复制原动作和通知目标，生成新编号并在快照中记录 `retryOf`；它不是原记录的状态回滚。
 - 观察者可能在工作线程或提交线程运行，但不会在任何调度器内部锁下调用。每个任务的通知在锁内按阶段过滤、排队，由单一派发者在锁外串行调用；观察者重入、跨线程委托或并发请求 `shutdown()` 时只发起停止。主退出路径清除通知器后调用 `shutdownAndWait()` 完成 join。后台适配器只把快照和结果放入受互斥量保护的事件队列，终态结果按任务编号提取并释放，避免重试串结果或让大频谱长期滞留在调度器记录中。
-- `MainWindow` 的通知器用 `QPointer` 保护窗口寿命，再通过 `QMetaObject::invokeMethod(..., Qt::QueuedConnection)` 请求 GUI 线程排空事件。工作线程不直接访问控件；导入成功后的 `SignalEntry` 也由 GUI 线程接纳进界面列表。
-- 退出顺序固定为：清除跨线程 UI 通知器，停止调度并取消/等待工作线程，随后让数据库执行器停止接收命令、排空已接收命令并在所属线程关闭 SQLite。重复关闭是安全的。
+- `MainWindow` 的通知器用 `QPointer` 保护窗口寿命，再通过 `QMetaObject::invokeMethod(..., Qt::QueuedConnection)` 请求 GUI 线程排空事件。工作线程不直接访问控件；导入成功后的 `SignalEntry`，以及脚本结果中 `openedSignals` 携带的条目，都只由 GUI 线程显式接纳进项目模型。
+- 退出顺序固定为：依次清除脚本、文件和分析适配器的跨线程 UI 通知器，调用 `Scheduler::shutdownAndWait()` 取消并等待工作线程，随后让 `DatabaseExecutor` 停止接收命令、排空已接收命令并在所属线程关闭 SQLite，最后才销毁栈上窗口与服务。重复关闭是安全的。
 
 ## 阶段 6 的 SignalScript 边界
 
@@ -176,22 +183,33 @@ UTF-8 source
 
 静态类型为 `Number`、`String`、`Boolean`、`Signal`、`Spectrum`、`FeatureSet`、`Unit` 和内部错误占位 `Invalid`。可执行内建只有 `normalize`、`lowpass`、`fft` 和 `features`；`load`、`plot`、`save` 是专用语句。`fft` 调用与 GUI 相同的 `analyzeSignal()` 算法路径，`features` 复用基本特征和质量指标实现。解释值持有不可变 `Signal`、完整分析结果或特征集合；`plot` 返回数据和标题，不直接引用 Qt Charts。
 
-脚本的 `load` 使用 `ImportService::openCsv/openWav`，与 GUI 的“重复导入即提示”用例分开。脚本入口按“文件内容 SHA-256 + 规范化解析选项”查找逻辑来源：相同内容和选项会复用已经持久化的信号，使重复加载具备幂等性；原路径内容改变时会形成新的文件版本和逻辑信号。它只返回脚本计算所需的 `SignalEntry`，不读取或修改 `ImportService::entries()`，因此后台解释不会和 GUI 项目模型竞态；阶段 7 再由 GUI 线程显式刷新或接纳脚本产生的持久化信号。这个保证只覆盖 `load`：包含 `save` 的完整脚本再次执行时仍会因禁止覆盖已有输出而失败，先前已提交的导入或输出也不会因后续语句失败而整体回滚。
+脚本的 `load` 使用 `ImportService::openCsv/openWav`，与 GUI 的“重复导入即提示”用例分开。脚本入口按“文件内容 SHA-256 + 规范化解析选项”查找逻辑来源：相同内容和选项会复用已经持久化的信号，使重复加载具备幂等性；原路径内容改变时会形成新的文件版本和逻辑信号。它不在工作线程修改 `ImportService::entries()`，而是把需要接纳的 `SignalEntry` 放入 `EvaluationOutput::openedSignals`；阶段 7 的终态事件把这些条目移动到 GUI 线程，再由 GUI 显式接纳和刷新项目模型。共享不可变样本缓冲区使这次交接不复制整段样本。这个保证只覆盖 `load`：包含 `save` 的完整脚本再次执行时仍会因禁止覆盖已有输出而失败，先前已提交的导入或输出也不会因后续语句失败而整体回滚。
 
 `ScriptService` 是用例边界：它在任何词法处理前创建 `RUNNING` 历史，组合 `LEX/PAR/SEM` 三类前端诊断，并把独立的 `RUN` 运行时问题与语言错误一起包装为正常的执行结果；只有无法可靠创建或完成历史等基础设施问题才使用外层 `Result` 失败。运行时接受 `std::stop_token`，取消、成功和失败都会尝试完成同一历史记录。
 
 `ScriptFileGateway` 是运行时唯一文件能力。`FilesystemScriptFileGateway` 分别固定输入根和输出根，只接受根内相对路径，拒绝空路径、绝对路径、`..`、Windows 备用数据流以及符号链接/junction 逃逸。输入必须是普通文件；输出以临时文件写完后原子发布，若目标存在则失败且不覆盖。解释器未获得进程、Shell、网络、动态库或任意文件 API。
 
-完整语法、内建参数和文件格式见 [SignalScript 说明](signalscript.md)。阶段 6 提供语言服务、执行结果和历史接口；把编辑器、运行操作、诊断导航及结构化绘图请求接入 `MainWindow` 是阶段 7 的职责。
+完整语法、内建参数和文件格式见 [SignalScript 说明](signalscript.md)。阶段 7 已把编辑器、运行/取消、结构化诊断与源码定位、变量与输出摘要、结构化绘图、历史查询及历史源码重新载入接入 `MainWindow`；语言本身仍保持阶段 6 的受限能力边界。
+
+## 阶段 7 的 GUI Model/View 组装
+
+`MainWindow` 以左侧项目信号、中间工作区和右侧信号/参数/结果面板组织界面。中间工作区包含时域、频域、任务中心、分析历史和 SignalScript；界面状态不再依赖控件私有条目的临时文本，而由专用模型提供：
+
+- `SignalListModel`、`TaskListModel`、`AnalysisHistoryModel` 和 `ScriptHistoryModel` 基于 `QAbstractListModel`，提供稳定编号、状态、图标、提示和可访问文本等角色。
+- `AnalysisResultModel` 基于 `QAbstractTableModel`，统一展示特征名称、数值与单位；右侧同时展示实际分析参数和算法版本。
+- 任务中心从 `Scheduler` 快照显示排队、运行、成功、失败和取消状态，并提供终态重试、协作取消、错误原因与处置建议。GUI 对一次脚本只维护一个活动任务，重试也遵守同一约束。
+- SignalScript 运行结果以变量、输出文件、诊断和多个绘图页签呈现；点击诊断会把 UTF-8 源位置转换为 Qt 使用的 UTF-16 光标位置。脚本历史由后台 I/O 任务载入模型，而不是在历史视图中直接访问仓库。
 
 ## 显示下采样
 
-原始 `Signal` 和完整 `Spectrum` 都不会因为绘图而改变。小信号/小频谱逐点显示；较大数据按图表像素宽度分桶，每桶按原索引顺序保留最小值和最大值。因此提交给 Qt Charts 的点数最多约为 `2 × 像素宽度`，时域瞬态和频域尖峰仍能保留。
+原始 `Signal` 和完整 `Spectrum` 都不会因为绘图而改变。小信号/小频谱逐点显示；较大数据只在当前可见的 `[firstIndex, pastLastIndex)` 范围内按图表像素宽度分桶，每桶按原索引顺序保留最小值和最大值。因此一次提交给 Qt Charts 的点数最多约为 `2 × 像素宽度`，缩放后不会继续按全量范围抽样，时域瞬态和频域尖峰仍能保留。
 
-文件预览、导入和分析已移出 UI 线程；完整 `Signal` 和 `Spectrum` 仍只在任务完成后交给显示路径。阶段 7 再补充窗口缩放后的延迟重绘。
+`InteractiveChartView` 复用稳定的 chart/series 对象，提供以指针位置为中心的滚轮缩放、矩形缩放、`Shift` 局部选择、十字游标、双击/按钮复位和 PNG 导出。控件用 100 ms 单次定时器合并连续窗口尺寸变化；主时域/频域图及动态脚本图再用 80 ms 单次定时器合并坐标轴范围变化，然后按新的可见索引区间重新采样，避免拖动和缩放期间反复提交大点集。
 
-## 后续边界
+文件预览、导入、分析和脚本执行已移出 UI 线程；完整 `Signal`、`Spectrum` 和脚本结构化结果只在任务完成后交给显示路径。分析历史与单条特征结果查询目前仍由 GUI 同步等待数据库代理，属于已知的后续响应性改进点。
 
-数据库、迁移、后台调度、取消和进程内重试继续沿用阶段 5 已验证的边界。阶段 6 的 SignalScript 前端、解释执行、受限文件网关和历史生命周期已经落入 `0.6.0` 代码；Debug 与 Release 均无警告构建成功并通过 216/216 项测试。阶段完成版本由 `v0.6` 与 `stage-6-complete` 标记，并生成仓库外 Git bundle。
+## 当前验证与后续边界
 
-阶段 7 将在不把 Qt 依赖反向带入 parser、algorithm 或 core 的前提下，把脚本编辑、执行状态、诊断定位、历史查询和绘图请求接到主窗口。批处理、插件化任意函数、网络数据源和系统命令不在 `0.6.0` 的语言能力内。
+数据库、迁移、后台调度、取消和进程内重试继续沿用阶段 5 已验证的边界；阶段 7 的 GUI、后台脚本适配和范围感知显示已经落入 `0.7.0` 代码。Debug 与 Release 均已通过 233/233 项自动化测试。
+
+真实窗口的人工检查清单尚未执行；高 DPI/多屏显示、主题观感、鼠标手感和真实交互延迟不能由离屏自动化测试代替，因此这里不把人工验收写成已完成。批处理、插件化任意函数、网络数据源和系统命令仍不在当前 SignalScript 能力内，后续功能按阶段 8 计划推进。

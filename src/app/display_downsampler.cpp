@@ -1,5 +1,6 @@
 #include "signallab/app/display_downsampler.hpp"
 
+#include <algorithm>
 #include <cstddef>
 #include <vector>
 
@@ -30,19 +31,34 @@ std::vector<DisplayPoint> makeDisplayPoints(
     const core::Signal& signal,
     std::size_t pixelWidth)
 {
-    if (pixelWidth == 0) {
+    return makeDisplayPoints(signal, pixelWidth, 0, signal.sampleCount());
+}
+
+std::vector<DisplayPoint> makeDisplayPoints(
+    const core::Signal& signal,
+    std::size_t pixelWidth,
+    std::size_t firstIndex,
+    std::size_t pastLastIndex)
+{
+    const auto samples = signal.samples();
+    firstIndex = std::min(firstIndex, samples.size());
+    pastLastIndex = std::min(pastLastIndex, samples.size());
+
+    if (pixelWidth == 0 || firstIndex >= pastLastIndex) {
         return {};
     }
 
-    const auto samples = signal.samples();
+    const std::size_t pointCount = pastLastIndex - firstIndex;
     const std::size_t fullResolutionLimit =
-        samples.size() / 2 + samples.size() % 2;
+        pointCount / 2 + pointCount % 2;
 
     if (pixelWidth >= fullResolutionLimit) {
         std::vector<DisplayPoint> points;
-        points.reserve(samples.size());
+        points.reserve(pointCount);
 
-        for (std::size_t index = 0; index < samples.size(); ++index) {
+        for (std::size_t index = firstIndex;
+             index < pastLastIndex;
+             ++index) {
             points.push_back(makePoint(signal, index));
         }
 
@@ -53,15 +69,16 @@ std::vector<DisplayPoint> makeDisplayPoints(
     points.reserve(pixelWidth * 2);
 
     for (std::size_t bucket = 0; bucket < pixelWidth; ++bucket) {
-        const std::size_t firstIndex = bucket * samples.size() / pixelWidth;
-        const std::size_t pastLastIndex =
-            (bucket + 1) * samples.size() / pixelWidth;
+        const std::size_t bucketFirstIndex =
+            firstIndex + bucket * pointCount / pixelWidth;
+        const std::size_t bucketPastLastIndex =
+            firstIndex + (bucket + 1) * pointCount / pixelWidth;
 
-        std::size_t minimumIndex = firstIndex;
-        std::size_t maximumIndex = firstIndex;
+        std::size_t minimumIndex = bucketFirstIndex;
+        std::size_t maximumIndex = bucketFirstIndex;
 
-        for (std::size_t index = firstIndex + 1;
-             index < pastLastIndex;
+        for (std::size_t index = bucketFirstIndex + 1;
+             index < bucketPastLastIndex;
              ++index) {
             if (samples[index] < samples[minimumIndex]) {
                 minimumIndex = index;
@@ -89,20 +106,41 @@ std::vector<SpectrumDisplayPoint> makeSpectrumDisplayPoints(
     const algorithm::Spectrum& spectrum,
     std::size_t pixelWidth)
 {
-    if (pixelWidth == 0
-        || spectrum.frequenciesHz.empty()
-        || spectrum.frequenciesHz.size() != spectrum.amplitudes.size()) {
+    return makeSpectrumDisplayPoints(
+        spectrum,
+        pixelWidth,
+        0,
+        spectrum.frequenciesHz.size());
+}
+
+std::vector<SpectrumDisplayPoint> makeSpectrumDisplayPoints(
+    const algorithm::Spectrum& spectrum,
+    std::size_t pixelWidth,
+    std::size_t firstIndex,
+    std::size_t pastLastIndex)
+{
+    if (spectrum.frequenciesHz.size() != spectrum.amplitudes.size()) {
         return {};
     }
 
     const std::size_t pointCount = spectrum.amplitudes.size();
+    firstIndex = std::min(firstIndex, pointCount);
+    pastLastIndex = std::min(pastLastIndex, pointCount);
+
+    if (pixelWidth == 0 || firstIndex >= pastLastIndex) {
+        return {};
+    }
+
+    const std::size_t rangePointCount = pastLastIndex - firstIndex;
     const std::size_t fullResolutionLimit =
-        pointCount / 2 + pointCount % 2;
+        rangePointCount / 2 + rangePointCount % 2;
 
     if (pixelWidth >= fullResolutionLimit) {
         std::vector<SpectrumDisplayPoint> points;
-        points.reserve(pointCount);
-        for (std::size_t index = 0; index < pointCount; ++index) {
+        points.reserve(rangePointCount);
+        for (std::size_t index = firstIndex;
+             index < pastLastIndex;
+             ++index) {
             points.push_back(makeSpectrumPoint(spectrum, index));
         }
         return points;
@@ -112,14 +150,15 @@ std::vector<SpectrumDisplayPoint> makeSpectrumDisplayPoints(
     points.reserve(pixelWidth * 2);
 
     for (std::size_t bucket = 0; bucket < pixelWidth; ++bucket) {
-        const std::size_t firstIndex = bucket * pointCount / pixelWidth;
-        const std::size_t pastLastIndex =
-            (bucket + 1) * pointCount / pixelWidth;
+        const std::size_t bucketFirstIndex =
+            firstIndex + bucket * rangePointCount / pixelWidth;
+        const std::size_t bucketPastLastIndex =
+            firstIndex + (bucket + 1) * rangePointCount / pixelWidth;
 
-        std::size_t minimumIndex = firstIndex;
-        std::size_t maximumIndex = firstIndex;
-        for (std::size_t index = firstIndex + 1;
-             index < pastLastIndex;
+        std::size_t minimumIndex = bucketFirstIndex;
+        std::size_t maximumIndex = bucketFirstIndex;
+        for (std::size_t index = bucketFirstIndex + 1;
+             index < bucketPastLastIndex;
              ++index) {
             if (spectrum.amplitudes[index]
                 < spectrum.amplitudes[minimumIndex]) {

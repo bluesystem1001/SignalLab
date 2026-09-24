@@ -101,6 +101,7 @@ gtest_discover_tests(signallab_io_tests)
 add_executable(signallab_background_service_tests
     unit/database/database_test_main.cpp
     integration/stage5_background_services_test.cpp
+    integration/stage7_background_script_service_test.cpp
 )
 
 target_compile_features(signallab_background_service_tests PRIVATE cxx_std_20)
@@ -170,6 +171,8 @@ gtest_discover_tests(signallab_database_tests)
 add_executable(signallab_gui_runtime_tests
     integration/gui_test_main.cpp
     integration/stage5_gui_runtime_test.cpp
+    integration/stage7_gui_runtime_test.cpp
+    unit/gui/interactive_chart_view_test.cpp
 )
 
 target_compile_features(signallab_gui_runtime_tests PRIVATE cxx_std_20)

@@ -11,10 +11,13 @@
 #include "signallab/app/analysis_service.hpp"
 #include "signallab/app/background_analysis_service.hpp"
 #include "signallab/app/background_file_service.hpp"
+#include "signallab/app/background_script_service.hpp"
 #include "signallab/app/import_service.hpp"
+#include "signallab/app/script_service.hpp"
 #include "signallab/core/signal_generator.hpp"
 #include "signallab/database/database_executor.hpp"
 #include "signallab/io/filesystem_file_repository.hpp"
+#include "signallab/io/filesystem_script_file_gateway.hpp"
 #include "signallab/task/scheduler.hpp"
 
 namespace {
@@ -74,6 +77,13 @@ int main(int argc, char* argv[])
     signallab::app::AnalysisService analysisService(
         databaseExecutor,
         databaseExecutor);
+    signallab::io::FilesystemScriptFileGateway scriptFileGateway(
+        projectRoot,
+        projectRoot / "data" / "script_outputs");
+    signallab::app::ScriptService scriptService(
+        importService,
+        databaseExecutor,
+        scriptFileGateway);
 
     auto interruptionResult = analysisService.interruptRunningTasks();
     if (!interruptionResult) {
@@ -81,8 +91,7 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    auto scriptInterruptionResult =
-        databaseExecutor.interruptRunningScripts();
+    auto scriptInterruptionResult = scriptService.interruptRunningScripts();
     if (!scriptInterruptionResult) {
         showStartupError(scriptInterruptionResult.error().message);
         return 1;
@@ -125,13 +134,17 @@ int main(int argc, char* argv[])
     signallab::app::BackgroundFileService backgroundFileService(
         importService,
         scheduler);
+    signallab::app::BackgroundScriptService backgroundScriptService(
+        scriptService,
+        scheduler);
 
     MainWindow mainWindow(
         importService,
         analysisService,
         backgroundFileService,
         backgroundAnalysisService,
-        scheduler);
+        scheduler,
+        &backgroundScriptService);
     mainWindow.show();
 
     const int applicationResult = application.exec();
@@ -139,6 +152,7 @@ int main(int argc, char* argv[])
     // Fixed shutdown order: stop cross-thread UI notifications, cancel and
     // join task workers, drain/close SQLite on its owner thread, then allow
     // the stack-owned services and window to be destroyed.
+    backgroundScriptService.clearEventNotifier();
     backgroundFileService.clearEventNotifier();
     backgroundAnalysisService.clearEventNotifier();
     scheduler.shutdownAndWait();

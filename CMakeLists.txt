@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     SignalLab
-    VERSION 0.6.0
+    VERSION 0.7.0
     LANGUAGES CXX
 )
 
@@ -187,6 +187,7 @@ add_library(signallab_app STATIC
     include/signallab/app/analysis_service.hpp
     include/signallab/app/background_analysis_service.hpp
     include/signallab/app/background_file_service.hpp
+    include/signallab/app/background_script_service.hpp
     include/signallab/app/display_downsampler.hpp
     include/signallab/app/import_service.hpp
     include/signallab/app/script_runtime/evaluator.hpp
@@ -195,6 +196,7 @@ add_library(signallab_app STATIC
     src/app/analysis_service.cpp
     src/app/background_analysis_service.cpp
     src/app/background_file_service.cpp
+    src/app/background_script_service.cpp
     src/app/display_downsampler.cpp
     src/app/import_service.cpp
     src/app/script_runtime/evaluator.cpp
@@ -218,8 +220,12 @@ target_link_libraries(signallab_app
 signallab_set_compiler_warnings(signallab_app)
 
 add_library(signallab_gui STATIC
+    src/gui/interactive_chart_view.cpp
+    src/gui/interactive_chart_view.hpp
     src/gui/main_window.cpp
     src/gui/main_window.hpp
+    src/gui/stage7_models.cpp
+    src/gui/stage7_models.hpp
 )
 
 target_include_directories(signallab_gui

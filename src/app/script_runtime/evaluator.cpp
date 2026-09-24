@@ -612,7 +612,8 @@ Evaluator::ValueResult Evaluator::loadSignal(
 
     SignalEntry entry = std::move(entryResult).value();
     auto signal = std::make_shared<const core::Signal>(
-        std::move(entry.signal));
+        entry.signal);
+    output_.openedSignals.push_back(std::move(entry));
     loadedSignals_.emplace(resolvedPath, signal);
     return ValueResult{std::move(signal), std::nullopt, false};
 }

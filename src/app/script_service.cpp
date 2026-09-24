@@ -137,21 +137,23 @@ core::Result<ScriptExecutionResult> ScriptService::execute(
                 std::move(result));
         }
 
-        script_runtime::EvaluationResult evaluated;
-        if (stopToken.stop_requested()) {
-            const script_runtime::RuntimeIssue issue{
-                "RUN001",
-                "SignalScript execution was cancelled.",
-                parsed.program.span};
-            evaluated.status = script_runtime::EvaluationStatus::Cancelled;
-            evaluated.issue = issue;
-        } else {
+        auto evaluated = [&]() -> script_runtime::EvaluationResult {
+            if (stopToken.stop_requested()) {
+                return {
+                    script_runtime::EvaluationStatus::Cancelled,
+                    {},
+                    script_runtime::RuntimeIssue{
+                        "RUN001",
+                        "SignalScript execution was cancelled.",
+                        parsed.program.span}};
+            }
+
             script_runtime::Evaluator evaluator(importService_, fileGateway_);
-            evaluated = evaluator.evaluate(
+            return evaluator.evaluate(
                 parsed.program,
                 checked.model,
                 stopToken);
-        }
+        }();
 
         result.output = std::move(evaluated.output);
         result.runtimeIssue = std::move(evaluated.issue);

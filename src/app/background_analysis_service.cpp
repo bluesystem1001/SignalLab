@@ -102,6 +102,7 @@ core::Result<task::TaskId> BackgroundAnalysisService::submit(
             sharedState->events.push_back(BackgroundAnalysisEvent{
                 snapshot,
                 job->signalRecordId,
+                job->options,
                 std::move(result)});
             notifier = sharedState->notifier;
         }

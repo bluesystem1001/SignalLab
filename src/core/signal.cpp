@@ -57,7 +57,8 @@ Signal::Signal(
     std::vector<double> samples,
     double sample_rate,
     SignalMetadata metadata)
-    : samples_(std::move(samples)),
+    : samples_(std::make_shared<const std::vector<double>>(
+          std::move(samples))),
       sample_rate_(sample_rate),
       metadata_(std::move(metadata))
 {
@@ -65,7 +66,7 @@ Signal::Signal(
 
 std::span<const double> Signal::samples() const noexcept
 {
-    return {samples_.data(), samples_.size()};
+    return {samples_->data(), samples_->size()};
 }
 
 double Signal::sampleRate() const noexcept
@@ -75,17 +76,17 @@ double Signal::sampleRate() const noexcept
 
 std::size_t Signal::sampleCount() const noexcept
 {
-    return samples_.size();
+    return samples_->size();
 }
 
 double Signal::durationSeconds() const noexcept
 {
-    return static_cast<double>(samples_.size()) / sample_rate_;
+    return static_cast<double>(samples_->size()) / sample_rate_;
 }
 
 double Signal::sampleTimeSeconds(std::size_t index) const
 {
-    if (index >= samples_.size()) {
+    if (index >= samples_->size()) {
         throw std::out_of_range("The sample index is outside the signal.");
     }
 
@@ -95,7 +96,7 @@ double Signal::sampleTimeSeconds(std::size_t index) const
 std::pair<double, double> Signal::sampleRange() const noexcept
 {
     const auto [minimum, maximum] =
-        std::minmax_element(samples_.begin(), samples_.end());
+        std::minmax_element(samples_->begin(), samples_->end());
     return {*minimum, *maximum};
 }
 

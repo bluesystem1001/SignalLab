@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "signallab/app/analysis_service.hpp"
+#include "signallab/app/import_service.hpp"
 #include "signallab/core/signal.hpp"
 
 namespace signallab::app::script_runtime {
@@ -51,6 +52,10 @@ struct EvaluationOutput {
     std::map<std::string, ScriptValue> variables;
     std::vector<PlotRequest> plots;
     std::vector<std::filesystem::path> outputs;
+    // Script loads run off the GUI thread and deliberately do not mutate the
+    // project list. The UI accepts these already-persisted entries after the
+    // terminal event, without re-reading every stored signal.
+    std::vector<SignalEntry> openedSignals;
 };
 
 }  // namespace signallab::app::script_runtime

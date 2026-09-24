@@ -113,5 +113,19 @@ TEST(SignalTest, KeepsMetadataAndSupportsMovingAResultValue)
     EXPECT_EQ(signal.metadata().source, "unit test");
 }
 
+TEST(SignalTest, CopiesShareTheImmutableSampleBuffer)
+{
+    auto result = Signal::create(
+        {0.0, 1.0, -1.0, 0.5}, 4.0, testMetadata());
+    ASSERT_TRUE(result);
+
+    const Signal original = result.value();
+    const Signal copy = original;
+
+    EXPECT_EQ(original.samples().data(), copy.samples().data());
+    EXPECT_EQ(original.samples().size(), copy.samples().size());
+    EXPECT_EQ(original.metadata().name, copy.metadata().name);
+}
+
 }  // namespace
 }  // namespace signallab::core

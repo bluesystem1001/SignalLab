@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstddef>
+#include <memory>
 #include <span>
 #include <stop_token>
 #include <string>
@@ -39,7 +40,9 @@ private:
         double sample_rate,
         SignalMetadata metadata);
 
-    std::vector<double> samples_;
+    // Copies of Signal share one immutable sample buffer. Metadata remains a
+    // value, while script/GUI hand-offs avoid duplicating million-point data.
+    std::shared_ptr<const std::vector<double>> samples_;
     double sample_rate_;
     SignalMetadata metadata_;
 };
