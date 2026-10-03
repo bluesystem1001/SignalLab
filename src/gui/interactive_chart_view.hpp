@@ -22,14 +22,21 @@ class InteractiveChartView final : public QChartView
 public:
     using CursorCallback = std::function<void(QPointF, bool)>;
     using SelectionCallback = std::function<void(double, double)>;
+    using SelectionClearedCallback = std::function<void()>;
     using ResizeSettledCallback = std::function<void()>;
 
     explicit InteractiveChartView(QChart* chart, QWidget* parent = nullptr);
 
     void setCursorCallback(CursorCallback callback);
     void setSelectionCallback(SelectionCallback callback);
+    void setSelectionClearedCallback(SelectionClearedCallback callback);
     void setResizeSettledCallback(ResizeSettledCallback callback);
+    void setZoomOrientations(Qt::Orientations orientations);
 
+    [[nodiscard]] Qt::Orientations zoomOrientations() const noexcept;
+    [[nodiscard]] bool zoomHorizontally(double factor);
+
+    void clearSelection();
     void captureHomeRanges();
     void resetView();
     [[nodiscard]] bool saveImage(
@@ -59,6 +66,7 @@ private:
 
     CursorCallback cursorCallback_;
     SelectionCallback selectionCallback_;
+    SelectionClearedCallback selectionClearedCallback_;
     ResizeSettledCallback resizeSettledCallback_;
     QTimer resizeTimer_;
     QPointF cursorScenePosition_;
@@ -69,4 +77,6 @@ private:
     std::optional<QRect> selectedRectangle_;
     std::optional<AxisRange> homeHorizontalRange_;
     std::optional<AxisRange> homeVerticalRange_;
+    Qt::Orientations zoomOrientations_{
+        Qt::Horizontal | Qt::Vertical};
 };

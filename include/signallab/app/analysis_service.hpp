@@ -76,6 +76,9 @@ public:
         std::vector<repository::FeatureResultRecord>>
     featureResults(std::int64_t taskId);
 
+    [[nodiscard]] core::Result<bool> removeHistoryEntry(
+        std::int64_t taskId);
+
 private:
     repository::TaskRepository& taskRepository_;
     repository::SignalRepository& signalRepository_;

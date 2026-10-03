@@ -1,0 +1,17 @@
+SignalLab course-project source notice
+
+No additional copyright, patent, or trademark license is granted for the
+SignalLab project source code by this file. The project is supplied for the
+course review and evaluation context in which it was created. Permission for
+any other copying, modification, redistribution, or commercial use must be
+obtained from the relevant copyright holder(s).
+
+Third-party components are not covered by this notice. Their notices and
+license texts are provided in THIRD_PARTY_NOTICES.md and licenses/.
+
+In particular, the open-source edition of Qt Charts used by the current build
+is available under GPL-3.0-only. A distributable SignalLab binary therefore
+requires either a project license compatible with that obligation or an
+appropriate commercial Qt license. Building an archive locally does not by
+itself resolve that licensing decision.
+

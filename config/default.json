@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "status": "frozen-reference-not-runtime-loaded",
+  "application": {
+    "release_candidate": "1.0.0-rc1",
+    "project_database": "data/signallab.sqlite3",
+    "migrations_directory": "migrations",
+    "script_input_root": ".",
+    "script_output_root": "data/script_outputs"
+  },
+  "analysis": {
+    "window_type": "hann",
+    "minimum_peak_amplitude_ratio": 0.01,
+    "minimum_peak_distance_hz": 0.0,
+    "maximum_peak_count": 10,
+    "metric_guard_bins": 1,
+    "thd_harmonic_count": 5
+  },
+  "fir": {
+    "default_type": "lowpass",
+    "default_cutoff_hz": 100.0,
+    "default_tap_count": 63,
+    "boundary_policy": "zero_padding"
+  },
+  "display": {
+    "time_axis_alignment": "relative_t0_seconds",
+    "maximum_series_points_per_viewport_pixel": 2,
+    "time_axis_scroll_resolution": 1000000
+  },
+  "security": {
+    "allow_absolute_script_paths": false,
+    "allow_parent_path_escape": false,
+    "overwrite_script_outputs": false,
+    "allow_network_or_process_launch": false
+  }
+}

@@ -44,6 +44,12 @@ public:
     [[nodiscard]] core::Result<TaskId> retry(TaskId finishedTaskId);
     [[nodiscard]] bool cancel(TaskId id);
 
+    // Removes a task from the scheduler's in-memory history. Only terminal
+    // tasks can be removed; an unknown or active task returns false. Its
+    // terminal observer notification is still delivered exactly as if the
+    // task remained visible, so service adapters can finish their cleanup.
+    [[nodiscard]] bool remove(TaskId id);
+
     [[nodiscard]] std::optional<TaskSnapshot> snapshot(TaskId id) const;
     [[nodiscard]] std::vector<TaskSnapshot> snapshots() const;
 

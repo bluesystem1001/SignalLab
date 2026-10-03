@@ -34,6 +34,11 @@ public:
     [[nodiscard]] std::pair<double, double> sampleRange() const noexcept;
     [[nodiscard]] const SignalMetadata& metadata() const noexcept;
 
+    // Returns a value with replacement metadata while continuing to share
+    // the immutable sample buffer. This lets application services name a
+    // derived signal without copying a potentially large waveform.
+    [[nodiscard]] Signal withMetadata(SignalMetadata metadata) const;
+
 private:
     Signal(
         std::vector<double> samples,

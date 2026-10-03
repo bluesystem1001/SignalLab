@@ -15,7 +15,48 @@
 
 #include <algorithm>
 #include <cmath>
+#include <optional>
 #include <utility>
+
+namespace {
+
+bool scaleValueAxes(
+    const QList<QAbstractAxis*>& axes,
+    double factor,
+    std::optional<double> requestedCenter = {})
+{
+    if (!std::isfinite(factor) || factor <= 0.0) {
+        return false;
+    }
+
+    bool changed = false;
+    for (QAbstractAxis* abstractAxis : axes) {
+        auto* axis = qobject_cast<QValueAxis*>(abstractAxis);
+        if (axis == nullptr) {
+            continue;
+        }
+        const double oldMinimum = axis->min();
+        const double oldMaximum = axis->max();
+        const double center = requestedCenter.value_or(
+            oldMinimum + (oldMaximum - oldMinimum) / 2.0);
+        if (!std::isfinite(oldMinimum) || !std::isfinite(oldMaximum)
+            || !std::isfinite(center) || oldMinimum >= oldMaximum) {
+            continue;
+        }
+        const double minimum =
+            center - (center - oldMinimum) * factor;
+        const double maximum =
+            center + (oldMaximum - center) * factor;
+        if (std::isfinite(minimum) && std::isfinite(maximum)
+            && minimum < maximum) {
+            axis->setRange(minimum, maximum);
+            changed = true;
+        }
+    }
+    return changed;
+}
+
+} // namespace
 
 InteractiveChartView::InteractiveChartView(
     QChart* chart,
@@ -24,7 +65,7 @@ InteractiveChartView::InteractiveChartView(
 {
     setRenderHint(QPainter::Antialiasing);
     setMouseTracking(true);
-    setRubberBand(QChartView::RectangleRubberBand);
+    setZoomOrientations(zoomOrientations_);
     setFocusPolicy(Qt::StrongFocus);
     setAccessibleDescription(
         "图表支持滚轮缩放、拖动框选缩放、Shift 拖动局部选择、"
@@ -50,10 +91,54 @@ void InteractiveChartView::setSelectionCallback(
     selectionCallback_ = std::move(callback);
 }
 
+void InteractiveChartView::setSelectionClearedCallback(
+    SelectionClearedCallback callback)
+{
+    selectionClearedCallback_ = std::move(callback);
+}
+
 void InteractiveChartView::setResizeSettledCallback(
     ResizeSettledCallback callback)
 {
     resizeSettledCallback_ = std::move(callback);
+}
+
+void InteractiveChartView::setZoomOrientations(
+    Qt::Orientations orientations)
+{
+    zoomOrientations_ = orientations
+        & Qt::Orientations(Qt::Horizontal | Qt::Vertical);
+
+    QChartView::RubberBands rubberBands = QChartView::NoRubberBand;
+    if (zoomOrientations_.testFlag(Qt::Horizontal)) {
+        rubberBands |= QChartView::HorizontalRubberBand;
+    }
+    if (zoomOrientations_.testFlag(Qt::Vertical)) {
+        rubberBands |= QChartView::VerticalRubberBand;
+    }
+    setRubberBand(rubberBands);
+}
+
+Qt::Orientations InteractiveChartView::zoomOrientations() const noexcept
+{
+    return zoomOrientations_;
+}
+
+bool InteractiveChartView::zoomHorizontally(double factor)
+{
+    return scaleValueAxes(
+        chart()->axes(Qt::Horizontal),
+        factor);
+}
+
+void InteractiveChartView::clearSelection()
+{
+    selecting_ = false;
+    selectedRectangle_.reset();
+    if (selectionClearedCallback_) {
+        selectionClearedCallback_();
+    }
+    viewport()->update();
 }
 
 void InteractiveChartView::captureHomeRanges()
@@ -93,8 +178,7 @@ void InteractiveChartView::resetView()
                 homeVerticalRange_->maximum);
         }
     }
-    selectedRectangle_.reset();
-    viewport()->update();
+    clearSelection();
 }
 
 bool InteractiveChartView::saveImage(
@@ -261,25 +345,22 @@ void InteractiveChartView::wheelEvent(QWheelEvent* event)
     const QPointF centerValue = valueAt(viewportPosition);
     const double scale = event->angleDelta().y() > 0 ? 0.8 : 1.25;
 
-    const auto scaleAxes = [scale](
-                               const QList<QAbstractAxis*>& axes,
-                               double center) {
-        for (QAbstractAxis* abstractAxis : axes) {
-            auto* axis = qobject_cast<QValueAxis*>(abstractAxis);
-            if (axis == nullptr || !std::isfinite(center)) {
-                continue;
-            }
-            const double minimum = center - (center - axis->min()) * scale;
-            const double maximum = center + (axis->max() - center) * scale;
-            if (std::isfinite(minimum) && std::isfinite(maximum)
-                && minimum < maximum) {
-                axis->setRange(minimum, maximum);
-            }
-        }
-    };
-    scaleAxes(chart()->axes(Qt::Horizontal), centerValue.x());
-    scaleAxes(chart()->axes(Qt::Vertical), centerValue.y());
-    event->accept();
+    bool changed = false;
+    if (zoomOrientations_.testFlag(Qt::Horizontal)) {
+        changed = scaleValueAxes(
+            chart()->axes(Qt::Horizontal), scale, centerValue.x())
+            || changed;
+    }
+    if (zoomOrientations_.testFlag(Qt::Vertical)) {
+        changed = scaleValueAxes(
+            chart()->axes(Qt::Vertical), scale, centerValue.y())
+            || changed;
+    }
+    if (changed) {
+        event->accept();
+        return;
+    }
+    QChartView::wheelEvent(event);
 }
 
 QRect InteractiveChartView::plotAreaInViewport() const

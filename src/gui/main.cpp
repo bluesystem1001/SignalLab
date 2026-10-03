@@ -1,7 +1,9 @@
 #include <QApplication>
+#include <QCommandLineParser>
 #include <QCoreApplication>
 #include <QMessageBox>
 #include <QString>
+#include <QTimer>
 
 #include <filesystem>
 #include <system_error>
@@ -59,10 +61,38 @@ void showStartupError(const std::string& message)
 int main(int argc, char* argv[])
 {
     QApplication application(argc, argv);
+    QCoreApplication::setApplicationName(QStringLiteral("SignalLab"));
+    QCoreApplication::setApplicationVersion(
+        QStringLiteral(SIGNALLAB_VERSION_STRING));
+
+    QCommandLineParser commandLine;
+    commandLine.setApplicationDescription(QStringLiteral(
+        "SignalLab offline signal analysis workstation"));
+    commandLine.addHelpOption();
+    commandLine.addVersionOption();
+    const QCommandLineOption smokeTestOption(
+        QStringLiteral("smoke-test"),
+        QStringLiteral(
+            "Start the complete application and close it cleanly after "
+            "initialization. Intended for release-package verification."));
+    commandLine.addOption(smokeTestOption);
+    commandLine.process(application);
+
     const std::filesystem::path projectRoot = findProjectRoot();
+    const std::filesystem::path databasePath =
+        projectRoot / "data" / "signallab.sqlite3";
+    std::error_code databaseInspectionError;
+    const bool databaseWasPresent = std::filesystem::exists(
+        databasePath, databaseInspectionError);
+    if (databaseInspectionError) {
+        showStartupError(
+            "Cannot inspect the project database path: "
+            + databaseInspectionError.message());
+        return 1;
+    }
 
     signallab::database::DatabaseExecutor databaseExecutor(
-        projectRoot / "data" / "signallab.sqlite3",
+        databasePath,
         projectRoot / "migrations");
     auto databaseStartResult = databaseExecutor.start();
     if (!databaseStartResult) {
@@ -103,28 +133,33 @@ int main(int argc, char* argv[])
         return 1;
     }
 
-    signallab::core::SignalMetadata metadata;
-    metadata.name = "1 kHz 正弦信号";
-    metadata.unit = "幅值";
-    metadata.source = "内置模拟器";
+    // Seed the demonstration signal only when this process created the
+    // project database. An existing-but-empty database may be the deliberate
+    // result of deleting every project signal and must stay empty on restart.
+    if (!databaseWasPresent) {
+        signallab::core::SignalMetadata metadata;
+        metadata.name = "1 kHz 正弦信号";
+        metadata.unit = "幅值";
+        metadata.source = "内置模拟器";
 
-    auto signalResult = signallab::core::generateSineWave(
-        1000.0,
-        1.0,
-        48000.0,
-        0.02,
-        metadata);
-    if (!signalResult) {
-        showStartupError(signalResult.error().message);
-        return 1;
-    }
+        auto signalResult = signallab::core::generateSineWave(
+            1000.0,
+            1.0,
+            48000.0,
+            0.02,
+            metadata);
+        if (!signalResult) {
+            showStartupError(signalResult.error().message);
+            return 1;
+        }
 
-    auto generatedResult = importService.addGeneratedSignal(
-        std::move(signalResult).value(),
-        "builtin:sine:frequency=1000;amplitude=1;sample_rate=48000;duration=0.02");
-    if (!generatedResult) {
-        showStartupError(generatedResult.error().message);
-        return 1;
+        auto generatedResult = importService.addGeneratedSignal(
+            std::move(signalResult).value(),
+            "builtin:sine:frequency=1000;amplitude=1;sample_rate=48000;duration=0.02");
+        if (!generatedResult) {
+            showStartupError(generatedResult.error().message);
+            return 1;
+        }
     }
 
     signallab::task::Scheduler scheduler;
@@ -146,6 +181,13 @@ int main(int argc, char* argv[])
         scheduler,
         &backgroundScriptService);
     mainWindow.show();
+
+    if (commandLine.isSet(smokeTestOption)) {
+        QTimer::singleShot(
+            750,
+            &application,
+            &QCoreApplication::quit);
+    }
 
     const int applicationResult = application.exec();
 

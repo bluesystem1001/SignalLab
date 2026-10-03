@@ -232,6 +232,26 @@ TEST(AnalysisServiceTest, PersistsSuccessFailureAndHistoryAcrossRestart)
         EXPECT_EQ(
             restoredFeatures.value().size(),
             successfulFeatureCount);
+
+        const auto removed = restartedService.removeHistoryEntry(
+            successfulTaskId);
+        ASSERT_TRUE(removed);
+        EXPECT_TRUE(removed.value());
+
+        const auto historyAfterDelete = restartedService.history();
+        ASSERT_TRUE(historyAfterDelete);
+        ASSERT_EQ(historyAfterDelete.value().size(), 1U);
+        EXPECT_NE(historyAfterDelete.value().front().id, successfulTaskId);
+
+        const auto featuresAfterDelete = restartedService.featureResults(
+            successfulTaskId);
+        ASSERT_TRUE(featuresAfterDelete);
+        EXPECT_TRUE(featuresAfterDelete.value().empty());
+
+        const auto repeatedDelete = restartedService.removeHistoryEntry(
+            successfulTaskId);
+        ASSERT_TRUE(repeatedDelete);
+        EXPECT_FALSE(repeatedDelete.value());
     }
 
     std::error_code ignoredError;

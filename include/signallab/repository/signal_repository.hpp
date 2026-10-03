@@ -47,6 +47,15 @@ struct StoredSignal {
     core::Signal signal;
 };
 
+// Deleting the last logical signal backed by an imported file also removes
+// its file_version row. The physical archive lives outside SQLite, so the
+// repository returns that exact cleanup candidate to the application layer.
+struct SignalRemoval {
+    bool removed{false};
+    std::optional<std::filesystem::path>
+        unreferencedStoredRelativePath;
+};
+
 class SignalRepository {
 public:
     virtual ~SignalRepository() = default;
@@ -68,7 +77,7 @@ public:
     [[nodiscard]] virtual core::Result<std::vector<StoredSignal>>
     listSignals() = 0;
 
-    [[nodiscard]] virtual core::Result<bool> removeSignal(
+    [[nodiscard]] virtual core::Result<SignalRemoval> removeSignal(
         std::int64_t recordId) = 0;
 };
 

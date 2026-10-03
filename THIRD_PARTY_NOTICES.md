@@ -1,49 +1,64 @@
 # Third-Party Notices
 
-本文件记录 SignalLab 使用的第三方组件。版本来自 2026-09-04 的 MSYS2 MINGW64 环境快照。最终发布包只应包含实际需要的运行文件，并应同时附带对应组件要求的许可证文本。
+This document records the third-party components used to build and run SignalLab on the frozen MSYS2 MINGW64 toolchain. Exact license texts copied from the installed packages are under `licenses/third-party/`; `licenses/SHA256SUMS.txt` records their bytes.
 
-## 程序依赖
+SignalLab's own source notice is in `LICENSE`. It does not replace or restrict any third-party license.
 
-### Qt 6 Base
+## Distribution boundary
 
-- MSYS2 包：`mingw-w64-x86_64-qt6-base 6.11.1-1`
-- 用途：Qt Core、Qt Widgets、Qt SQL、QSQLITE 和 Windows 部署工具
-- 许可证：Qt 商业许可证或适用的开源许可证；以安装包内许可证文件和 Qt 官方说明为准
-- 项目地址：<https://www.qt.io/>
+The current GUI links the open-source build of **Qt Charts 6.11.1**, whose installed package supplies `GPL-3.0-only.txt` (or a Qt commercial license). No project-wide open-source license has been selected by this repository. Therefore a Windows archive may be created and tested locally, but it must not be publicly redistributed until the copyright holder has either:
 
-### Qt Charts
+1. granted a project license compatible with GPL-3.0-only and met the corresponding source-distribution obligations; or
+2. obtained and documented a suitable commercial Qt license.
 
-- MSYS2 包：`mingw-w64-x86_64-qt6-charts 6.11.1-1`
-- 用途：时域和频域图表
-- 许可证注意事项：实施计划按 GPLv3 约束记录。若需要闭源分发，必须在编码和发布前重新确认商业许可或选择替代绘图库
-- 项目地址：<https://doc.qt.io/qt-6/qtcharts-index.html>
+This is a release decision, not something that `windeployqt6` or the packaging script can decide automatically.
 
-### SQLite
+## Direct runtime dependencies
 
-- MSYS2 包：`mingw-w64-x86_64-sqlite3 3.53.2-1`
-- 用途：由 Qt 的 QSQLITE 驱动访问项目数据库
-- 使用约束：应用不再直接链接第二份 SQLite
-- 许可证：Public Domain
-- 项目地址：<https://www.sqlite.org/>
+| Component | Frozen MSYS2 package | Purpose | License source in this repository |
+|---|---|---|---|
+| Qt 6 Base | `mingw-w64-x86_64-qt6-base 6.11.1-1` | Core, Widgets, GUI, SQL, OpenGL support, deployment tool and plugins | `licenses/third-party/qt6-base/` |
+| Qt Charts | `mingw-w64-x86_64-qt6-charts 6.11.1-1` | Time-domain and frequency-domain charts | `licenses/third-party/qt6-charts/` |
+| SQLite | `mingw-w64-x86_64-sqlite3 3.53.2-1` | QSQLITE runtime backend | `licenses/third-party/sqlite3/` |
+| GCC runtime | `mingw-w64-x86_64-gcc-libs 16.1.0-5` | `libgcc_s_seh-1.dll` and `libstdc++-6.dll` | `licenses/third-party/gcc-libs/` |
+| MinGW-w64 runtime | `mingw-w64-x86_64-libwinpthread 14.0.0.r92.g818fa6510-1` plus matching CRT/headers | Win32 C/C++ runtime support and `libwinpthread-1.dll` | `licenses/third-party/libwinpthread/`, `crt/`, `headers/`, `winpthreads/` |
 
-### MinGW-w64 与 GCC 运行库
+The application uses SQLite only through Qt's QSQLITE driver and does not link a second application-owned SQLite implementation.
 
-- MSYS2 GCC 包：`mingw-w64-x86_64-gcc 16.1.0-5`
-- 用途：编译程序；阶段 8 的 Windows 发布包可能包含所需运行库
-- 许可证：各组件许可证不同，GCC 运行库适用 GCC Runtime Library Exception；打包时必须以实际随包许可证为准
-- 项目地址：<https://www.mingw-w64.org/>、<https://gcc.gnu.org/>
+## Transitive runtime dependencies
 
-## 仅用于测试
+The frozen Qt/MSYS2 DLL closure can also include the components below. The Windows package verifier determines the actual DLL closure; keeping their installed license texts here prevents the license payload from depending on which image-format or platform plugins `windeployqt6` selects on a particular run.
 
-### GoogleTest
+| Installed component | Frozen package version | License directory |
+|---|---:|---|
+| libb2 | `0.98.1-3` | `licenses/third-party/libb2/` |
+| Brotli | `1.2.0-1` | `licenses/third-party/brotli/` |
+| bzip2 | `1.0.8-3` | `licenses/third-party/bzip2/` |
+| double-conversion | `3.4.0-1` | `licenses/third-party/double-conversion/` |
+| FreeType | `2.14.3-1` | `licenses/third-party/freetype/` |
+| gettext runtime | `1.0-1` | `licenses/third-party/gettext-runtime/` |
+| GLib | `2.88.1-1` | `licenses/third-party/glib2/` |
+| Graphite2 | `1.3.15-1` | `licenses/third-party/graphite2/` |
+| HarfBuzz | `14.2.1-1` | `licenses/third-party/harfbuzz/` |
+| ICU | `78.3-2` | `licenses/third-party/icu/` |
+| libiconv | `1.19-1` | `licenses/third-party/libiconv/` |
+| libjpeg-turbo | `3.1.4.1-3` | `licenses/third-party/libjpeg-turbo/` |
+| libpng | `1.6.58-1` | `licenses/third-party/libpng/` |
+| md4c | `0.5.3-1` | `licenses/third-party/md4c/` |
+| PCRE2 | `10.47-1` | `licenses/third-party/pcre2/` |
+| zlib | `1.3.2-2` | `licenses/third-party/zlib/` |
+| zstd | `1.5.7-2` | `licenses/third-party/zstd/` |
 
-- MSYS2 包：`mingw-w64-x86_64-gtest 1.17.0-1`
-- 用途：自动化测试，不是 SignalLab 运行时依赖
-- 许可证：BSD 3-Clause
-- 项目地址：<https://github.com/google/googletest>
+Windows system DLLs are supplied by the operating system and are not copied into the SignalLab archive.
 
-## 仅用于开发
+## Test-only dependency
 
-CLion、CMake、CTest、Ninja、GDB 和 Git 是开发工具，不应被复制进 SignalLab 发布包。它们的实际版本记录在 `docs/msys2-package-snapshot.txt`。
+GoogleTest `mingw-w64-x86_64-gtest 1.17.0-1` is used only by the automated test executables and is not a SignalLab runtime dependency. Its installed license text is copied to `licenses/third-party/gtest/` for source-delivery completeness.
 
-本仓库当前不复制上述项目的第三方源代码。若以后加入新的依赖，应在引入依赖的同一个提交中更新本文件。
+## Development tools
+
+CLion, CMake, CTest, Ninja, GDB, Git, PowerShell and the `sqlite3` command-line program are build, test, or asset-generation tools. They are not copied into the application package. Their frozen versions are recorded in `docs/msys2-package-snapshot.txt`.
+
+## Provenance and verification
+
+`tools/freeze_stage8_assets.ps1` copies license files from the installed package locations without rewriting them. The exact source paths and package list are documented in `licenses/README.md`. Run `tools/verify_stage8_assets.ps1` before packaging to verify every copied file against `licenses/SHA256SUMS.txt`.

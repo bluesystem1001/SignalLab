@@ -105,4 +105,11 @@ const SignalMetadata& Signal::metadata() const noexcept
     return metadata_;
 }
 
+Signal Signal::withMetadata(SignalMetadata metadata) const
+{
+    Signal replacement = *this;
+    replacement.metadata_ = std::move(metadata);
+    return replacement;
+}
+
 }  // namespace signallab::core

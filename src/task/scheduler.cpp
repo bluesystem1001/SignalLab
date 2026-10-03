@@ -178,6 +178,39 @@ bool Scheduler::cancel(TaskId id)
     return true;
 }
 
+bool Scheduler::remove(TaskId id)
+{
+    std::shared_ptr<TaskRecord> record;
+    TaskAction releasedAction;
+
+    {
+        std::lock_guard lock(mutex_);
+        const auto item = tasks_.find(id);
+        if (item == tasks_.end()
+            || !isTerminal(item->second->snapshot.status)) {
+            return false;
+        }
+
+        record = item->second;
+        tasks_.erase(item);
+
+        // A terminal task can no longer invoke its action. Move it out so
+        // captured resources are destroyed after all scheduler locks have
+        // been released. retry() uses the same mutex, making retry/remove
+        // linearizable: either retry copies the callbacks first, or it sees
+        // the task as absent.
+        releasedAction = std::move(record->action);
+    }
+
+    // Do not detach the observer or clear its notification queue here. The
+    // terminal state is published before notifyObserver() runs, so remove()
+    // can legally race ahead of that final delivery. The caller that is
+    // finishing the task (or an active dispatcher) keeps TaskRecord alive
+    // until the observer has received all already-published notifications.
+    stateChanged_.notify_all();
+    return true;
+}
+
 std::optional<TaskSnapshot> Scheduler::snapshot(TaskId id) const
 {
     std::lock_guard lock(mutex_);
@@ -214,10 +247,17 @@ bool Scheduler::waitForTerminal(
     std::chrono::milliseconds timeout) const
 {
     std::unique_lock lock(mutex_);
-    return stateChanged_.wait_for(lock, timeout, [this, id]() {
-        const auto item = tasks_.find(id);
-        return item != tasks_.end()
-            && isTerminal(item->second->snapshot.status);
+    const auto item = tasks_.find(id);
+    if (item == tasks_.end()) {
+        return false;
+    }
+
+    // Keep the record alive for a waiter that started before remove(). The
+    // task may leave the public history after reaching a terminal state, but
+    // that must not turn an already-observed completion into a timeout.
+    const std::shared_ptr<TaskRecord> record = item->second;
+    return stateChanged_.wait_for(lock, timeout, [&record]() {
+        return isTerminal(record->snapshot.status);
     });
 }
 

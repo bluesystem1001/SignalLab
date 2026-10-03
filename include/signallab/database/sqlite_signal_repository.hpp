@@ -26,7 +26,7 @@ public:
     [[nodiscard]] core::Result<std::vector<repository::StoredSignal>>
     listSignals() override;
 
-    [[nodiscard]] core::Result<bool> removeSignal(
+    [[nodiscard]] core::Result<repository::SignalRemoval> removeSignal(
         std::int64_t recordId) override;
 
 private:

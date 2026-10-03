@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QMainWindow>
+#include <QPointer>
 
 #include <cstddef>
 #include <cstdint>
@@ -24,6 +25,7 @@ class QLineSeries;
 class QListView;
 class QPlainTextEdit;
 class QPushButton;
+class QScrollBar;
 class QSpinBox;
 class QStandardItemModel;
 class QTableView;
@@ -35,6 +37,7 @@ class QValueAxis;
 namespace signallab::gui {
 class AnalysisHistoryModel;
 class AnalysisResultModel;
+class FileImportDialog;
 class ScriptHistoryModel;
 class SignalListModel;
 class TaskListModel;
@@ -55,16 +58,31 @@ public:
     ~MainWindow() override;
 
 private:
+    struct PendingSignalDeletion {
+        std::int64_t recordId{0};
+        std::optional<std::int64_t> adjacentRecordId;
+    };
+
     [[nodiscard]] signallab::app::AnalysisOptions analysisOptions() const;
+    [[nodiscard]] signallab::app::FirFilterOptions firFilterOptions() const;
+    [[nodiscard]] bool isSignalDeletionPending(
+        std::int64_t recordId) const;
+    [[nodiscard]] const signallab::app::SignalEntry*
+        comparisonSignal() const;
     [[nodiscard]] const signallab::app::SignalEntry* selectedSignal() const;
     [[nodiscard]] std::optional<std::size_t> selectedSignalIndex() const;
+    [[nodiscard]] double timeDomainMaximum() const;
 
     void analyzeSelectedSignal();
     void cancelActiveScript();
     void cancelSelectedTask();
     void clearAnalysis();
     void clearScriptDiagnostics();
+    void deleteSelectedAnalysisHistory();
+    void deleteSelectedSignal();
+    void deleteSelectedTask();
     void exportChart(InteractiveChartView* chart, const QString& baseName);
+    void filterSelectedSignal();
     void importCsv();
     void importWav();
     void jumpToScriptDiagnostic(const QModelIndex& index);
@@ -72,10 +90,13 @@ private:
     void processBackgroundAnalysisEvents();
     void processBackgroundFileEvents();
     void processBackgroundScriptEvents();
-    void refreshAnalysisHistory();
+    void refreshAnalysisHistory(
+        std::optional<std::int64_t> selectRecordId = {});
+    void refreshComparisonSignalChoices();
     void refreshScriptHistory();
     void refreshSignalList(std::optional<std::int64_t> selectRecordId = {});
-    void refreshTaskList();
+    void refreshTaskList(
+        std::optional<signallab::task::TaskId> selectTaskId = {});
     void renderSpectrum(bool resetAxes);
     void renderTimeSignal(bool resetAxes);
     void retrySelectedTask();
@@ -95,7 +116,10 @@ private:
     void showSignal(const QModelIndex& index);
     void showTaskDetails(const QModelIndex& index);
     void updateAnalysisValidation();
+    void updateFirValidation();
+    void updateSignalDeleteButton();
     void updateScriptButtons();
+    void updateTimeAxisScrollBar();
 
     signallab::app::ImportService& importService_;
     signallab::app::AnalysisService& analysisService_;
@@ -111,10 +135,16 @@ private:
     signallab::gui::ScriptHistoryModel* scriptHistoryModel_;
 
     QListView* signalListView_;
+    QPushButton* deleteSignalButton_;
     QLabel* nameValue_;
     QLabel* sampleRateValue_;
     QLabel* sampleCountValue_;
     QLabel* durationValue_;
+    QComboBox* firTypeCombo_;
+    QDoubleSpinBox* firCutoffSpin_;
+    QSpinBox* firTapCountSpin_;
+    QLabel* firValidationLabel_;
+    QPushButton* applyFirButton_;
     QLabel* validationLabel_;
     QComboBox* windowTypeCombo_;
     QDoubleSpinBox* minimumPeakRatioSpin_;
@@ -130,8 +160,12 @@ private:
     QTabWidget* workspaceTabs_;
     InteractiveChartView* timeChartView_;
     QLineSeries* timeSeries_;
+    QLineSeries* comparisonTimeSeries_;
     QValueAxis* timeXAxis_;
     QValueAxis* timeYAxis_;
+    QComboBox* comparisonSignalCombo_;
+    QScrollBar* timeAxisScrollBar_;
+    QLabel* timeAxisRangeLabel_;
     QLabel* timeCursorLabel_;
     QLabel* timeSelectionLabel_;
     QTimer* timeRedrawTimer_;
@@ -148,10 +182,12 @@ private:
 
     QListView* analysisHistoryView_;
     QTextEdit* analysisHistoryDetails_;
+    QPushButton* deleteAnalysisHistoryButton_;
     QListView* taskListView_;
     QTextEdit* taskDetails_;
     QPushButton* cancelTaskButton_;
     QPushButton* retryTaskButton_;
+    QPushButton* deleteTaskButton_;
 
     QPlainTextEdit* scriptEditor_;
     QPushButton* runScriptButton_;
@@ -169,5 +205,13 @@ private:
 
     std::unordered_map<
         signallab::task::TaskId,
-        signallab::repository::CsvImportOptions> csvPreviewOptions_;
+        std::uint64_t> importPreviewRevisions_;
+    QPointer<signallab::gui::FileImportDialog> activeImportDialog_;
+    std::optional<signallab::task::TaskId> activeImportPreviewTaskId_;
+    std::unordered_map<
+        signallab::task::TaskId,
+        PendingSignalDeletion> pendingSignalDeletions_;
+    std::unordered_map<
+        signallab::task::TaskId,
+        std::int64_t> signalTaskRecords_;
 };

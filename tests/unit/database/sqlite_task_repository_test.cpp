@@ -396,5 +396,306 @@ TEST(SqliteTaskRepositoryTest, PersistsPendingStartAndCancellationTransitions)
     }
 }
 
+TEST(SqliteTaskRepositoryTest,
+     DeletesTerminalHistoryWithFeaturesAndRejectsActiveTasks)
+{
+    test::TemporaryProject project("task-delete");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+    SqliteTaskRepository repository(connection);
+
+    const auto succeeded = repository.createTask(makeTask("Succeeded"));
+    ASSERT_TRUE(succeeded);
+    ASSERT_TRUE(repository.startTask(succeeded.value()).value());
+    ASSERT_TRUE(repository.completeTask(
+        succeeded.value(), {{"rms", 0.5, "V"}}));
+
+    const auto failed = repository.createTask(makeTask("Failed"));
+    ASSERT_TRUE(failed);
+    ASSERT_TRUE(repository.failTask(
+        failed.value(), "Expected test failure.").value());
+
+    const auto cancelled = repository.createTask(makeTask("Cancelled"));
+    ASSERT_TRUE(cancelled);
+    ASSERT_TRUE(repository.cancelTask(
+        cancelled.value(), "Expected test cancellation.").value());
+
+    const auto pending = repository.createTask(makeTask("Pending"));
+    ASSERT_TRUE(pending);
+    const auto pendingDelete = repository.removeTask(pending.value());
+    ASSERT_FALSE(pendingDelete);
+    EXPECT_EQ(
+        pendingDelete.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto running = repository.createTask(makeTask("Running"));
+    ASSERT_TRUE(running);
+    ASSERT_TRUE(repository.startTask(running.value()).value());
+    const auto runningDelete = repository.removeTask(running.value());
+    ASSERT_FALSE(runningDelete);
+    EXPECT_EQ(
+        runningDelete.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    auto history = repository.listTasks(10);
+    ASSERT_TRUE(history);
+    EXPECT_EQ(history.value().size(), 5U);
+
+    const auto interrupted = repository.interruptRunningTasks();
+    ASSERT_TRUE(interrupted);
+    EXPECT_EQ(interrupted.value(), 2U);
+
+    for (const std::int64_t taskId : {
+             succeeded.value(),
+             failed.value(),
+             cancelled.value(),
+             pending.value(),
+             running.value()}) {
+        const auto removed = repository.removeTask(taskId);
+        ASSERT_TRUE(removed) << removed.error().message;
+        EXPECT_TRUE(removed.value());
+
+        const auto features = repository.listFeatureResults(taskId);
+        ASSERT_TRUE(features);
+        EXPECT_TRUE(features.value().empty());
+    }
+
+    history = repository.listTasks(10);
+    ASSERT_TRUE(history);
+    EXPECT_TRUE(history.value().empty());
+
+    const auto repeatedDelete = repository.removeTask(succeeded.value());
+    ASSERT_TRUE(repeatedDelete);
+    EXPECT_FALSE(repeatedDelete.value());
+
+    const auto invalidDelete = repository.removeTask(0);
+    ASSERT_FALSE(invalidDelete);
+    EXPECT_EQ(
+        invalidDelete.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    QSqlQuery logQuery(connection.database());
+    ASSERT_TRUE(logQuery.prepare(
+        "SELECT entity_type, entity_id, detail FROM operation_log "
+        "WHERE operation = 'DELETE_TASK' ORDER BY id"));
+    ASSERT_TRUE(logQuery.exec());
+    int deleteLogCount = 0;
+    while (logQuery.next()) {
+        EXPECT_EQ(logQuery.value(0).toString(), "analysis_task");
+        EXPECT_GT(logQuery.value(1).toLongLong(), 0);
+        EXPECT_TRUE(
+            logQuery.value(2).toString().startsWith("terminal status: "));
+        ++deleteLogCount;
+    }
+    EXPECT_EQ(deleteLogCount, 5);
+}
+
+TEST(SqliteTaskRepositoryTest, RollsBackTaskDeletionWhenAuditLoggingFails)
+{
+    test::TemporaryProject project("task-delete-rollback");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+    SqliteTaskRepository repository(connection);
+
+    const auto task = repository.createTask(makeTask("Rollback deletion"));
+    ASSERT_TRUE(task);
+    ASSERT_TRUE(repository.startTask(task.value()).value());
+    ASSERT_TRUE(repository.completeTask(
+        task.value(), {{"rms", 0.5, "V"}}));
+
+    QSqlQuery dropLog(connection.database());
+    ASSERT_TRUE(dropLog.exec("DROP TABLE operation_log"));
+
+    const auto removed = repository.removeTask(task.value());
+    ASSERT_FALSE(removed);
+    EXPECT_EQ(removed.error().code, core::ErrorCode::DatabaseQueryFailed);
+
+    const auto history = repository.listTasks(10);
+    ASSERT_TRUE(history);
+    ASSERT_EQ(history.value().size(), 1U);
+    EXPECT_EQ(history.value().front().id, task.value());
+
+    const auto features = repository.listFeatureResults(task.value());
+    ASSERT_TRUE(features);
+    ASSERT_EQ(features.value().size(), 1U);
+    EXPECT_EQ(features.value().front().name, "rms");
+}
+
+TEST(SqliteTaskRepositoryTest,
+     RejectsImpossibleTransitionsAndKeepsEmptyQueriesStable)
+{
+    test::TemporaryProject project("task-transition-boundaries");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+    SqliteTaskRepository repository(connection);
+
+    const auto emptyHistory = repository.listTasks(0);
+    ASSERT_TRUE(emptyHistory);
+    EXPECT_TRUE(emptyHistory.value().empty());
+
+    const auto emptyFeatures = repository.listFeatureResults(999);
+    ASSERT_TRUE(emptyFeatures);
+    EXPECT_TRUE(emptyFeatures.value().empty());
+
+    const auto invalidFeatures = repository.listFeatureResults(0);
+    ASSERT_FALSE(invalidFeatures);
+    EXPECT_EQ(
+        invalidFeatures.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    auto invalidRecordTask = makeTask("Invalid record id");
+    invalidRecordTask.signalRecordId = 0;
+    const auto invalidRecord = repository.createTask(invalidRecordTask);
+    ASSERT_FALSE(invalidRecord);
+    EXPECT_EQ(
+        invalidRecord.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    auto missingRecordTask = makeTask("Missing record id");
+    missingRecordTask.signalRecordId = 999;
+    const auto missingRecord = repository.createTask(missingRecordTask);
+    ASSERT_FALSE(missingRecord);
+    EXPECT_EQ(
+        missingRecord.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto invalidStart = repository.startTask(0);
+    ASSERT_FALSE(invalidStart);
+    EXPECT_EQ(invalidStart.error().code, core::ErrorCode::InvalidParameter);
+
+    const auto missingStart = repository.startTask(999);
+    ASSERT_TRUE(missingStart);
+    EXPECT_FALSE(missingStart.value());
+
+    const auto missingFailure = repository.failTask(999, "Missing task");
+    ASSERT_TRUE(missingFailure);
+    EXPECT_FALSE(missingFailure.value());
+
+    const auto invalidFailureId = repository.failTask(0, "Invalid id");
+    ASSERT_FALSE(invalidFailureId);
+    EXPECT_EQ(
+        invalidFailureId.error().code,
+        core::ErrorCode::InvalidParameter);
+    const auto invalidFailureMessage = repository.failTask(1, "");
+    ASSERT_FALSE(invalidFailureMessage);
+    EXPECT_EQ(
+        invalidFailureMessage.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto invalidCancellation = repository.cancelTask(0, "Invalid id");
+    ASSERT_FALSE(invalidCancellation);
+    EXPECT_EQ(
+        invalidCancellation.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto missingCancellation = repository.cancelTask(
+        999, "Missing task");
+    ASSERT_TRUE(missingCancellation);
+    EXPECT_FALSE(missingCancellation.value());
+
+    const auto invalidCompletion = repository.completeTask(0, {});
+    ASSERT_FALSE(invalidCompletion);
+    EXPECT_EQ(
+        invalidCompletion.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto missingCompletion = repository.completeTask(999, {});
+    ASSERT_FALSE(missingCompletion);
+    EXPECT_EQ(
+        missingCompletion.error().code,
+        core::ErrorCode::DatabaseQueryFailed);
+
+    const auto task = repository.createTask(makeTask("Transition boundary"));
+    ASSERT_TRUE(task);
+    const auto prematureCompletion = repository.completeTask(task.value(), {});
+    ASSERT_FALSE(prematureCompletion);
+    EXPECT_EQ(
+        prematureCompletion.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto failed = repository.failTask(
+        task.value(), "Expected terminal failure.");
+    ASSERT_TRUE(failed);
+    EXPECT_TRUE(failed.value());
+    const auto repeatedFailure = repository.failTask(
+        task.value(), "A terminal task must not change again.");
+    ASSERT_TRUE(repeatedFailure);
+    EXPECT_FALSE(repeatedFailure.value());
+
+    const auto interrupted = repository.interruptRunningTasks();
+    ASSERT_TRUE(interrupted);
+    EXPECT_EQ(interrupted.value(), 0U);
+
+    const auto history = repository.listTasks(1);
+    ASSERT_TRUE(history);
+    ASSERT_EQ(history.value().size(), 1U);
+    EXPECT_EQ(history.value().front().id, task.value());
+    EXPECT_EQ(
+        history.value().front().status,
+        repository::AnalysisTaskStatus::Failed);
+    EXPECT_EQ(
+        history.value().front().errorMessage,
+        "Expected terminal failure.");
+
+    const auto invalidFeatureTask = repository.createTask(
+        makeTask("Empty feature name"));
+    ASSERT_TRUE(invalidFeatureTask);
+    const auto invalidFeatureStart = repository.startTask(
+        invalidFeatureTask.value());
+    ASSERT_TRUE(invalidFeatureStart);
+    ASSERT_TRUE(invalidFeatureStart.value());
+    const auto invalidFeatureCompletion = repository.completeTask(
+        invalidFeatureTask.value(),
+        {{"", 1.0, "V"}});
+    ASSERT_FALSE(invalidFeatureCompletion);
+    EXPECT_EQ(
+        invalidFeatureCompletion.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto invalidFeatureRows = repository.listFeatureResults(
+        invalidFeatureTask.value());
+    ASSERT_TRUE(invalidFeatureRows);
+    EXPECT_TRUE(invalidFeatureRows.value().empty());
+    const auto finalHistory = repository.listTasks(10);
+    ASSERT_TRUE(finalHistory);
+    const auto* invalidFeatureRecord = findTask(
+        finalHistory.value(), invalidFeatureTask.value());
+    ASSERT_NE(invalidFeatureRecord, nullptr);
+    EXPECT_EQ(
+        invalidFeatureRecord->status,
+        repository::AnalysisTaskStatus::Failed);
+    EXPECT_TRUE(invalidFeatureRecord->outputHash.empty());
+    EXPECT_NE(
+        invalidFeatureRecord->errorMessage.find("name"),
+        std::string::npos);
+
+    QSqlQuery corruptStatus(connection.database());
+    ASSERT_TRUE(corruptStatus.exec("PRAGMA ignore_check_constraints = ON"));
+    ASSERT_TRUE(corruptStatus.prepare(
+        "UPDATE analysis_task SET status = 'UNKNOWN' WHERE id = ?"));
+    corruptStatus.addBindValue(invalidFeatureTask.value());
+    ASSERT_TRUE(corruptStatus.exec());
+    const auto corruptHistory = repository.listTasks(10);
+    ASSERT_FALSE(corruptHistory);
+    EXPECT_EQ(
+        corruptHistory.error().code,
+        core::ErrorCode::DatabaseQueryFailed);
+    EXPECT_NE(
+        corruptHistory.error().message.find("unknown status"),
+        std::string::npos);
+
+    ASSERT_TRUE(corruptStatus.prepare(
+        "UPDATE analysis_task SET status = 'FAILED' WHERE id = ?"));
+    corruptStatus.addBindValue(invalidFeatureTask.value());
+    ASSERT_TRUE(corruptStatus.exec());
+    ASSERT_TRUE(corruptStatus.exec("PRAGMA ignore_check_constraints = OFF"));
+}
+
 }  // namespace
 }  // namespace signallab::database

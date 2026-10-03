@@ -35,6 +35,9 @@ public:
     [[nodiscard]] core::Result<std::vector<repository::FeatureResultRecord>>
     listFeatureResults(std::int64_t taskId) override;
 
+    [[nodiscard]] core::Result<bool> removeTask(
+        std::int64_t taskId) override;
+
 private:
     DatabaseConnection& connection_;
 };

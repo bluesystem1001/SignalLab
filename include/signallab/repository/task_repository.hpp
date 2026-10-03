@@ -95,6 +95,12 @@ public:
 
     [[nodiscard]] virtual core::Result<std::vector<FeatureResultRecord>>
     listFeatureResults(std::int64_t taskId) = 0;
+
+    // Removes one terminal analysis task and its feature results. Pending and
+    // running tasks must be rejected so an active analysis cannot lose the
+    // persistence record that it still needs to complete or cancel.
+    [[nodiscard]] virtual core::Result<bool> removeTask(
+        std::int64_t taskId) = 0;
 };
 
 }  // namespace signallab::repository

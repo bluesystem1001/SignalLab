@@ -279,6 +279,14 @@ core::Result<bool> rollbackFailure(
     return core::Result<bool>::failure(error);
 }
 
+core::Result<repository::SignalRemoval> rollbackRemovalFailure(
+    QSqlDatabase& database,
+    const core::Error& error)
+{
+    database.rollback();
+    return core::Result<repository::SignalRemoval>::failure(error);
+}
+
 }  // namespace
 
 SqliteSignalRepository::SqliteSignalRepository(
@@ -682,23 +690,26 @@ SqliteSignalRepository::listSignals()
         std::move(storedSignals));
 }
 
-core::Result<bool> SqliteSignalRepository::removeSignal(
+core::Result<repository::SignalRemoval> SqliteSignalRepository::removeSignal(
     std::int64_t recordId)
 {
     const auto threadCheck = connection_.checkThread();
     if (!threadCheck) {
-        return threadCheck;
+        return core::Result<repository::SignalRemoval>::failure(
+            threadCheck.error());
     }
     if (recordId <= 0) {
-        return core::Result<bool>::failure(
+        return core::Result<repository::SignalRemoval>::failure(
             core::ErrorCode::InvalidParameter,
             "The signal record id must be positive.");
     }
 
     QSqlDatabase database = connection_.database();
     if (!database.transaction()) {
-        return detail::databaseFailure(
+        const auto failure = detail::databaseFailure(
             "Cannot begin the signal delete transaction", database);
+        return core::Result<repository::SignalRemoval>::failure(
+            failure.error());
     }
 
     QSqlQuery lookup(database);
@@ -711,17 +722,18 @@ core::Result<bool> SqliteSignalRepository::removeSignal(
             "WHERE sr.id = ?")) {
         const auto failure = detail::queryFailure(
             "Cannot prepare the signal delete lookup", lookup);
-        return rollbackFailure(database, failure.error());
+        return rollbackRemovalFailure(database, failure.error());
     }
     lookup.addBindValue(recordId);
     if (!lookup.exec()) {
         const auto failure = detail::queryFailure(
             "Cannot load the signal before deletion", lookup);
-        return rollbackFailure(database, failure.error());
+        return rollbackRemovalFailure(database, failure.error());
     }
     if (!lookup.next()) {
         database.rollback();
-        return core::Result<bool>::success(false);
+        return core::Result<repository::SignalRemoval>::success(
+            repository::SignalRemoval{});
     }
     const std::int64_t sourceId = lookup.value(0).toLongLong();
     const std::optional<std::int64_t> fileVersionId =
@@ -735,28 +747,29 @@ core::Result<bool> SqliteSignalRepository::removeSignal(
     if (!deleteRecord.prepare("DELETE FROM signal_record WHERE id = ?")) {
         const auto failure = detail::queryFailure(
             "Cannot prepare the signal record delete", deleteRecord);
-        return rollbackFailure(database, failure.error());
+        return rollbackRemovalFailure(database, failure.error());
     }
     deleteRecord.addBindValue(recordId);
     if (!deleteRecord.exec() || deleteRecord.numRowsAffected() != 1) {
         const auto failure = detail::queryFailure(
             "Cannot delete the signal record", deleteRecord);
-        return rollbackFailure(database, failure.error());
+        return rollbackRemovalFailure(database, failure.error());
     }
 
     QSqlQuery deleteSource(database);
     if (!deleteSource.prepare("DELETE FROM signal_source WHERE id = ?")) {
         const auto failure = detail::queryFailure(
             "Cannot prepare the signal source delete", deleteSource);
-        return rollbackFailure(database, failure.error());
+        return rollbackRemovalFailure(database, failure.error());
     }
     deleteSource.addBindValue(sourceId);
     if (!deleteSource.exec() || deleteSource.numRowsAffected() != 1) {
         const auto failure = detail::queryFailure(
             "Cannot delete the signal source", deleteSource);
-        return rollbackFailure(database, failure.error());
+        return rollbackRemovalFailure(database, failure.error());
     }
 
+    std::optional<std::filesystem::path> unreferencedStoredPath;
     if (fileVersionId.has_value()) {
         QSqlQuery deleteFile(database);
         if (!deleteFile.prepare(
@@ -765,34 +778,44 @@ core::Result<bool> SqliteSignalRepository::removeSignal(
                 ")")) {
             const auto failure = detail::queryFailure(
                 "Cannot prepare the unused file version delete", deleteFile);
-            return rollbackFailure(database, failure.error());
+            return rollbackRemovalFailure(database, failure.error());
         }
         deleteFile.addBindValue(*fileVersionId);
         deleteFile.addBindValue(*fileVersionId);
         if (!deleteFile.exec()) {
             const auto failure = detail::queryFailure(
                 "Cannot delete the unused file version", deleteFile);
-            return rollbackFailure(database, failure.error());
+            return rollbackRemovalFailure(database, failure.error());
+        }
+        if (deleteFile.numRowsAffected() == 1 && !storedPath.isEmpty()) {
+            unreferencedStoredPath = pathFromText(storedPath);
         }
     }
 
-    const QString detailText = storedPath.isEmpty()
-        ? QString("database rows removed")
-        : QString("database rows removed; archived path to compensate: ")
-            + storedPath;
+    QString detailText("database rows removed");
+    if (unreferencedStoredPath.has_value()) {
+        detailText += "; unreferenced archive cleanup required: "
+            + pathText(*unreferencedStoredPath);
+    } else if (fileVersionId.has_value()) {
+        detailText += "; imported archive remains shared";
+    }
     const auto log = detail::writeOperationLog(
-        database, "REMOVE_SIGNAL", "signal_record", recordId, detailText);
+        database, "DELETE_SIGNAL", "signal_record", recordId, detailText);
     if (!log) {
-        return rollbackFailure(database, log.error());
+        return rollbackRemovalFailure(database, log.error());
     }
 
     if (!database.commit()) {
         const auto failure = detail::databaseFailure(
             "Cannot commit the signal delete transaction", database);
         database.rollback();
-        return failure;
+        return core::Result<repository::SignalRemoval>::failure(
+            failure.error());
     }
-    return core::Result<bool>::success(true);
+    return core::Result<repository::SignalRemoval>::success(
+        repository::SignalRemoval{
+            true,
+            std::move(unreferencedStoredPath)});
 }
 
 }  // namespace signallab::database

@@ -4,8 +4,10 @@
 #include <cstdint>
 #include <filesystem>
 #include <mutex>
+#include <optional>
 #include <stop_token>
 #include <string>
+#include <unordered_set>
 #include <vector>
 
 #include "signallab/core/result.hpp"
@@ -30,6 +32,16 @@ struct SignalEntry {
     core::Signal signal;
 };
 
+struct SignalRemovalOutcome {
+    bool removed{false};
+    std::filesystem::path unreferencedStoredRelativePath;
+    bool storedFileRemoved{false};
+    bool storedFileAlreadyMissing{false};
+    // A database commit is authoritative. A physical archive cleanup failure
+    // is reported here without relabelling the logical deletion as failed.
+    std::string cleanupWarning;
+};
+
 class ImportService {
 public:
     ImportService(
@@ -44,6 +56,16 @@ public:
     [[nodiscard]] core::Result<std::size_t> addGeneratedSignal(
         core::Signal signal,
         const std::string& stableSourceKey);
+
+    // Performs the slow generated-signal lookup/save without changing
+    // entries(). Background compute workers use this and hand the returned
+    // entry to acceptImportedSignal() on the GUI thread. Reusing a stable
+    // source key is idempotent across retries and process restarts.
+    [[nodiscard]] core::Result<SignalEntry> persistGeneratedSignal(
+        core::Signal signal,
+        const std::string& stableSourceKey,
+        std::string parametersJson = "{}",
+        std::stop_token stopToken = {});
 
     [[nodiscard]] core::Result<repository::ImportPreview> previewCsv(
         const std::filesystem::path& sourcePath,
@@ -92,7 +114,18 @@ public:
         const repository::WavImportOptions& options,
         std::stop_token stopToken = {});
 
-    [[nodiscard]] std::size_t acceptImportedSignal(SignalEntry entry);
+    // Returns no index when a late background result refers to a record that
+    // has already been deleted. SQLite AUTOINCREMENT prevents record-id reuse.
+    [[nodiscard]] std::optional<std::size_t> acceptImportedSignal(
+        SignalEntry entry);
+
+    // Performs persistent deletion and project-archive compensation without
+    // touching entries(). It is safe to call on an I/O worker. The GUI thread
+    // calls forgetSignal() only after receiving the terminal event.
+    [[nodiscard]] core::Result<SignalRemovalOutcome>
+    removePersistedSignal(std::int64_t recordId);
+
+    [[nodiscard]] bool forgetSignal(std::int64_t recordId);
 
     [[nodiscard]] const std::vector<SignalEntry>& entries() const noexcept;
 
@@ -122,6 +155,7 @@ private:
     // operation. Serializing imports prevents two I/O workers from deleting
     // an archive that the other worker is about to register.
     std::mutex importMutex_;
+    std::unordered_set<std::int64_t> deletedRecordIds_;
     std::vector<SignalEntry> entries_;
 };
 

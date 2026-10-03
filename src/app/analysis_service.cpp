@@ -489,4 +489,10 @@ AnalysisService::featureResults(std::int64_t taskId)
     return taskRepository_.listFeatureResults(taskId);
 }
 
+core::Result<bool> AnalysisService::removeHistoryEntry(
+    std::int64_t taskId)
+{
+    return taskRepository_.removeTask(taskId);
+}
+
 }  // namespace signallab::app

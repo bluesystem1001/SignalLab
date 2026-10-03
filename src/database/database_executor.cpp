@@ -361,9 +361,10 @@ DatabaseExecutor::listSignals()
         });
 }
 
-core::Result<bool> DatabaseExecutor::removeSignal(std::int64_t recordId)
+core::Result<repository::SignalRemoval> DatabaseExecutor::removeSignal(
+    std::int64_t recordId)
 {
-    return implementation_->execute<bool>(
+    return implementation_->execute<repository::SignalRemoval>(
         [recordId](Impl::RepositorySet& repositories) {
             return repositories.signal.removeSignal(recordId);
         });
@@ -441,6 +442,14 @@ DatabaseExecutor::listFeatureResults(std::int64_t taskId)
         std::vector<repository::FeatureResultRecord>>(
         [taskId](Impl::RepositorySet& repositories) {
             return repositories.task.listFeatureResults(taskId);
+        });
+}
+
+core::Result<bool> DatabaseExecutor::removeTask(std::int64_t taskId)
+{
+    return implementation_->execute<bool>(
+        [taskId](Impl::RepositorySet& repositories) {
+            return repositories.task.removeTask(taskId);
         });
 }
 

@@ -172,6 +172,7 @@ add_executable(signallab_gui_runtime_tests
     integration/gui_test_main.cpp
     integration/stage5_gui_runtime_test.cpp
     integration/stage7_gui_runtime_test.cpp
+    unit/gui/file_import_dialog_test.cpp
     unit/gui/interactive_chart_view_test.cpp
 )
 

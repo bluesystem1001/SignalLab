@@ -207,6 +207,44 @@ TEST(WavReaderTest, PreviewsMonoPcm16AndSkipsUnknownPaddedChunk)
     EXPECT_TRUE(zeroRowResult.value().rows.empty());
 }
 
+TEST(WavReaderTest, ReadsRepositoryMonoPcm16ReferenceAsset)
+{
+    const std::filesystem::path sourceRoot(SIGNALLAB_SOURCE_DIR);
+    const std::filesystem::path wavPath =
+        sourceRoot / "data" / "samples" / "example_signal_pcm16.wav";
+    ASSERT_TRUE(std::filesystem::is_regular_file(wavPath))
+        << wavPath.string();
+
+    const auto previewResult = previewWav(wavPath, 3);
+    ASSERT_TRUE(previewResult) << previewResult.error().message;
+    const auto& preview = previewResult.value();
+    EXPECT_EQ(preview.sourcePath, wavPath);
+    EXPECT_EQ(preview.format, ImportFormat::Wav);
+    EXPECT_EQ(preview.sampleCount, 21U);
+    EXPECT_EQ(preview.channelCount, 1U);
+    EXPECT_EQ(preview.columnCount, 1U);
+    ASSERT_TRUE(preview.sampleRate.has_value());
+    EXPECT_DOUBLE_EQ(*preview.sampleRate, 1'000.0);
+    ASSERT_EQ(preview.rows.size(), 3U);
+    EXPECT_NEAR(std::stod(preview.rows[0][0]), 0.0, 1.0e-12);
+    EXPECT_NEAR(std::stod(preview.rows[1][0]), 0.309017, 4.0e-5);
+
+    auto options = optionsFor(StereoChannel::Left);
+    options.metadata = {
+        "Stage 8 WAV reference", "normalized", wavPath.string()};
+    const auto signalResult = readWav(wavPath, options);
+    ASSERT_TRUE(signalResult) << signalResult.error().message;
+    const auto& signal = signalResult.value();
+    ASSERT_EQ(signal.sampleCount(), 21U);
+    EXPECT_DOUBLE_EQ(signal.sampleRate(), 1'000.0);
+    EXPECT_NEAR(signal.samples().front(), 0.0, 1.0e-12);
+    EXPECT_NEAR(signal.samples()[1], 0.309017, 4.0e-5);
+    EXPECT_NEAR(signal.samples()[5], 1.0, 4.0e-5);
+    EXPECT_NEAR(signal.samples()[15], -1.0, 4.0e-5);
+    EXPECT_NEAR(signal.samples().back(), 0.0, 1.0e-12);
+    EXPECT_EQ(signal.metadata().name, "Stage 8 WAV reference");
+}
+
 TEST(WavReaderTest, SelectsLeftRightAndAverageStereoSamples)
 {
     const TemporaryWavFile file(makeWavBytes(

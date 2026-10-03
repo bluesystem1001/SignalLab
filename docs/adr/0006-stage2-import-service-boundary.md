@@ -3,7 +3,7 @@
 - 状态：已执行并关闭（阶段 4 退出条件已满足）
 - 日期：2026-09-08
 - 关闭日期：2026-09-11
-- 最近复核：2026-09-24（阶段 7 GUI 接线仍保持该边界）
+- 最近复核：2026-10-02（`0.7.3` 项目信号删除仍保持该边界）
 
 ## 背景
 
@@ -53,4 +53,19 @@
 - 解释器返回的 `openedSignals` 由 GUI 线程显式交给 `ImportService::acceptImportedSignal()`，随后刷新 `SignalListModel`；工作线程仍不读取或修改面向界面的 `entries()`。
 - `MainWindow` 只依赖应用服务、调度器和 repository 数据类型，不持有 SQLite 连接，也不直接调用 CSV/WAV 解析器或文件系统实现。`signallab_app` 的 CMake 依赖边界保持不变。
 
-对应自动化测试覆盖内容寻址存档复用、不同解析选项、恢复与失败补偿、后台工作线程到 GUI 线程的交接，以及脚本重复加载、输入内容变化和 GUI 终态接纳。2026-09-24 的最终复核中，Debug 与 Release 均无警告构建成功并通过 233/233 项测试。上述代码边界持续满足退出条件，因此本 ADR 的临时例外保持关闭；后续新增基础设施能力也必须先通过 repository 抽象进入 `app`，不能以本 ADR 为依据恢复直接依赖。
+### `0.7.2`：单窗口导入与 FIR 派生信号复核
+
+- `FileImportDialog` 只收集 CSV/WAV 选项、显示后台预览事件并控制当前修订是否可提交；它不读取、解析或存档文件。`MainWindow` 仍只经 `BackgroundFileService` 请求预览和导入。
+- `BackgroundFileService` 现在还把 FIR 派生信号送入计算队列，但该新增路径仍只组合 `ImportService`、`Scheduler` 和既有算法接口，不接触文件系统仓库或 SQLite 具体实现；文件预览与导入继续使用 I/O 队列。
+- FIR 工作者调用 `ImportService::persistGeneratedSignal()`，后者只经 `SignalRepository` 的稳定来源键查询与注册能力保存 `GENERATED` 信号。工作线程返回 `SignalEntry` 后，仍由 GUI 线程调用 `acceptImportedSignal()`，不会并发修改 `entries()`。
+- `signallab_app` 与 `signallab_gui` 的 CMake 依赖没有新增对 `signallab_io` 或 `signallab_database` 的直接链接，因此该补丁没有重新打开阶段 2 的临时例外。
+
+### `0.7.3`：项目信号删除复核
+
+- `MainWindow` 只复制所选记录编号、名称和相邻编号并提交后台删除，不持有 SQLite 连接、文件仓库实现或跨模态窗口存活的 `SignalEntry*`。
+- `BackgroundFileService` 只负责把删除排入 I/O 通道和传递结构化终态；数据库与项目存档的组合语义仍集中在 `ImportService`，并与导入/FIR 注册共用同一互斥边界。
+- `SignalRepository::removeSignal()` 在 SQLite 事务内返回是否删除以及精确的“最后引用存档”候选；`FileRepository::removeStoredFile()` 继续负责限制物理删除只能发生在项目 `data/imports` 内。应用服务从不删除 `sourcePath` 指向的外部原文件。
+- SQLite 提交后物理清理失败以 committed outcome 的警告表达，不伪装成数据库回滚。删除 tombstone 会拒绝已经完成但迟到的导入、FIR 或脚本信号接纳，GUI 线程仍是 `entries()` 的唯一修改者。
+- 内置示例只在数据库文件首次创建时播种；已有空数据库保持为空，因此项目删除语义不会被下一次启动反转。
+
+对应自动化测试覆盖内容寻址存档复用、不同解析选项、恢复与失败补偿、后台工作线程到 GUI 线程的交接、脚本重复加载、输入内容变化、单窗口预览修订、FIR 幂等持久化，以及信号删除的共享/最后引用、事务回滚、物理清理警告、排队取消、迟到接纳和 GUI 终态刷新。2026-10-02 的最新复核中，Debug 与 Release 均无警告构建成功并通过 268/268 项测试。上述代码边界持续满足退出条件，因此本 ADR 的临时例外保持关闭；后续新增基础设施能力也必须先通过 repository 抽象进入 `app`，不能以本 ADR 为依据恢复直接依赖。

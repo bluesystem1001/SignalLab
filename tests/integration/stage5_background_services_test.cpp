@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <mutex>
 #include <optional>
 #include <set>
@@ -24,6 +25,7 @@
 #include "signallab/core/signal.hpp"
 #include "signallab/core/signal_generator.hpp"
 #include "signallab/database/database_executor.hpp"
+#include "signallab/io/filesystem_file_repository.hpp"
 #include "signallab/repository/file_repository.hpp"
 #include "signallab/repository/task_repository.hpp"
 #include "signallab/task/scheduler.hpp"
@@ -398,6 +400,12 @@ public:
         return delegate_.listFeatureResults(taskId);
     }
 
+    signallab::core::Result<bool> removeTask(
+        std::int64_t taskId) override
+    {
+        return delegate_.removeTask(taskId);
+    }
+
 private:
     signallab::repository::TaskRepository& delegate_;
     const std::size_t gatedStartCount_;
@@ -424,6 +432,135 @@ public:
 
 private:
     GatedTaskRepository& repository_;
+};
+
+class IoLaneGate {
+public:
+    void wait()
+    {
+        std::unique_lock lock(mutex_);
+        entered_ = true;
+        condition_.notify_all();
+        condition_.wait(lock, [this]() { return released_; });
+    }
+
+    [[nodiscard]] signallab::core::Result<bool> wait(
+        const signallab::task::TaskContext&)
+    {
+        wait();
+        return signallab::core::Result<bool>::success(true);
+    }
+
+    [[nodiscard]] bool waitUntilEntered(
+        std::chrono::milliseconds timeout)
+    {
+        std::unique_lock lock(mutex_);
+        return condition_.wait_for(
+            lock, timeout, [this]() { return entered_; });
+    }
+
+    void release()
+    {
+        {
+            std::lock_guard lock(mutex_);
+            released_ = true;
+        }
+        condition_.notify_all();
+    }
+
+private:
+    std::mutex mutex_;
+    std::condition_variable condition_;
+    bool entered_{false};
+    bool released_{false};
+};
+
+class IoLaneGateReleaseGuard {
+public:
+    explicit IoLaneGateReleaseGuard(IoLaneGate& gate)
+        : gate_(gate)
+    {
+    }
+
+    ~IoLaneGateReleaseGuard()
+    {
+        gate_.release();
+    }
+
+    IoLaneGateReleaseGuard(const IoLaneGateReleaseGuard&) = delete;
+    IoLaneGateReleaseGuard& operator=(
+        const IoLaneGateReleaseGuard&) = delete;
+
+private:
+    IoLaneGate& gate_;
+};
+
+class GatedFileRemovalRepository final
+    : public signallab::repository::FileRepository {
+public:
+    GatedFileRemovalRepository(
+        signallab::repository::FileRepository& delegate,
+        IoLaneGate& removalGate)
+        : delegate_(delegate),
+          removalGate_(removalGate)
+    {
+    }
+
+    signallab::core::Result<signallab::repository::ImportPreview>
+    previewCsv(
+        const std::filesystem::path& sourcePath,
+        const signallab::repository::CsvImportOptions& options,
+        std::stop_token stopToken) const override
+    {
+        return delegate_.previewCsv(sourcePath, options, stopToken);
+    }
+
+    signallab::core::Result<signallab::repository::ImportPreview>
+    previewWav(
+        const std::filesystem::path& sourcePath,
+        std::stop_token stopToken) const override
+    {
+        return delegate_.previewWav(sourcePath, stopToken);
+    }
+
+    signallab::core::Result<signallab::repository::FileImport>
+    importCsv(
+        const std::filesystem::path& sourcePath,
+        const signallab::repository::CsvImportOptions& options,
+        std::stop_token stopToken) override
+    {
+        return delegate_.importCsv(sourcePath, options, stopToken);
+    }
+
+    signallab::core::Result<signallab::repository::FileImport>
+    importWav(
+        const std::filesystem::path& sourcePath,
+        const signallab::repository::WavImportOptions& options,
+        std::stop_token stopToken) override
+    {
+        return delegate_.importWav(sourcePath, options, stopToken);
+    }
+
+    signallab::core::Result<bool> validateStoredFile(
+        const std::filesystem::path& storedRelativePath,
+        const std::string& expectedHash,
+        std::stop_token stopToken) const override
+    {
+        return delegate_.validateStoredFile(
+            storedRelativePath, expectedHash, stopToken);
+    }
+
+    signallab::core::Result<bool> removeStoredFile(
+        const std::filesystem::path& storedRelativePath,
+        std::stop_token stopToken) override
+    {
+        removalGate_.wait();
+        return delegate_.removeStoredFile(storedRelativePath, stopToken);
+    }
+
+private:
+    signallab::repository::FileRepository& delegate_;
+    IoLaneGate& removalGate_;
 };
 
 TEST(AnalysisServiceStageFiveTest,
@@ -523,6 +660,348 @@ TEST(BackgroundFileServiceTest,
     EXPECT_FALSE(failure.preview);
     EXPECT_FALSE(failure.importedSignal);
     EXPECT_EQ(imports.entries().size(), 1U);
+
+    background.clearEventNotifier();
+    scheduler.shutdownAndWait();
+    ASSERT_TRUE(database.shutdown());
+}
+
+TEST(BackgroundFileServiceTest,
+     DeleteSignalUsesTheIoLaneAndDefersUiListMutationUntilForget)
+{
+    TemporaryProject project("delete-signal");
+    const auto sourcePath = project.root() / "delete-me.csv";
+    {
+        std::ofstream source(sourcePath, std::ios::binary);
+        ASSERT_TRUE(source.is_open());
+        source
+            << "time,value\n"
+            << "0.000,0.0\n"
+            << "0.001,1.0\n"
+            << "0.002,0.0\n";
+        ASSERT_TRUE(source.good());
+    }
+
+    signallab::database::DatabaseExecutor database(
+        project.databasePath(), migrationsDirectory());
+    ASSERT_TRUE(database.start());
+    signallab::io::FilesystemFileRepository filesystemFiles(project.root());
+    IoLaneGate removalGate;
+    GatedFileRemovalRepository files(filesystemFiles, removalGate);
+    signallab::app::ImportService imports(files, database);
+
+    signallab::repository::CsvImportOptions options;
+    options.metadata = {"Delete me", "V", "delete-me.csv"};
+    const auto imported = imports.importCsv(sourcePath, options);
+    ASSERT_TRUE(imported) << imported.error().message;
+    ASSERT_EQ(imports.entries().size(), 1U);
+    const std::int64_t recordId = imports.entries().front().recordId;
+    const std::filesystem::path storedRelativePath =
+        imports.entries().front().storedRelativePath;
+    const std::filesystem::path storedPath =
+        project.root() / storedRelativePath;
+    ASSERT_TRUE(std::filesystem::is_regular_file(storedPath));
+
+    signallab::task::Scheduler scheduler(schedulerConfig(1));
+    signallab::app::BackgroundFileService background(imports, scheduler);
+    IoLaneGateReleaseGuard removalGateGuard(removalGate);
+
+    const auto submitted = background.deleteSignal(recordId, "Delete me");
+    ASSERT_TRUE(submitted) << submitted.error().message;
+    ASSERT_TRUE(removalGate.waitUntilEntered(5s));
+
+    const auto running = scheduler.snapshot(submitted.value());
+    ASSERT_TRUE(running.has_value());
+    EXPECT_EQ(running->status, signallab::task::TaskStatus::Running);
+
+    // Entering removeStoredFile means the database transaction has already
+    // committed. A cancellation arriving now must not relabel the durable
+    // delete or skip the corresponding project-archive cleanup.
+    const auto committed = database.findByRecordId(recordId);
+    ASSERT_TRUE(committed) << committed.error().message;
+    EXPECT_FALSE(committed.value().has_value());
+    EXPECT_TRUE(scheduler.cancel(submitted.value()));
+    removalGate.release();
+    ASSERT_TRUE(scheduler.waitForTerminal(submitted.value(), 5s));
+    auto events = waitForTerminalEvents<
+        signallab::app::BackgroundFileService,
+        signallab::app::BackgroundFileEvent>(background, 1);
+    ASSERT_EQ(events.size(), 1U);
+    const auto& event = events.front();
+    EXPECT_EQ(event.task.status, signallab::task::TaskStatus::Succeeded);
+    EXPECT_EQ(event.task.lane, signallab::task::TaskLane::Io);
+    EXPECT_EQ(
+        event.operation,
+        signallab::app::BackgroundFileOperation::DeleteSignal);
+    EXPECT_EQ(event.sourceRecordId, recordId);
+    EXPECT_FALSE(event.preview);
+    EXPECT_FALSE(event.importedSignal);
+    ASSERT_TRUE(event.signalRemoval);
+    EXPECT_TRUE(event.signalRemoval->removed);
+    EXPECT_EQ(
+        event.signalRemoval->unreferencedStoredRelativePath,
+        storedRelativePath);
+    EXPECT_TRUE(event.signalRemoval->storedFileRemoved);
+    EXPECT_FALSE(event.signalRemoval->storedFileAlreadyMissing);
+    EXPECT_TRUE(event.signalRemoval->cleanupWarning.empty());
+
+    const auto persisted = database.findByRecordId(recordId);
+    ASSERT_TRUE(persisted) << persisted.error().message;
+    EXPECT_FALSE(persisted.value().has_value());
+    EXPECT_FALSE(std::filesystem::exists(storedPath));
+    EXPECT_TRUE(std::filesystem::is_regular_file(sourcePath));
+
+    ASSERT_EQ(imports.entries().size(), 1U);
+    EXPECT_EQ(imports.entries().front().recordId, recordId);
+    EXPECT_TRUE(imports.forgetSignal(recordId));
+    EXPECT_TRUE(imports.entries().empty());
+    EXPECT_FALSE(imports.forgetSignal(recordId));
+
+    background.clearEventNotifier();
+    scheduler.shutdownAndWait();
+    ASSERT_TRUE(database.shutdown());
+}
+
+TEST(BackgroundFileServiceTest,
+     CancellingAPendingSignalDeleteLeavesAllSignalStateUntouched)
+{
+    TemporaryProject project("cancel-delete-signal");
+    signallab::database::DatabaseExecutor database(
+        project.databasePath(), migrationsDirectory());
+    ASSERT_TRUE(database.start());
+    const auto stored = saveAnalysisSignal(database, "cancel-delete-source");
+
+    FakeFileRepository files;
+    signallab::app::ImportService imports(files, database);
+    ASSERT_TRUE(imports.restoreSignals());
+    ASSERT_EQ(imports.entries().size(), 1U);
+
+    IoLaneGate gate;
+    signallab::task::Scheduler scheduler(schedulerConfig(1));
+    signallab::app::BackgroundFileService background(imports, scheduler);
+    IoLaneGateReleaseGuard gateGuard(gate);
+
+    signallab::task::TaskSpec blocker;
+    blocker.name = "Hold the I/O lane";
+    blocker.lane = signallab::task::TaskLane::Io;
+    blocker.action = [&gate](const signallab::task::TaskContext& context) {
+        return gate.wait(context);
+    };
+    const auto blockerSubmission = scheduler.submit(std::move(blocker));
+    ASSERT_TRUE(blockerSubmission) << blockerSubmission.error().message;
+    ASSERT_TRUE(gate.waitUntilEntered(5s));
+
+    const auto deletion = background.deleteSignal(
+        stored.recordId, "Background test signal");
+    ASSERT_TRUE(deletion) << deletion.error().message;
+    const auto pendingSnapshots = scheduler.snapshots();
+    const auto pending = std::find_if(
+        pendingSnapshots.begin(),
+        pendingSnapshots.end(),
+        [&deletion](const signallab::task::TaskSnapshot& snapshot) {
+            return snapshot.id == deletion.value();
+        });
+    ASSERT_NE(pending, pendingSnapshots.end());
+    EXPECT_EQ(pending->status, signallab::task::TaskStatus::Pending);
+    EXPECT_TRUE(scheduler.cancel(deletion.value()));
+    ASSERT_TRUE(scheduler.waitForTerminal(deletion.value(), 5s));
+
+    auto events = waitForTerminalEvents<
+        signallab::app::BackgroundFileService,
+        signallab::app::BackgroundFileEvent>(background, 1);
+    ASSERT_EQ(events.size(), 1U);
+    const auto& event = events.front();
+    EXPECT_EQ(event.task.status, signallab::task::TaskStatus::Cancelled);
+    EXPECT_EQ(event.task.lane, signallab::task::TaskLane::Io);
+    EXPECT_EQ(
+        event.operation,
+        signallab::app::BackgroundFileOperation::DeleteSignal);
+    EXPECT_EQ(event.sourceRecordId, stored.recordId);
+    EXPECT_FALSE(event.signalRemoval);
+
+    const auto persisted = database.findByRecordId(stored.recordId);
+    ASSERT_TRUE(persisted) << persisted.error().message;
+    ASSERT_TRUE(persisted.value().has_value());
+    EXPECT_EQ(persisted.value()->recordId, stored.recordId);
+    ASSERT_EQ(imports.entries().size(), 1U);
+    EXPECT_EQ(imports.entries().front().recordId, stored.recordId);
+
+    gate.release();
+    ASSERT_TRUE(scheduler.waitForTerminal(blockerSubmission.value(), 5s));
+    background.clearEventNotifier();
+    scheduler.shutdownAndWait();
+    ASSERT_TRUE(database.shutdown());
+}
+
+TEST(BackgroundFileServiceTest,
+     FirFilteringUsesTheComputeLaneAndPersistsIdempotentDerivedSignals)
+{
+    TemporaryProject project("fir-filter");
+    signallab::database::DatabaseExecutor database(
+        project.databasePath(), migrationsDirectory());
+    ASSERT_TRUE(database.start());
+    const auto stored = saveAnalysisSignal(database, "fir-source");
+
+    FakeFileRepository files;
+    signallab::app::ImportService imports(files, database);
+    const auto restored = imports.restoreSignals();
+    ASSERT_TRUE(restored) << restored.error().message;
+    ASSERT_EQ(imports.entries().size(), 1U);
+    const signallab::app::SignalEntry source = imports.entries().front();
+    ASSERT_EQ(source.recordId, stored.recordId);
+
+    signallab::task::Scheduler scheduler(schedulerConfig(2));
+    signallab::app::BackgroundFileService background(imports, scheduler);
+    const signallab::app::FirFilterOptions lowPass{
+        signallab::app::FirFilterType::LowPass,
+        31U,
+        2'000.0};
+
+    const auto submitted = background.filterFir(source, lowPass);
+    ASSERT_TRUE(submitted) << submitted.error().message;
+    ASSERT_TRUE(scheduler.waitForTerminal(submitted.value(), 10s));
+    auto events = waitForTerminalEvents<
+        signallab::app::BackgroundFileService,
+        signallab::app::BackgroundFileEvent>(background, 1, 10s);
+    ASSERT_EQ(events.size(), 1U);
+    auto& event = events.front();
+    EXPECT_EQ(event.task.status, signallab::task::TaskStatus::Succeeded);
+    EXPECT_EQ(event.task.lane, signallab::task::TaskLane::Compute);
+    EXPECT_EQ(
+        event.operation,
+        signallab::app::BackgroundFileOperation::FilterFir);
+    EXPECT_EQ(event.sourceRecordId, source.recordId);
+    ASSERT_TRUE(event.firOptions.has_value());
+    EXPECT_EQ(event.firOptions->type, lowPass.type);
+    EXPECT_EQ(event.firOptions->tapCount, lowPass.tapCount);
+    EXPECT_DOUBLE_EQ(event.firOptions->cutoffHz, lowPass.cutoffHz);
+    ASSERT_TRUE(event.importedSignal);
+    EXPECT_EQ(imports.entries().size(), 1U);
+
+    const std::int64_t filteredRecordId =
+        event.importedSignal->recordId;
+    EXPECT_NE(filteredRecordId, source.recordId);
+    EXPECT_EQ(
+        event.importedSignal->sourceType,
+        signallab::repository::SignalSourceType::Generated);
+    EXPECT_EQ(
+        event.importedSignal->signal.sampleCount(),
+        source.signal.sampleCount());
+    EXPECT_DOUBLE_EQ(
+        event.importedSignal->signal.sampleRate(),
+        source.signal.sampleRate());
+    EXPECT_EQ(
+        event.importedSignal->signal.metadata().unit,
+        source.signal.metadata().unit);
+    EXPECT_NE(
+        event.importedSignal->displayName.find("FIR low-pass"),
+        std::string::npos);
+    EXPECT_NE(
+        event.importedSignal->sourceKey.find("input-record="
+            + std::to_string(source.recordId)),
+        std::string::npos);
+    EXPECT_NE(
+        event.importedSignal->parametersJson.find(
+            "\"type\":\"lowpass\""),
+        std::string::npos);
+    EXPECT_NE(
+        event.importedSignal->parametersJson.find(
+            "\"boundary\":\"zero_padding\""),
+        std::string::npos);
+
+    EXPECT_EQ(
+        imports.acceptImportedSignal(
+            std::move(*event.importedSignal)),
+        1U);
+    ASSERT_EQ(imports.entries().size(), 2U);
+
+    const auto repeatedSubmission = background.filterFir(source, lowPass);
+    ASSERT_TRUE(repeatedSubmission)
+        << repeatedSubmission.error().message;
+    ASSERT_TRUE(scheduler.waitForTerminal(
+        repeatedSubmission.value(), 10s));
+    auto repeatedEvents = waitForTerminalEvents<
+        signallab::app::BackgroundFileService,
+        signallab::app::BackgroundFileEvent>(background, 1, 10s);
+    ASSERT_EQ(repeatedEvents.size(), 1U);
+    ASSERT_TRUE(repeatedEvents.front().importedSignal);
+    EXPECT_EQ(
+        repeatedEvents.front().importedSignal->recordId,
+        filteredRecordId);
+    EXPECT_EQ(
+        imports.acceptImportedSignal(
+            std::move(*repeatedEvents.front().importedSignal)),
+        1U);
+    EXPECT_EQ(imports.entries().size(), 2U);
+
+    const signallab::app::FirFilterOptions highPass{
+        signallab::app::FirFilterType::HighPass,
+        31U,
+        500.0};
+    const auto highPassSubmission = background.filterFir(source, highPass);
+    ASSERT_TRUE(highPassSubmission)
+        << highPassSubmission.error().message;
+    ASSERT_TRUE(scheduler.waitForTerminal(
+        highPassSubmission.value(), 10s));
+    auto highPassEvents = waitForTerminalEvents<
+        signallab::app::BackgroundFileService,
+        signallab::app::BackgroundFileEvent>(background, 1, 10s);
+    ASSERT_EQ(highPassEvents.size(), 1U);
+    ASSERT_TRUE(highPassEvents.front().importedSignal);
+    EXPECT_NE(
+        highPassEvents.front().importedSignal->recordId,
+        filteredRecordId);
+    EXPECT_NE(
+        highPassEvents.front().importedSignal->parametersJson.find(
+            "\"type\":\"highpass\""),
+        std::string::npos);
+
+    const auto persistedSignals = database.listSignals();
+    ASSERT_TRUE(persistedSignals) << persistedSignals.error().message;
+    EXPECT_EQ(persistedSignals.value().size(), 3U);
+
+    background.clearEventNotifier();
+    scheduler.shutdownAndWait();
+    ASSERT_TRUE(database.shutdown());
+}
+
+TEST(BackgroundFileServiceTest, RejectsInvalidFirParametersBeforeQueuing)
+{
+    TemporaryProject project("invalid-fir");
+    signallab::database::DatabaseExecutor database(
+        project.databasePath(), migrationsDirectory());
+    ASSERT_TRUE(database.start());
+    static_cast<void>(saveAnalysisSignal(database, "invalid-fir-source"));
+
+    FakeFileRepository files;
+    signallab::app::ImportService imports(files, database);
+    ASSERT_TRUE(imports.restoreSignals());
+    ASSERT_EQ(imports.entries().size(), 1U);
+    const auto source = imports.entries().front();
+    signallab::task::Scheduler scheduler(schedulerConfig(1));
+    signallab::app::BackgroundFileService background(imports, scheduler);
+
+    const std::vector<signallab::app::FirFilterOptions> invalidOptions{
+        {signallab::app::FirFilterType::LowPass, 2U, 100.0},
+        {signallab::app::FirFilterType::LowPass, 32U, 100.0},
+        {signallab::app::FirFilterType::LowPass,
+         signallab::app::kMaximumFirTapCount + 2U,
+         100.0},
+        {signallab::app::FirFilterType::LowPass, 31U, 0.0},
+        {signallab::app::FirFilterType::HighPass,
+         31U,
+         source.signal.sampleRate() / 2.0},
+        {static_cast<signallab::app::FirFilterType>(99), 31U, 100.0}
+    };
+
+    for (const auto& options : invalidOptions) {
+        const auto submitted = background.filterFir(source, options);
+        ASSERT_FALSE(submitted);
+        EXPECT_EQ(
+            submitted.error().code,
+            signallab::core::ErrorCode::InvalidParameter);
+    }
+    EXPECT_TRUE(scheduler.snapshots().empty());
 
     background.clearEventNotifier();
     scheduler.shutdownAndWait();

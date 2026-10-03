@@ -147,6 +147,24 @@ SQLite integrity_check: PASS, ok
 SQLite foreign_key_check: PASS, no rows
 Visible GUI manual checklist: PENDING
 
+STAGE 8 RC1 MILESTONE RECHECK
+-----------------------------
+Date: 2026-10-03
+GCC: 16.1.0
+Qt: 6.11.1
+GoogleTest: 1.17.0
+Git: 2.54.0
+Bundled GDB: 16.3
+CMake: 4.2.2
+Ninja: 1.13.2
+Complete pacman package comparison: PASS, 167/167 entries unchanged
+Debug build and CTest: PASS, 273/273 tests
+Release build and CTest: PASS, 273/273 tests
+Non-GUI production line coverage: PASS, 78.54% overall and every module >= 70%
+30-minute Release Mixed stability: PASS, 231 runs / 24,732 test instances / 0 failures
+Windows package directory, isolated smoke, and fresh extraction verification: PASS
+Clean-machine and visible GUI manual checklists: PENDING
+
 COMPLETE `pacman -Q` OUTPUT
 ---------------------------
 base 2022.06-1

@@ -1,6 +1,6 @@
 # SignalScript 0.6 语言与运行时
 
-SignalScript 是 SignalLab 的受限离线分析语言。语言版本仍为 SignalScript 0.6，当前承载它的应用版本为 SignalLab `0.7.0`。它提供词法分析、递归下降语法分析、带恢复的诊断、静态类型检查、解释执行、受控文件访问和 SQLite 执行历史，只调用 SignalLab 已登记的算法与导入服务，不提供循环、网络、进程、Shell、动态库或任意文件系统接口。
+SignalScript 是 SignalLab 的受限离线分析语言。语言版本仍为 SignalScript 0.6，当前承载它的应用版本为 SignalLab `1.0.0-rc1`。它提供词法分析、递归下降语法分析、带恢复的诊断、静态类型检查、解释执行、受控文件访问和 SQLite 执行历史，只调用 SignalLab 已登记的算法与导入服务，不提供循环、网络、进程、Shell、动态库或任意文件系统接口。
 
 阶段 6 交付了语言、运行时和应用服务边界；阶段 7 已把它们接入基于 Model/View 的桌面主窗口。当前 SignalScript 页提供脚本编辑、后台运行与取消、诊断点击跳转、变量/输出/AST 查看、结构化信号和频谱图，以及执行历史和源码重新载入。
 
@@ -19,7 +19,7 @@ plot spec as "One-sided amplitude spectrum";
 save result to "example_signal_features.json";
 ```
 
-脚本中的路径始终相对于宿主注入 `ScriptService` 的 `ScriptFileGateway` 所配置的输入根或输出根，而不是相对于脚本文件自身。上例假定输入根是项目根目录；若宿主把输入根配置为 `data/samples/`，相同输入应写成 `load "example_signal.csv" as raw;`。SignalLab `0.7.0` 的桌面宿主把输出根固定为 `data/script_outputs/`，因此 `save result to "example_signal_features.json";` 会尝试创建 `data/script_outputs/example_signal_features.json`，且不会覆盖同名文件。
+脚本中的路径始终相对于宿主注入 `ScriptService` 的 `ScriptFileGateway` 所配置的输入根或输出根，而不是相对于脚本文件自身。上例假定输入根是项目根目录；若宿主把输入根配置为 `data/samples/`，相同输入应写成 `load "example_signal.csv" as raw;`。SignalLab `1.0.0-rc1` 的桌面宿主把输出根固定为 `data/script_outputs/`，因此 `save result to "example_signal_features.json";` 会尝试创建 `data/script_outputs/example_signal_features.json`，且不会覆盖同名文件。
 
 ## 词法规则
 
@@ -93,7 +93,7 @@ clean = lowpass(raw, cutoff=100, order=63);
 | `fft` | `signal: Signal`；可选 `window: String` | 返回 `Spectrum`；窗口只接受 `"rectangular"`、`"hann"` 或 `"hamming"`，默认沿用分析服务选项 |
 | `features` | `input: Signal | Spectrum`；可选 `fundamental: Number` | 返回 `FeatureSet`；信号产生基本时域特征，频谱还包含 FFT 点数、可用的主峰、SNR 和 THD；显式基频必须为有限正数、位于频谱范围内且仅适用于 `Spectrum`，用于 SNR/THD 重算；基频能量不足或保护区重叠时执行失败 |
 | `load` | 相对输入路径，可选别名 | 支持 `.csv`、`.tsv` 和 PCM16 `.wav`，通过脚本专用的 `ImportService::openCsv/openWav` 使用对应默认导入选项 |
-| `plot` | `Signal | Spectrum`，可选标题 | 产生结构化绘图请求；SignalLab 0.7.0 的主窗口将其显示为交互图表 |
+| `plot` | `Signal | Spectrum`，可选标题 | 产生结构化绘图请求；SignalLab 1.0.0-rc1 的主窗口将其显示为交互图表 |
 | `save` | `Signal | Spectrum | FeatureSet` 和相对输出路径 | 信号与频谱输出 CSV 文本，特征集输出 JSON 文本 |
 
 `fft` 复用 GUI 分析路径的 FFT、频谱、峰值和质量指标实现，而不是维护第二套计算公式。`plot` 只把不可变信号或频谱及标题放入执行结果；主窗口在 GUI 线程消费请求，并按图表当前可见区和像素宽度降采样，保留信号极值或频谱峰值。
@@ -150,18 +150,20 @@ SignalScript 0.6 的 `load` 语句尚不接受解析选项：`.csv` 默认有表
 
 迁移前的旧 `script_history` 行保留原编号和原状态；其空 `source_hash` 用于区分旧记录。读取新的非空哈希记录时，仓库会重新计算并校验脚本文本哈希。
 
-## SignalLab 0.7.0 桌面接入
+## SignalLab 1.0.0-rc1 桌面接入
 
 - `BackgroundScriptService` 把执行投递到计算队列，把历史查询投递到 I/O 队列；工作线程只产生事件，窗口模型和控件只在 Qt GUI 线程更新。
 - 主窗口同时只允许一个活动脚本。可以从编辑器启动或取消，也可以在任务中心查看状态、错误建议和重试来源；取消通过 `std::stop_token` 沿既有运行时安全点传播。
 - 诊断列表显示稳定代码、消息和从 1 开始的行列；点击条目会把编辑器光标移动到相应 UTF-16 位置，包括前文含多字节 Unicode 字符的情况。
 - 成功结果展示变量快照、实际输出路径、稳定 AST 和全部结构化绘图请求。信号图与频谱图支持可见区重采样、缩放、选择、十字光标、复位和 PNG 导出。
 - 脚本历史来自 `script_history`，可查看状态、哈希、UTC 时间与错误位置，并把选中记录的源码重新载入编辑器。
+- `0.7.3` 的项目信号删除不改变脚本语法或运行时。若脚本完成事件携带的信号在等待 GUI 接纳期间已被删除，`ImportService` 的记录编号 tombstone 会忽略该迟到条目，避免产生数据库中不存在的幽灵信号。
+- `0.7.4` 的双信号同轴对比和时间轴滑动条只改变主时域页的显示状态，不改变脚本 `plot`、信号值、采样率或运行时语义。
 
 ## 当前交付边界
 
 - 可复用入口是 `ScriptService::execute()`、历史查询和启动中断清理接口；桌面入口通过 `BackgroundScriptService` 包装这些同步能力。
 - 解释结果包含稳定 AST 文本、诊断、可选运行时问题、变量快照、绘图请求和实际输出路径。
 - 阶段 6 的语言与运行时测试覆盖前端、文件网关、数据库生命周期、资源限制、取消和端到端脚本路径；`0.6.0` 在 Debug 与 Release 下均通过 216/216 项测试，并以 `v0.6`、`stage-6-complete` 和仓库外 Git bundle 固化。
-- SignalLab `0.7.0` 的 Debug 与 Release 全量测试均为 233/233；新增覆盖后台脚本成功/失败/取消/历史、脚本重复运行、结构化图和诊断跳转，以及主窗口模型角色和交互图表边界。
-- 最终真实 GUI 的视觉检查和连续两轮完整流程截至 2026-09-24 尚未执行；自动化测试结果不用于替代该人工验收。
+- SignalLab `0.7.0` 的阶段 7 基线在 Debug 与 Release 全量测试均为 233/233；`0.7.1` 删除增量完成后均为 242/242；`0.7.2` 可用性增量完成后均为 255/255；`0.7.3` 项目信号删除增量和 `0.7.4` 双信号显示增量完成后均为 268/268。`1.0.0-rc1` 阶段 8 候选版均为 273/273。这些版本都未改变 SignalScript 0.6 的语言与运行时行为。
+- 最终真实 GUI 的视觉检查和连续两轮完整流程截至 2026-10-03 尚未执行；自动化测试结果不用于替代该人工验收。

@@ -1,0 +1,21 @@
+# Stage 8 freezes user-facing samples and reference results byte-for-byte.
+data/samples/*.csv text eol=lf
+data/samples/*.sig text eol=lf
+data/samples/*.json text eol=lf
+data/samples/*.txt text eol=lf
+data/samples/expected/*.json text eol=lf
+data/samples/*.wav binary
+data/samples/*.sqlite binary
+data/templates/*.sqlite3 binary
+
+# Frozen inputs and copied upstream notices keep their authoritative bytes.
+# Some upstream notice files intentionally contain trailing spaces or Markdown
+# underline lines that resemble conflict markers, so do not text-normalize or
+# whitespace-check those verbatim copies.
+licenses/third-party/** binary
+LICENSE whitespace=-blank-at-eof
+data/samples/*.sig whitespace=-blank-at-eof
+data/samples/expected/* whitespace=-blank-at-eof
+data/templates/README.md whitespace=-blank-at-eof
+docs/demo-script.md whitespace=-blank-at-eof
+licenses/README.md whitespace=-blank-at-eof

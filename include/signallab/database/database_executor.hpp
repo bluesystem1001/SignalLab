@@ -53,7 +53,7 @@ public:
     [[nodiscard]] core::Result<std::vector<repository::StoredSignal>>
     listSignals() override;
 
-    [[nodiscard]] core::Result<bool> removeSignal(
+    [[nodiscard]] core::Result<repository::SignalRemoval> removeSignal(
         std::int64_t recordId) override;
 
     [[nodiscard]] core::Result<std::int64_t> createTask(
@@ -81,6 +81,9 @@ public:
 
     [[nodiscard]] core::Result<std::vector<repository::FeatureResultRecord>>
     listFeatureResults(std::int64_t taskId) override;
+
+    [[nodiscard]] core::Result<bool> removeTask(
+        std::int64_t taskId) override;
 
     [[nodiscard]] core::Result<std::int64_t> createScriptHistory(
         std::string scriptText) override;

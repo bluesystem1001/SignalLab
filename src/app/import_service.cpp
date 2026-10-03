@@ -1,5 +1,6 @@
 #include "signallab/app/import_service.hpp"
 
+#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <locale>
@@ -253,45 +254,90 @@ core::Result<std::size_t> ImportService::addGeneratedSignal(
     core::Signal signal,
     const std::string& stableSourceKey)
 {
-    if (stableSourceKey.empty()) {
+    auto persistedResult = persistGeneratedSignal(
+        std::move(signal), stableSourceKey);
+    if (!persistedResult) {
         return core::Result<std::size_t>::failure(
+            persistedResult.error());
+    }
+
+    const auto accepted = acceptImportedSignal(
+        std::move(persistedResult).value());
+    if (!accepted.has_value()) {
+        return core::Result<std::size_t>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The generated signal was deleted before it could be accepted.");
+    }
+    return core::Result<std::size_t>::success(*accepted);
+}
+
+core::Result<SignalEntry> ImportService::persistGeneratedSignal(
+    core::Signal signal,
+    const std::string& stableSourceKey,
+    std::string parametersJson,
+    std::stop_token stopToken)
+{
+    if (stableSourceKey.empty()) {
+        return core::Result<SignalEntry>::failure(
             core::ErrorCode::InvalidParameter,
             "A generated signal requires a non-empty stable source key.");
     }
+    if (parametersJson.empty()) {
+        return core::Result<SignalEntry>::failure(
+            core::ErrorCode::InvalidParameter,
+            "Generated signal parameters must not be empty.");
+    }
+    if (stopToken.stop_requested()) {
+        return core::Result<SignalEntry>::failure(
+            core::ErrorCode::Cancelled,
+            "Generated signal persistence was cancelled.");
+    }
+
+    // The lookup and possible insert form one logical idempotent operation.
+    // DatabaseExecutor serializes individual SQL calls, while this lock also
+    // prevents two workers from both observing a missing source key between
+    // those calls.
+    std::lock_guard registrationLock(importMutex_);
 
     auto existingResult = signalRepository_.findBySourceKey(stableSourceKey);
     if (!existingResult) {
-        return core::Result<std::size_t>::failure(existingResult.error());
+        return core::Result<SignalEntry>::failure(existingResult.error());
     }
 
     if (existingResult.value().has_value()) {
-        const std::int64_t recordId = existingResult.value()->recordId;
-        for (std::size_t index = 0; index < entries_.size(); ++index) {
-            if (entries_[index].recordId == recordId) {
-                return core::Result<std::size_t>::success(index);
-            }
+        if (stopToken.stop_requested()) {
+            return core::Result<SignalEntry>::failure(
+                core::ErrorCode::Cancelled,
+                "Generated signal persistence was cancelled.");
         }
+        return core::Result<SignalEntry>::success(
+            makeEntry(*existingResult.value()));
+    }
 
-        entries_.push_back(makeEntry(*existingResult.value()));
-        return core::Result<std::size_t>::success(entries_.size() - 1U);
+    if (stopToken.stop_requested()) {
+        return core::Result<SignalEntry>::failure(
+            core::ErrorCode::Cancelled,
+            "Generated signal persistence was cancelled.");
     }
 
     repository::SignalRegistration registration{
         repository::SignalSourceType::Generated,
         stableSourceKey,
         {},
-        "{}",
+        std::move(parametersJson),
         std::nullopt,
         std::move(signal)
     };
 
     auto savedResult = signalRepository_.saveSignal(std::move(registration));
     if (!savedResult) {
-        return core::Result<std::size_t>::failure(savedResult.error());
+        return core::Result<SignalEntry>::failure(savedResult.error());
     }
 
-    entries_.push_back(makeEntry(std::move(savedResult).value()));
-    return core::Result<std::size_t>::success(entries_.size() - 1U);
+    // The database commit is the point of no return. A cancellation arriving
+    // after saveSignal() succeeds must not relabel the committed result.
+    return core::Result<SignalEntry>::success(
+        makeEntry(std::move(savedResult).value()));
 }
 
 core::Result<repository::ImportPreview> ImportService::previewCsv(
@@ -319,8 +365,13 @@ core::Result<std::size_t> ImportService::importCsv(
         return core::Result<std::size_t>::failure(loadResult.error());
     }
 
-    return core::Result<std::size_t>::success(
-        acceptImportedSignal(std::move(loadResult).value()));
+    const auto accepted = acceptImportedSignal(std::move(loadResult).value());
+    if (!accepted.has_value()) {
+        return core::Result<std::size_t>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The imported signal was deleted before it could be accepted.");
+    }
+    return core::Result<std::size_t>::success(*accepted);
 }
 
 core::Result<std::size_t> ImportService::importWav(
@@ -333,8 +384,13 @@ core::Result<std::size_t> ImportService::importWav(
         return core::Result<std::size_t>::failure(loadResult.error());
     }
 
-    return core::Result<std::size_t>::success(
-        acceptImportedSignal(std::move(loadResult).value()));
+    const auto accepted = acceptImportedSignal(std::move(loadResult).value());
+    if (!accepted.has_value()) {
+        return core::Result<std::size_t>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The imported signal was deleted before it could be accepted.");
+    }
+    return core::Result<std::size_t>::success(*accepted);
 }
 
 core::Result<SignalEntry> ImportService::loadCsv(
@@ -415,8 +471,13 @@ core::Result<SignalEntry> ImportService::loadWavImpl(
         reuseExisting);
 }
 
-std::size_t ImportService::acceptImportedSignal(SignalEntry entry)
+std::optional<std::size_t> ImportService::acceptImportedSignal(
+    SignalEntry entry)
 {
+    std::lock_guard registrationLock(importMutex_);
+    if (deletedRecordIds_.contains(entry.recordId)) {
+        return std::nullopt;
+    }
     for (std::size_t index = 0; index < entries_.size(); ++index) {
         if (entries_[index].recordId == entry.recordId) {
             return index;
@@ -425,6 +486,72 @@ std::size_t ImportService::acceptImportedSignal(SignalEntry entry)
 
     entries_.push_back(std::move(entry));
     return entries_.size() - 1U;
+}
+
+core::Result<SignalRemovalOutcome> ImportService::removePersistedSignal(
+    std::int64_t recordId)
+{
+    if (recordId <= 0) {
+        return core::Result<SignalRemovalOutcome>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The signal record id must be positive.");
+    }
+
+    // This lock makes the database last-reference decision and physical
+    // archive cleanup indivisible with respect to imports and generated
+    // signal registration performed through this service instance.
+    std::lock_guard registrationLock(importMutex_);
+    auto removal = signalRepository_.removeSignal(recordId);
+    if (!removal) {
+        return core::Result<SignalRemovalOutcome>::failure(removal.error());
+    }
+
+    deletedRecordIds_.insert(recordId);
+    SignalRemovalOutcome outcome;
+    outcome.removed = removal.value().removed;
+    if (!removal.value().unreferencedStoredRelativePath.has_value()) {
+        return core::Result<SignalRemovalOutcome>::success(
+            std::move(outcome));
+    }
+
+    outcome.unreferencedStoredRelativePath =
+        *removal.value().unreferencedStoredRelativePath;
+    // The SQLite commit is already durable. Cleanup deliberately ignores any
+    // task cancellation arriving after that point and reports a warning while
+    // leaving a safe orphan archive for later reuse.
+    auto cleanup = fileRepository_.removeStoredFile(
+        outcome.unreferencedStoredRelativePath);
+    if (!cleanup) {
+        outcome.cleanupWarning =
+            "The signal was deleted, but its unreferenced project archive "
+            "could not be removed: " + cleanup.error().message;
+    } else if (cleanup.value()) {
+        outcome.storedFileRemoved = true;
+    } else {
+        outcome.storedFileAlreadyMissing = true;
+    }
+    return core::Result<SignalRemovalOutcome>::success(std::move(outcome));
+}
+
+bool ImportService::forgetSignal(std::int64_t recordId)
+{
+    if (recordId <= 0) {
+        return false;
+    }
+
+    std::lock_guard registrationLock(importMutex_);
+    deletedRecordIds_.insert(recordId);
+    const auto found = std::find_if(
+        entries_.begin(),
+        entries_.end(),
+        [recordId](const SignalEntry& entry) {
+            return entry.recordId == recordId;
+        });
+    if (found == entries_.end()) {
+        return false;
+    }
+    entries_.erase(found);
+    return true;
 }
 
 const std::vector<SignalEntry>& ImportService::entries() const noexcept

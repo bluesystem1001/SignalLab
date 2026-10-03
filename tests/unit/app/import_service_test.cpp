@@ -153,9 +153,11 @@ public:
             std::vector<signallab::repository::StoredSignal>>::success({});
     }
 
-    signallab::core::Result<bool> removeSignal(std::int64_t) override
+    signallab::core::Result<signallab::repository::SignalRemoval>
+    removeSignal(std::int64_t) override
     {
-        return signallab::core::Result<bool>::success(false);
+        return signallab::core::Result<
+            signallab::repository::SignalRemoval>::success({});
     }
 
 private:
@@ -278,6 +280,80 @@ TEST(ImportServiceTest, RestoresOneIdempotentGeneratedSignal)
     EXPECT_EQ(
         restartedService.entries().front().sampleHash.size(),
         64U);
+}
+
+TEST(ImportServiceTest,
+     PersistsGeneratedSignalWithoutMutatingTheUiFacingEntries)
+{
+    TemporaryProject project;
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+
+    auto signal = signallab::core::Signal::create(
+        {0.0, 0.5, -0.5, 0.25},
+        2'000.0,
+        {"Derived test", "V", "unit test"});
+    ASSERT_TRUE(signal);
+
+    constexpr const char* sourceKey = "generated:test:background-safe";
+    constexpr const char* parameters =
+        "{\"algorithm\":\"test\",\"version\":1}";
+    auto persisted = context.service.persistGeneratedSignal(
+        signal.value(), sourceKey, parameters);
+
+    ASSERT_TRUE(persisted) << persisted.error().message;
+    EXPECT_TRUE(context.service.entries().empty());
+    EXPECT_EQ(persisted.value().sourceKey, sourceKey);
+    EXPECT_EQ(persisted.value().parametersJson, parameters);
+    EXPECT_EQ(
+        persisted.value().sourceType,
+        signallab::repository::SignalSourceType::Generated);
+    EXPECT_TRUE(persisted.value().hash.empty());
+
+    auto repeated = context.service.persistGeneratedSignal(
+        std::move(signal).value(), sourceKey, parameters);
+    ASSERT_TRUE(repeated) << repeated.error().message;
+    EXPECT_EQ(repeated.value().recordId, persisted.value().recordId);
+    EXPECT_TRUE(context.service.entries().empty());
+
+    const auto firstIndex = context.service.acceptImportedSignal(
+        std::move(persisted).value());
+    const auto repeatedIndex = context.service.acceptImportedSignal(
+        std::move(repeated).value());
+    EXPECT_EQ(firstIndex, 0U);
+    EXPECT_EQ(repeatedIndex, 0U);
+    ASSERT_EQ(context.service.entries().size(), 1U);
+    EXPECT_EQ(context.service.entries().front().parametersJson, parameters);
+}
+
+TEST(ImportServiceTest, CancelsGeneratedPersistenceBeforeDatabaseWork)
+{
+    TemporaryProject project;
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+
+    auto signal = signallab::core::Signal::create(
+        {1.0, 0.0, -1.0},
+        1'000.0,
+        {"Cancelled generated test", "V", "unit test"});
+    ASSERT_TRUE(signal);
+    std::stop_source stopSource;
+    stopSource.request_stop();
+
+    const auto result = context.service.persistGeneratedSignal(
+        std::move(signal).value(),
+        "generated:test:cancelled",
+        "{}",
+        stopSource.get_token());
+
+    ASSERT_FALSE(result);
+    EXPECT_EQ(
+        result.error().code,
+        signallab::core::ErrorCode::Cancelled);
+    EXPECT_TRUE(context.service.entries().empty());
+    const auto stored = context.signalRepository.listSignals();
+    ASSERT_TRUE(stored) << stored.error().message;
+    EXPECT_TRUE(stored.value().empty());
 }
 
 TEST(ImportServiceTest, RepeatedCsvImportKeepsOnlyOneStoredFile)
@@ -414,6 +490,246 @@ TEST(ImportServiceTest, ReusesOneFileForDifferentLogicalSignals)
     EXPECT_DOUBLE_EQ(
         context.service.entries()[1].signal.samples()[0],
         10.0);
+}
+
+TEST(ImportServiceTest,
+     RemovesAUniqueCsvAndItsArchiveButKeepsTheOriginalFile)
+{
+    TemporaryProject project;
+    const auto sourcePath = project.root() / "delete-unique.csv";
+    {
+        std::ofstream sourceFile(sourcePath, std::ios::binary);
+        ASSERT_TRUE(sourceFile.is_open());
+        sourceFile
+            << "time,value\n"
+            << "0.000,1.0\n"
+            << "0.001,2.0\n";
+    }
+
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+    const auto importResult = context.service.importCsv(
+        sourcePath,
+        makeCsvOptions());
+    ASSERT_TRUE(importResult) << importResult.error().message;
+    ASSERT_EQ(context.service.entries().size(), 1U);
+    const auto recordId = context.service.entries().front().recordId;
+    const auto storedRelativePath =
+        context.service.entries().front().storedRelativePath;
+    const auto storedPath = project.root() / storedRelativePath;
+    ASSERT_TRUE(std::filesystem::is_regular_file(sourcePath));
+    ASSERT_TRUE(std::filesystem::is_regular_file(storedPath));
+
+    const auto removal = context.service.removePersistedSignal(recordId);
+
+    ASSERT_TRUE(removal) << removal.error().message;
+    EXPECT_TRUE(removal.value().removed);
+    EXPECT_EQ(
+        removal.value().unreferencedStoredRelativePath,
+        storedRelativePath);
+    EXPECT_TRUE(removal.value().storedFileRemoved);
+    EXPECT_FALSE(removal.value().storedFileAlreadyMissing);
+    EXPECT_TRUE(removal.value().cleanupWarning.empty());
+    EXPECT_TRUE(std::filesystem::is_regular_file(sourcePath));
+    EXPECT_FALSE(std::filesystem::exists(storedPath));
+    // Persistent deletion is worker-safe and intentionally does not mutate
+    // the GUI-facing list until the terminal event is handled.
+    ASSERT_EQ(context.service.entries().size(), 1U);
+    EXPECT_TRUE(context.service.forgetSignal(recordId));
+    EXPECT_TRUE(context.service.entries().empty());
+
+    const auto stored = context.signalRepository.findByRecordId(recordId);
+    ASSERT_TRUE(stored) << stored.error().message;
+    EXPECT_FALSE(stored.value().has_value());
+}
+
+TEST(ImportServiceTest,
+     KeepsASharedArchiveUntilTheLastLogicalSignalIsDeleted)
+{
+    TemporaryProject project;
+    const auto sourcePath = project.root() / "delete-shared.csv";
+    {
+        std::ofstream sourceFile(sourcePath, std::ios::binary);
+        ASSERT_TRUE(sourceFile.is_open());
+        sourceFile
+            << "time,left,right\n"
+            << "0.000,1.0,10.0\n"
+            << "0.001,2.0,20.0\n";
+    }
+
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+    auto leftOptions = makeCsvOptions();
+    leftOptions.valueColumn = 1;
+    leftOptions.metadata.name = "Delete left";
+    ASSERT_TRUE(context.service.importCsv(sourcePath, leftOptions));
+    auto rightOptions = leftOptions;
+    rightOptions.valueColumn = 2;
+    rightOptions.metadata.name = "Delete right";
+    ASSERT_TRUE(context.service.importCsv(sourcePath, rightOptions));
+    ASSERT_EQ(context.service.entries().size(), 2U);
+
+    const auto firstRecordId = context.service.entries()[0].recordId;
+    const auto lastRecordId = context.service.entries()[1].recordId;
+    const auto storedRelativePath =
+        context.service.entries()[0].storedRelativePath;
+    ASSERT_EQ(
+        storedRelativePath,
+        context.service.entries()[1].storedRelativePath);
+    const auto storedPath = project.root() / storedRelativePath;
+    ASSERT_TRUE(std::filesystem::is_regular_file(storedPath));
+
+    const auto firstRemoval =
+        context.service.removePersistedSignal(firstRecordId);
+
+    ASSERT_TRUE(firstRemoval) << firstRemoval.error().message;
+    EXPECT_TRUE(firstRemoval.value().removed);
+    EXPECT_TRUE(
+        firstRemoval.value().unreferencedStoredRelativePath.empty());
+    EXPECT_FALSE(firstRemoval.value().storedFileRemoved);
+    EXPECT_TRUE(std::filesystem::is_regular_file(storedPath));
+    EXPECT_TRUE(context.service.forgetSignal(firstRecordId));
+    ASSERT_EQ(context.service.entries().size(), 1U);
+    EXPECT_EQ(context.service.entries().front().recordId, lastRecordId);
+
+    const auto lastRemoval =
+        context.service.removePersistedSignal(lastRecordId);
+
+    ASSERT_TRUE(lastRemoval) << lastRemoval.error().message;
+    EXPECT_TRUE(lastRemoval.value().removed);
+    EXPECT_EQ(
+        lastRemoval.value().unreferencedStoredRelativePath,
+        storedRelativePath);
+    EXPECT_TRUE(lastRemoval.value().storedFileRemoved);
+    EXPECT_FALSE(std::filesystem::exists(storedPath));
+    EXPECT_TRUE(std::filesystem::is_regular_file(sourcePath));
+    EXPECT_TRUE(context.service.forgetSignal(lastRecordId));
+    EXPECT_TRUE(context.service.entries().empty());
+}
+
+TEST(ImportServiceTest, RemovesAGeneratedSignalWithoutFileCleanup)
+{
+    TemporaryProject project;
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+    auto signal = signallab::core::Signal::create(
+        {0.0, 1.0, 0.0},
+        1'000.0,
+        {"Generated deletion", "V", "unit test"});
+    ASSERT_TRUE(signal);
+    ASSERT_TRUE(context.service.addGeneratedSignal(
+        std::move(signal).value(),
+        "generated:test:delete"));
+    ASSERT_EQ(context.service.entries().size(), 1U);
+    const auto recordId = context.service.entries().front().recordId;
+
+    const auto removal = context.service.removePersistedSignal(recordId);
+
+    ASSERT_TRUE(removal) << removal.error().message;
+    EXPECT_TRUE(removal.value().removed);
+    EXPECT_TRUE(removal.value().unreferencedStoredRelativePath.empty());
+    EXPECT_FALSE(removal.value().storedFileRemoved);
+    EXPECT_FALSE(removal.value().storedFileAlreadyMissing);
+    EXPECT_TRUE(removal.value().cleanupWarning.empty());
+    EXPECT_EQ(countStoredFiles(project.root()), 0U);
+    EXPECT_TRUE(context.service.forgetSignal(recordId));
+    EXPECT_TRUE(context.service.entries().empty());
+}
+
+TEST(ImportServiceTest, MissingSignalDeletionIsIdempotent)
+{
+    TemporaryProject project;
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+
+    constexpr std::int64_t missingRecordId = 999'999;
+    const auto firstRemoval =
+        context.service.removePersistedSignal(missingRecordId);
+    const auto repeatedRemoval =
+        context.service.removePersistedSignal(missingRecordId);
+
+    ASSERT_TRUE(firstRemoval) << firstRemoval.error().message;
+    EXPECT_FALSE(firstRemoval.value().removed);
+    EXPECT_TRUE(
+        firstRemoval.value().unreferencedStoredRelativePath.empty());
+    ASSERT_TRUE(repeatedRemoval) << repeatedRemoval.error().message;
+    EXPECT_FALSE(repeatedRemoval.value().removed);
+    EXPECT_FALSE(context.service.forgetSignal(missingRecordId));
+
+    const auto invalidRemoval = context.service.removePersistedSignal(0);
+    ASSERT_FALSE(invalidRemoval);
+    EXPECT_EQ(
+        invalidRemoval.error().code,
+        signallab::core::ErrorCode::InvalidParameter);
+}
+
+TEST(ImportServiceTest, RejectsALateAcceptedSignalAfterPersistentDeletion)
+{
+    TemporaryProject project;
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+    auto signal = signallab::core::Signal::create(
+        {1.0, 0.0, -1.0},
+        2'000.0,
+        {"Late generated result", "V", "unit test"});
+    ASSERT_TRUE(signal);
+    auto persisted = context.service.persistGeneratedSignal(
+        std::move(signal).value(),
+        "generated:test:late-delete");
+    ASSERT_TRUE(persisted) << persisted.error().message;
+    EXPECT_TRUE(context.service.entries().empty());
+    const auto recordId = persisted.value().recordId;
+
+    const auto removal = context.service.removePersistedSignal(recordId);
+    ASSERT_TRUE(removal) << removal.error().message;
+    ASSERT_TRUE(removal.value().removed);
+
+    const auto accepted = context.service.acceptImportedSignal(
+        std::move(persisted).value());
+    EXPECT_FALSE(accepted.has_value());
+    EXPECT_TRUE(context.service.entries().empty());
+    EXPECT_FALSE(context.service.forgetSignal(recordId));
+}
+
+TEST(ImportServiceTest,
+     ReportsArchiveCleanupFailureWithoutUndoingCommittedDeletion)
+{
+    TemporaryProject project;
+    const auto sourcePath = project.root() / "delete-cleanup-warning.csv";
+    {
+        std::ofstream sourceFile(sourcePath, std::ios::binary);
+        ASSERT_TRUE(sourceFile.is_open());
+        sourceFile
+            << "time,value\n"
+            << "0.000,1.0\n"
+            << "0.001,2.0\n";
+    }
+
+    ImportTestContext context(project.root());
+    ASSERT_TRUE(context.initialize()) << context.errorMessage;
+    ASSERT_TRUE(context.service.importCsv(sourcePath, makeCsvOptions()));
+    ASSERT_EQ(context.service.entries().size(), 1U);
+    const auto recordId = context.service.entries().front().recordId;
+    const auto storedRelativePath =
+        context.service.entries().front().storedRelativePath;
+    const auto storedPath = project.root() / storedRelativePath;
+    ASSERT_TRUE(std::filesystem::remove(storedPath));
+    ASSERT_TRUE(std::filesystem::create_directory(storedPath));
+
+    const auto removal = context.service.removePersistedSignal(recordId);
+
+    ASSERT_TRUE(removal) << removal.error().message;
+    EXPECT_TRUE(removal.value().removed);
+    EXPECT_FALSE(removal.value().storedFileRemoved);
+    EXPECT_FALSE(removal.value().storedFileAlreadyMissing);
+    EXPECT_FALSE(removal.value().cleanupWarning.empty());
+    EXPECT_TRUE(std::filesystem::is_directory(storedPath));
+    EXPECT_TRUE(std::filesystem::is_regular_file(sourcePath));
+    const auto stored = context.signalRepository.findByRecordId(recordId);
+    ASSERT_TRUE(stored) << stored.error().message;
+    EXPECT_FALSE(stored.value().has_value());
+    EXPECT_TRUE(context.service.forgetSignal(recordId));
+    EXPECT_TRUE(context.service.entries().empty());
 }
 
 TEST(ImportServiceTest, EscapesMetadataInCanonicalParameters)

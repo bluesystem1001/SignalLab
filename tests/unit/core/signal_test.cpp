@@ -127,5 +127,23 @@ TEST(SignalTest, CopiesShareTheImmutableSampleBuffer)
     EXPECT_EQ(original.metadata().name, copy.metadata().name);
 }
 
+TEST(SignalTest, ReplacesMetadataWithoutCopyingTheSampleBuffer)
+{
+    auto result = Signal::create(
+        {0.0, 1.0, -1.0, 0.5}, 4.0, testMetadata());
+    ASSERT_TRUE(result);
+
+    const Signal original = std::move(result).value();
+    const Signal renamed = original.withMetadata(
+        {"filtered signal", "mV", "FIR derivative"});
+
+    EXPECT_EQ(original.samples().data(), renamed.samples().data());
+    EXPECT_DOUBLE_EQ(original.sampleRate(), renamed.sampleRate());
+    EXPECT_EQ(original.metadata().name, "test signal");
+    EXPECT_EQ(renamed.metadata().name, "filtered signal");
+    EXPECT_EQ(renamed.metadata().unit, "mV");
+    EXPECT_EQ(renamed.metadata().source, "FIR derivative");
+}
+
 }  // namespace
 }  // namespace signallab::core

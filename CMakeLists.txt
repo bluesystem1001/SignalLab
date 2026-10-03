@@ -2,9 +2,11 @@ cmake_minimum_required(VERSION 3.28)
 
 project(
     SignalLab
-    VERSION 0.7.0
+    VERSION 1.0.0
     LANGUAGES CXX
 )
+
+set(SIGNALLAB_RELEASE_VERSION "1.0.0-rc1")
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -220,6 +222,8 @@ target_link_libraries(signallab_app
 signallab_set_compiler_warnings(signallab_app)
 
 add_library(signallab_gui STATIC
+    src/gui/file_import_dialog.cpp
+    src/gui/file_import_dialog.hpp
     src/gui/interactive_chart_view.cpp
     src/gui/interactive_chart_view.hpp
     src/gui/main_window.cpp
@@ -237,7 +241,7 @@ target_compile_features(signallab_gui PUBLIC cxx_std_20)
 
 target_compile_definitions(signallab_gui
     PUBLIC
-        SIGNALLAB_VERSION_STRING="${PROJECT_VERSION}"
+        SIGNALLAB_VERSION_STRING="${SIGNALLAB_RELEASE_VERSION}"
 )
 
 target_link_libraries(signallab_gui
@@ -270,6 +274,14 @@ add_executable(signallab_fft_benchmark
 target_compile_features(signallab_fft_benchmark PRIVATE cxx_std_20)
 target_link_libraries(signallab_fft_benchmark PRIVATE signallab_algorithm)
 signallab_set_compiler_warnings(signallab_fft_benchmark)
+
+add_executable(signallab_import_benchmark
+    benchmarks/import_benchmark.cpp
+)
+
+target_compile_features(signallab_import_benchmark PRIVATE cxx_std_20)
+target_link_libraries(signallab_import_benchmark PRIVATE signallab_io)
+signallab_set_compiler_warnings(signallab_import_benchmark)
 
 if(BUILD_TESTING)
     add_subdirectory(tests)

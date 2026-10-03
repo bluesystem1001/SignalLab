@@ -857,4 +857,84 @@ SqliteTaskRepository::listFeatureResults(std::int64_t taskId)
         std::move(features));
 }
 
+core::Result<bool> SqliteTaskRepository::removeTask(
+    std::int64_t taskId)
+{
+    const auto threadCheck = connection_.checkThread();
+    if (!threadCheck) {
+        return threadCheck;
+    }
+    if (taskId <= 0) {
+        return core::Result<bool>::failure(
+            core::ErrorCode::InvalidParameter,
+            "The task id must be positive.");
+    }
+
+    QSqlDatabase database = connection_.database();
+    if (!database.transaction()) {
+        return detail::databaseFailure(
+            "Cannot begin the task delete transaction", database);
+    }
+
+    QSqlQuery lookup(database);
+    if (!lookup.prepare(
+            "SELECT status FROM analysis_task WHERE id = ?")) {
+        const auto failure = detail::queryFailure(
+            "Cannot prepare the task delete lookup", lookup);
+        return rollbackFailure(database, failure.error());
+    }
+    lookup.addBindValue(taskId);
+    if (!lookup.exec()) {
+        const auto failure = detail::queryFailure(
+            "Cannot load the task before deletion", lookup);
+        return rollbackFailure(database, failure.error());
+    }
+    if (!lookup.next()) {
+        database.rollback();
+        return core::Result<bool>::success(false);
+    }
+
+    const QString status = lookup.value(0).toString();
+    lookup.finish();
+    const bool terminal = status == "SUCCEEDED" || status == "FAILED"
+        || status == "CANCELLED" || status == "INTERRUPTED";
+    if (!terminal) {
+        database.rollback();
+        return core::Result<bool>::failure(
+            core::ErrorCode::InvalidParameter,
+            "Only a terminal analysis task can be deleted.");
+    }
+
+    QSqlQuery remove(database);
+    if (!remove.prepare("DELETE FROM analysis_task WHERE id = ?")) {
+        const auto failure = detail::queryFailure(
+            "Cannot prepare the analysis task delete", remove);
+        return rollbackFailure(database, failure.error());
+    }
+    remove.addBindValue(taskId);
+    if (!remove.exec() || remove.numRowsAffected() != 1) {
+        const auto failure = detail::queryFailure(
+            "Cannot delete the analysis task", remove);
+        return rollbackFailure(database, failure.error());
+    }
+
+    const auto log = detail::writeOperationLog(
+        database,
+        "DELETE_TASK",
+        "analysis_task",
+        taskId,
+        QString("terminal status: ") + status);
+    if (!log) {
+        return rollbackFailure(database, log.error());
+    }
+
+    if (!database.commit()) {
+        const auto failure = detail::databaseFailure(
+            "Cannot commit the task delete transaction", database);
+        database.rollback();
+        return failure;
+    }
+    return core::Result<bool>::success(true);
+}
+
 }  // namespace signallab::database

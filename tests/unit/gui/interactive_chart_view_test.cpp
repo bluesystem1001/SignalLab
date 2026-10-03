@@ -5,6 +5,7 @@
 #include <QImageReader>
 #include <QTemporaryDir>
 #include <QThread>
+#include <QWheelEvent>
 
 #include <QtCharts/QChart>
 #include <QtCharts/QLineSeries>
@@ -13,6 +14,7 @@
 #include <gtest/gtest.h>
 
 #include <cmath>
+#include <limits>
 
 #include "gui/interactive_chart_view.hpp"
 
@@ -60,6 +62,22 @@ void processEventsFor(int milliseconds)
     QCoreApplication::processEvents(QEventLoop::AllEvents);
 }
 
+void sendWheel(InteractiveChartView* view, int angleDeltaY)
+{
+    const QPoint position = view->mapFromScene(
+        view->chart()->mapToScene(view->chart()->plotArea().center()));
+    QWheelEvent event(
+        QPointF(position),
+        QPointF(view->viewport()->mapToGlobal(position)),
+        {},
+        QPoint(0, angleDeltaY),
+        Qt::NoButton,
+        Qt::NoModifier,
+        Qt::NoScrollPhase,
+        false);
+    QCoreApplication::sendEvent(view->viewport(), &event);
+}
+
 TEST(InteractiveChartViewTest, SaveImageWritesReadablePng)
 {
     const ChartFixture fixture = makeChartView();
@@ -94,6 +112,70 @@ TEST(InteractiveChartViewTest, ResetViewRestoresCapturedAxisRanges)
     EXPECT_DOUBLE_EQ(fixture.horizontalAxis->max(), 10.0);
     EXPECT_DOUBLE_EQ(fixture.verticalAxis->min(), -2.0);
     EXPECT_DOUBLE_EQ(fixture.verticalAxis->max(), 2.0);
+
+    delete fixture.view;
+}
+
+TEST(InteractiveChartViewTest, DefaultWheelZoomChangesBothAxes)
+{
+    const ChartFixture fixture = makeChartView();
+    EXPECT_TRUE(fixture.view->zoomOrientations().testFlag(Qt::Horizontal));
+    EXPECT_TRUE(fixture.view->zoomOrientations().testFlag(Qt::Vertical));
+    EXPECT_TRUE(fixture.view->rubberBand().testFlag(
+        QChartView::HorizontalRubberBand));
+    EXPECT_TRUE(fixture.view->rubberBand().testFlag(
+        QChartView::VerticalRubberBand));
+
+    sendWheel(fixture.view, 120);
+
+    EXPECT_LT(
+        fixture.horizontalAxis->max() - fixture.horizontalAxis->min(),
+        10.0);
+    EXPECT_LT(
+        fixture.verticalAxis->max() - fixture.verticalAxis->min(),
+        4.0);
+
+    delete fixture.view;
+}
+
+TEST(InteractiveChartViewTest, HorizontalWheelZoomLeavesVerticalRangeUnchanged)
+{
+    const ChartFixture fixture = makeChartView();
+    fixture.view->setZoomOrientations(Qt::Horizontal);
+    EXPECT_TRUE(fixture.view->zoomOrientations().testFlag(Qt::Horizontal));
+    EXPECT_FALSE(fixture.view->zoomOrientations().testFlag(Qt::Vertical));
+    EXPECT_TRUE(fixture.view->rubberBand().testFlag(
+        QChartView::HorizontalRubberBand));
+    EXPECT_FALSE(fixture.view->rubberBand().testFlag(
+        QChartView::VerticalRubberBand));
+
+    sendWheel(fixture.view, 120);
+
+    EXPECT_LT(
+        fixture.horizontalAxis->max() - fixture.horizontalAxis->min(),
+        10.0);
+    EXPECT_DOUBLE_EQ(fixture.verticalAxis->min(), -2.0);
+    EXPECT_DOUBLE_EQ(fixture.verticalAxis->max(), 2.0);
+
+    delete fixture.view;
+}
+
+TEST(InteractiveChartViewTest, ProgrammaticHorizontalZoomUsesAxisCenter)
+{
+    const ChartFixture fixture = makeChartView();
+
+    EXPECT_TRUE(fixture.view->zoomHorizontally(0.5));
+    EXPECT_DOUBLE_EQ(fixture.horizontalAxis->min(), 2.5);
+    EXPECT_DOUBLE_EQ(fixture.horizontalAxis->max(), 7.5);
+    EXPECT_DOUBLE_EQ(fixture.verticalAxis->min(), -2.0);
+    EXPECT_DOUBLE_EQ(fixture.verticalAxis->max(), 2.0);
+
+    EXPECT_TRUE(fixture.view->zoomHorizontally(2.0));
+    EXPECT_DOUBLE_EQ(fixture.horizontalAxis->min(), 0.0);
+    EXPECT_DOUBLE_EQ(fixture.horizontalAxis->max(), 10.0);
+    EXPECT_FALSE(fixture.view->zoomHorizontally(0.0));
+    EXPECT_FALSE(fixture.view->zoomHorizontally(
+        std::numeric_limits<double>::quiet_NaN()));
 
     delete fixture.view;
 }

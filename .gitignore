@@ -24,6 +24,8 @@ CMakeUserPresets.json
 *.a
 *.o
 *.obj
+*.pyc
+__pycache__/
 dist/
 package/
 
@@ -34,6 +36,7 @@ package/
 *.sqlite3
 *.sqlite3-shm
 *.sqlite3-wal
+!data/templates/blank.sqlite3
 data/imports/
 data/script_outputs/
 

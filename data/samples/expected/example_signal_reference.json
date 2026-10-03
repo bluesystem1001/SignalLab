@@ -1,0 +1,52 @@
+{
+  "reference_format": 1,
+  "input": "data/samples/example_signal.csv",
+  "input_sha256": "8c44bd06af39bfc22b0bd727569c3e63d9adde749564d15230228678b27872ac",
+  "csv_options": {
+    "delimiter": "comma",
+    "has_header": true,
+    "time_column_1_based": 1,
+    "value_column_1_based": 2
+  },
+  "import_result": {
+    "sample_rate_hz": 1000.0,
+    "sample_count": 21,
+    "duration_seconds": 0.021,
+    "sample_sha256": "81d4cfccae759b8c33778a098acfc45958ddb6a3b305a6f5c01be36335630397"
+  },
+  "default_analysis": {
+    "parameters": {
+      "maximum_peak_count": 10,
+      "metric_guard_bins": 1,
+      "minimum_peak_amplitude_ratio": 0.01,
+      "minimum_peak_distance_hz": 0.0,
+      "thd_harmonic_count": 5,
+      "window_type": "hann"
+    },
+    "expected": {
+      "mean": 0.0,
+      "variance": 0.4761905973432381,
+      "rms": 0.6900656471258645,
+      "peak_to_peak": 2.0,
+      "fft_size": 32,
+      "frequency_bin_width_hz": 31.25,
+      "peak_count": 1,
+      "dominant_frequency_hz": 56.01874695195018,
+      "dominant_amplitude": 0.9999076273192962,
+      "snr_db": 18.71749170546286,
+      "thd_percent": null
+    },
+    "numeric_tolerance": {
+      "basic_feature_absolute": 1e-12,
+      "dominant_frequency_hz_absolute": 1e-9,
+      "dominant_amplitude_absolute": 1e-12,
+      "snr_db_absolute": 1e-9
+    },
+    "notes": [
+      "The input contains 21 samples including both zero crossings, so Signal::durationSeconds() is sample_count/sample_rate = 0.021 s.",
+      "The dominant estimate is not exactly 50 Hz because the 21-sample signal is Hann-windowed and zero-padded to 32 points before log-parabolic peak refinement.",
+      "THD is unavailable for this short spectrum under the default non-overlapping guard-bin rule."
+    ]
+  }
+}
+

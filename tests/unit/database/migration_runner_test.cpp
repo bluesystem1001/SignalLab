@@ -592,6 +592,155 @@ TEST(SqliteScriptRepositoryTest, RollsBackFinishWhenLogCannotBeWritten)
     EXPECT_TRUE(state.value(4).toString().isEmpty());
 }
 
+TEST(SqliteScriptRepositoryTest,
+     ValidatesTerminalRequestsAndPersistsEveryTerminalStatus)
+{
+    test::TemporaryProject project("script-terminal-boundaries");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+    SqliteScriptRepository repository(connection);
+
+    const auto invalidId = repository.finishScriptHistory(
+        0,
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Succeeded,
+            std::nullopt,
+            ""});
+    ASSERT_FALSE(invalidId);
+    EXPECT_EQ(invalidId.error().code, core::ErrorCode::InvalidParameter);
+
+    const auto runningStatus = repository.finishScriptHistory(
+        1,
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Running,
+            std::nullopt,
+            "Still running"});
+    ASSERT_FALSE(runningStatus);
+    EXPECT_EQ(runningStatus.error().code, core::ErrorCode::InvalidParameter);
+
+    const auto successWithError = repository.finishScriptHistory(
+        1,
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Succeeded,
+            std::nullopt,
+            "Success cannot carry an error"});
+    ASSERT_FALSE(successWithError);
+    EXPECT_EQ(
+        successWithError.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto failureWithoutMessage = repository.finishScriptHistory(
+        1,
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Failed,
+            std::nullopt,
+            ""});
+    ASSERT_FALSE(failureWithoutMessage);
+    EXPECT_EQ(
+        failureWithoutMessage.error().code,
+        core::ErrorCode::InvalidParameter);
+
+    const auto interruptedId = repository.createScriptHistory("interrupted");
+    const auto cancelledId = repository.createScriptHistory("cancelled");
+    ASSERT_TRUE(interruptedId);
+    ASSERT_TRUE(cancelledId);
+    const auto interrupted = repository.finishScriptHistory(
+        interruptedId.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Interrupted,
+            std::nullopt,
+            "Stopped during shutdown."});
+    const auto cancelled = repository.finishScriptHistory(
+        cancelledId.value(),
+        repository::ScriptHistoryFinish{
+            repository::ScriptHistoryStatus::Cancelled,
+            std::nullopt,
+            "Cancelled by the user."});
+    ASSERT_TRUE(interrupted);
+    EXPECT_TRUE(interrupted.value());
+    ASSERT_TRUE(cancelled);
+    EXPECT_TRUE(cancelled.value());
+
+    const auto history = repository.listScriptHistory(1);
+    ASSERT_TRUE(history);
+    ASSERT_EQ(history.value().size(), 1U);
+    EXPECT_EQ(history.value().front().id, cancelledId.value());
+    EXPECT_EQ(
+        history.value().front().status,
+        repository::ScriptHistoryStatus::Cancelled);
+
+    const auto allHistory = repository.listScriptHistory(10);
+    ASSERT_TRUE(allHistory);
+    ASSERT_EQ(allHistory.value().size(), 2U);
+    EXPECT_EQ(
+        allHistory.value()[1].status,
+        repository::ScriptHistoryStatus::Interrupted);
+    EXPECT_EQ(
+        allHistory.value()[1].errorMessage,
+        "Stopped during shutdown.");
+}
+
+TEST(SqliteScriptRepositoryTest,
+     RejectsCorruptStatusAndSourceLocationsWithoutHidingLegacyRows)
+{
+    test::TemporaryProject project("script-corrupt-readback");
+    DatabaseConnection connection(project.databasePath());
+    ASSERT_TRUE(connection.open());
+    MigrationRunner runner(connection);
+    ASSERT_TRUE(runner.run(test::migrationsDirectory()));
+    SqliteScriptRepository repository(connection);
+
+    const auto created = repository.createScriptHistory("checked history");
+    ASSERT_TRUE(created);
+    QSqlQuery mutation(connection.database());
+    ASSERT_TRUE(mutation.exec("PRAGMA ignore_check_constraints = ON"));
+
+    ASSERT_TRUE(mutation.prepare(
+        "UPDATE script_history SET status = 'UNKNOWN' WHERE id = ?"));
+    mutation.addBindValue(created.value());
+    ASSERT_TRUE(mutation.exec());
+    auto history = repository.listScriptHistory(10);
+    ASSERT_FALSE(history);
+    EXPECT_EQ(history.error().code, core::ErrorCode::DatabaseQueryFailed);
+
+    ASSERT_TRUE(mutation.prepare(
+        "UPDATE script_history SET status = 'FAILED', finished_utc = ?, "
+        "error_message = 'failure', error_line = 1, error_column = NULL "
+        "WHERE id = ?"));
+    mutation.addBindValue(QStringLiteral("2026-10-03T00:00:00.000Z"));
+    mutation.addBindValue(created.value());
+    ASSERT_TRUE(mutation.exec());
+    history = repository.listScriptHistory(10);
+    ASSERT_FALSE(history);
+    EXPECT_EQ(history.error().code, core::ErrorCode::DatabaseQueryFailed);
+
+    ASSERT_TRUE(mutation.prepare(
+        "UPDATE script_history SET error_line = 0, error_column = 2 "
+        "WHERE id = ?"));
+    mutation.addBindValue(created.value());
+    ASSERT_TRUE(mutation.exec());
+    history = repository.listScriptHistory(10);
+    ASSERT_FALSE(history);
+    EXPECT_EQ(history.error().code, core::ErrorCode::DatabaseQueryFailed);
+
+    ASSERT_TRUE(mutation.prepare(
+        "UPDATE script_history SET status = 'OLD_CUSTOM_STATUS', "
+        "source_hash = '', error_line = NULL, error_column = NULL "
+        "WHERE id = ?"));
+    mutation.addBindValue(created.value());
+    ASSERT_TRUE(mutation.exec());
+    history = repository.listScriptHistory(10);
+    ASSERT_TRUE(history);
+    ASSERT_EQ(history.value().size(), 1U);
+    EXPECT_EQ(
+        history.value().front().status,
+        repository::ScriptHistoryStatus::Legacy);
+    EXPECT_EQ(history.value().front().statusText, "OLD_CUSTOM_STATUS");
+    EXPECT_FALSE(history.value().front().errorLocation.has_value());
+}
+
 TEST(DatabaseExecutorTest, ProxiesEveryRepositoryOnItsDatabaseThread)
 {
     test::TemporaryProject project("database-executor");
@@ -683,6 +832,12 @@ TEST(DatabaseExecutorTest, ProxiesEveryRepositoryOnItsDatabaseThread)
     EXPECT_EQ(
         history.value().front().status,
         repository::AnalysisTaskStatus::Succeeded);
+    const auto removedTask = executor.removeTask(task.value());
+    ASSERT_TRUE(removedTask);
+    EXPECT_TRUE(removedTask.value());
+    const auto historyAfterDelete = executor.listTasks(10);
+    ASSERT_TRUE(historyAfterDelete);
+    EXPECT_TRUE(historyAfterDelete.value().empty());
     const auto scripts = executor.listScriptHistory(100);
     ASSERT_TRUE(scripts);
     EXPECT_EQ(scripts.value().size(), callerCount + 1U);

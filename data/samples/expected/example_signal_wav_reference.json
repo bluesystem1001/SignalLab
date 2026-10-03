@@ -1,0 +1,21 @@
+{
+  "reference_format": 1,
+  "input": "data/samples/example_signal_pcm16.wav",
+  "wav_format": {
+    "container": "RIFF/WAVE",
+    "audio_format": 1,
+    "channels": 1,
+    "sample_rate_hz": 1000,
+    "bits_per_sample": 16,
+    "sample_count": 21,
+    "duration_seconds": 0.021
+  },
+  "import_options": {
+    "channel": "left"
+  },
+  "notes": [
+    "PCM samples are the CSV values quantized with round(value * 32767).",
+    "SignalLab normalizes signed PCM16 values by dividing by 32768."
+  ]
+}
+

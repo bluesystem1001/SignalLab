@@ -426,6 +426,8 @@ TEST(SchedulerTest, RunningObserverCanDelegateShutdownAndWait)
     auto requestShutdown = requestShutdownPromise.get_future().share();
     std::promise<void> shutdownReturnedPromise;
     auto shutdownReturned = shutdownReturnedPromise.get_future().share();
+    std::promise<void> observerFinishedPromise;
+    auto observerFinished = observerFinishedPromise.get_future();
     std::atomic<bool> delegated{false};
     std::atomic<bool> observerSawShutdownReturn{false};
 
@@ -442,6 +444,7 @@ TEST(SchedulerTest, RunningObserverCanDelegateShutdownAndWait)
             observerSawShutdownReturn.store(
                 shutdownReturned.wait_for(500ms)
                     == std::future_status::ready);
+            observerFinishedPromise.set_value();
         }
     };
     TaskAction action = [](const TaskContext& context) {
@@ -460,6 +463,7 @@ TEST(SchedulerTest, RunningObserverCanDelegateShutdownAndWait)
     ASSERT_TRUE(submitted) << submitted.error().message;
     ASSERT_EQ(shutdownReturned.wait_for(2s), std::future_status::ready);
     shutdownThread.join();
+    ASSERT_EQ(observerFinished.wait_for(2s), std::future_status::ready);
     EXPECT_TRUE(observerSawShutdownReturn.load());
     ASSERT_TRUE(scheduler.waitForTerminal(submitted.value(), 1s));
     EXPECT_EQ(
@@ -581,6 +585,277 @@ TEST(SchedulerTest, RepeatedHundredPercentReportsAreStillThrottled)
     ASSERT_TRUE(submitted) << submitted.error().message;
     ASSERT_TRUE(scheduler.waitForTerminal(submitted.value(), 1s));
     EXPECT_EQ(hundredPercentNotifications.load(), 1);
+}
+
+TEST(SchedulerTest, RemoveRejectsUnknownPendingAndRunningTasks)
+{
+    Scheduler scheduler(testConfig(1));
+    std::promise<void> startedPromise;
+    auto started = startedPromise.get_future();
+    std::promise<void> releasePromise;
+    auto release = releasePromise.get_future().share();
+
+    const auto running = scheduler.submit(TaskSpec{
+        "running-remove",
+        TaskLane::Compute,
+        [&](const TaskContext&) {
+            startedPromise.set_value();
+            release.wait();
+            return core::Result<bool>::success(true);
+        },
+        {}});
+    ASSERT_TRUE(running) << running.error().message;
+    if (started.wait_for(1s) != std::future_status::ready) {
+        releasePromise.set_value();
+        FAIL() << "The running task did not start before the timeout.";
+    }
+
+    const auto pending = scheduler.submit(TaskSpec{
+        "pending-remove",
+        TaskLane::Compute,
+        [](const TaskContext&) {
+            return core::Result<bool>::success(true);
+        },
+        {}});
+    if (!pending) {
+        releasePromise.set_value();
+        FAIL() << pending.error().message;
+    }
+
+    EXPECT_FALSE(scheduler.remove(999999));
+    EXPECT_FALSE(scheduler.remove(running.value()));
+    EXPECT_FALSE(scheduler.remove(pending.value()));
+    EXPECT_TRUE(scheduler.snapshot(running.value()).has_value());
+    EXPECT_TRUE(scheduler.snapshot(pending.value()).has_value());
+
+    releasePromise.set_value();
+    ASSERT_TRUE(scheduler.waitForIdle(1s));
+}
+
+TEST(SchedulerTest, RemoveErasesTerminalTaskAndReleasesCallbacks)
+{
+    Scheduler scheduler(testConfig(1));
+    auto actionLifetime = std::make_shared<int>(1);
+    auto observerLifetime = std::make_shared<int>(2);
+    const std::weak_ptr<int> weakAction = actionLifetime;
+    const std::weak_ptr<int> weakObserver = observerLifetime;
+    std::promise<void> terminalObservedPromise;
+    auto terminalObserved = terminalObservedPromise.get_future();
+
+    TaskAction action = [lifetime = actionLifetime](const TaskContext&) {
+        static_cast<void>(lifetime);
+        return core::Result<bool>::success(true);
+    };
+    TaskObserver observer = [
+        lifetime = observerLifetime,
+        &terminalObservedPromise](const TaskSnapshot& snapshot) {
+        static_cast<void>(lifetime);
+        if (isTerminal(snapshot.status)) {
+            terminalObservedPromise.set_value();
+        }
+    };
+    const auto submitted = scheduler.submit(TaskSpec{
+        "remove-terminal",
+        TaskLane::Compute,
+        std::move(action),
+        std::move(observer)});
+    ASSERT_TRUE(submitted) << submitted.error().message;
+    actionLifetime.reset();
+    observerLifetime.reset();
+
+    ASSERT_TRUE(scheduler.waitForTerminal(submitted.value(), 1s));
+    ASSERT_EQ(terminalObserved.wait_for(1s), std::future_status::ready);
+    EXPECT_FALSE(weakAction.expired());
+    EXPECT_FALSE(weakObserver.expired());
+
+    EXPECT_TRUE(scheduler.remove(submitted.value()));
+    EXPECT_FALSE(scheduler.snapshot(submitted.value()).has_value());
+    EXPECT_TRUE(scheduler.snapshots().empty());
+    EXPECT_FALSE(scheduler.retry(submitted.value()));
+    EXPECT_TRUE(weakAction.expired());
+
+    // The terminal dispatcher may still own the removed record briefly while
+    // returning from its callback.
+    for (int attempt = 0; attempt < 100 && !weakObserver.expired(); ++attempt) {
+        std::this_thread::sleep_for(1ms);
+    }
+    EXPECT_TRUE(weakObserver.expired());
+}
+
+TEST(SchedulerTest, TerminalObserverCanRemoveItsOwnTask)
+{
+    Scheduler scheduler(testConfig(1));
+    std::promise<bool> removedPromise;
+    auto removed = removedPromise.get_future();
+
+    TaskObserver observer = [&](const TaskSnapshot& snapshot) {
+        if (isTerminal(snapshot.status)) {
+            removedPromise.set_value(scheduler.remove(snapshot.id));
+        }
+    };
+    const auto submitted = scheduler.submit(TaskSpec{
+        "self-remove",
+        TaskLane::Compute,
+        [](const TaskContext&) {
+            return core::Result<bool>::success(true);
+        },
+        observer});
+    ASSERT_TRUE(submitted) << submitted.error().message;
+    ASSERT_EQ(removed.wait_for(1s), std::future_status::ready);
+    EXPECT_TRUE(removed.get());
+    EXPECT_FALSE(scheduler.snapshot(submitted.value()).has_value());
+    EXPECT_TRUE(scheduler.snapshots().empty());
+}
+
+TEST(SchedulerTest, ExistingTerminalWaiterSurvivesObserverRemoval)
+{
+    Scheduler scheduler(testConfig(1));
+    std::promise<void> actionStartedPromise;
+    auto actionStarted = actionStartedPromise.get_future();
+    std::promise<void> releaseActionPromise;
+    auto releaseAction = releaseActionPromise.get_future().share();
+    std::promise<void> waiterStartingPromise;
+    auto waiterStarting = waiterStartingPromise.get_future();
+    std::promise<bool> removedPromise;
+    auto removed = removedPromise.get_future();
+
+    TaskObserver observer = [&](const TaskSnapshot& snapshot) {
+        if (isTerminal(snapshot.status)) {
+            removedPromise.set_value(scheduler.remove(snapshot.id));
+        }
+    };
+    const auto submitted = scheduler.submit(TaskSpec{
+        "wait-while-removing",
+        TaskLane::Compute,
+        [&](const TaskContext&) {
+            actionStartedPromise.set_value();
+            releaseAction.wait();
+            return core::Result<bool>::success(true);
+        },
+        observer});
+    ASSERT_TRUE(submitted) << submitted.error().message;
+    if (actionStarted.wait_for(1s) != std::future_status::ready) {
+        releaseActionPromise.set_value();
+        scheduler.shutdownAndWait();
+        FAIL() << "The gated task did not start before the timeout.";
+    }
+
+    auto waiter = std::async(std::launch::async, [&]() {
+        waiterStartingPromise.set_value();
+        return scheduler.waitForTerminal(submitted.value(), 1s);
+    });
+    if (waiterStarting.wait_for(1s) != std::future_status::ready) {
+        releaseActionPromise.set_value();
+        scheduler.shutdownAndWait();
+        static_cast<void>(waiter.wait());
+        FAIL() << "The terminal waiter did not start before the timeout.";
+    }
+    // Give waitForTerminal() time to acquire and release the scheduler lock;
+    // the action remains gated, so the task cannot finish during this setup.
+    std::this_thread::sleep_for(20ms);
+
+    releaseActionPromise.set_value();
+    ASSERT_EQ(removed.wait_for(1s), std::future_status::ready);
+    EXPECT_TRUE(removed.get());
+    ASSERT_EQ(waiter.wait_for(1s), std::future_status::ready);
+    EXPECT_TRUE(waiter.get());
+    EXPECT_FALSE(scheduler.snapshot(submitted.value()).has_value());
+}
+
+TEST(SchedulerTest, RemovePreservesQueuedTerminalNotification)
+{
+    Scheduler scheduler(testConfig(1));
+    std::promise<TaskId> pendingObservedPromise;
+    auto pendingObserved = pendingObservedPromise.get_future();
+    std::promise<void> releasePendingPromise;
+    auto releasePending = releasePendingPromise.get_future().share();
+    std::atomic<int> terminalNotifications{0};
+
+    TaskObserver observer = [&](const TaskSnapshot& snapshot) {
+        if (snapshot.status == TaskStatus::Pending) {
+            pendingObservedPromise.set_value(snapshot.id);
+            releasePending.wait();
+        } else if (isTerminal(snapshot.status)) {
+            ++terminalNotifications;
+        }
+    };
+
+    auto submission = std::async(std::launch::async, [&]() {
+        return scheduler.submit(TaskSpec{
+            "remove-queued-notification",
+            TaskLane::Compute,
+            [](const TaskContext&) {
+                return core::Result<bool>::success(true);
+            },
+            observer});
+    });
+
+    if (pendingObserved.wait_for(1s) != std::future_status::ready) {
+        releasePendingPromise.set_value();
+        scheduler.shutdownAndWait();
+        static_cast<void>(submission.wait());
+        FAIL() << "The pending observer did not run before the timeout.";
+    }
+    const TaskId id = pendingObserved.get();
+    scheduler.shutdown();
+    const auto cancelledSnapshot = scheduler.snapshot(id);
+    if (!cancelledSnapshot.has_value()) {
+        releasePendingPromise.set_value();
+        scheduler.shutdownAndWait();
+        static_cast<void>(submission.wait());
+        FAIL() << "The cancelled task snapshot disappeared unexpectedly.";
+    }
+    EXPECT_EQ(cancelledSnapshot->status, TaskStatus::Cancelled);
+    EXPECT_TRUE(scheduler.remove(id));
+
+    releasePendingPromise.set_value();
+    ASSERT_EQ(submission.wait_for(1s), std::future_status::ready);
+    const auto submitted = submission.get();
+    ASSERT_TRUE(submitted) << submitted.error().message;
+    EXPECT_EQ(submitted.value(), id);
+    EXPECT_EQ(terminalNotifications.load(), 1);
+    EXPECT_FALSE(scheduler.snapshot(id).has_value());
+    scheduler.shutdownAndWait();
+}
+
+TEST(SchedulerTest, ConcurrentRetryAndRemoveHaveALinearizedOutcome)
+{
+    Scheduler scheduler(testConfig(1));
+    const auto original = scheduler.submit(TaskSpec{
+        "retry-remove-race",
+        TaskLane::Compute,
+        [](const TaskContext&) {
+            return core::Result<bool>::success(true);
+        },
+        {}});
+    ASSERT_TRUE(original) << original.error().message;
+    ASSERT_TRUE(scheduler.waitForTerminal(original.value(), 1s));
+
+    std::barrier start(3);
+    auto retryFuture = std::async(std::launch::async, [&]() {
+        start.arrive_and_wait();
+        return scheduler.retry(original.value());
+    });
+    auto removeFuture = std::async(std::launch::async, [&]() {
+        start.arrive_and_wait();
+        return scheduler.remove(original.value());
+    });
+    start.arrive_and_wait();
+
+    ASSERT_EQ(retryFuture.wait_for(1s), std::future_status::ready);
+    ASSERT_EQ(removeFuture.wait_for(1s), std::future_status::ready);
+    const auto retried = retryFuture.get();
+    EXPECT_TRUE(removeFuture.get());
+    EXPECT_FALSE(scheduler.snapshot(original.value()).has_value());
+
+    if (retried) {
+        ASSERT_TRUE(scheduler.waitForTerminal(retried.value(), 1s));
+        const auto retrySnapshot = scheduler.snapshot(retried.value());
+        ASSERT_TRUE(retrySnapshot.has_value());
+        EXPECT_EQ(retrySnapshot->retryOf, original.value());
+    } else {
+        EXPECT_EQ(retried.error().code, core::ErrorCode::InvalidParameter);
+    }
 }
 
 }  // namespace
