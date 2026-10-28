@@ -1,10 +1,18 @@
 # SignalLab
 
-SignalLab 是一个面向课程学习的一维离线信号分析程序。首版计划支持模拟信号、CSV/WAV 导入、时域处理、FFT、特征提取、SQLite 追溯、后台任务和 SignalScript。
+SignalLab 是一个面向课程学习的一维信号分析程序，支持模拟信号、CSV/WAV 导入、时域处理、FFT、特征提取、SQLite 追溯、后台任务和 SignalScript；当前源码还提供 Windows 麦克风实时采集、流式 FIR 滤波、WAV 保存及 MariaDB 项目备份。
 
 “阶段 4：SQLite 持久化与追溯”和“阶段 5：后台任务与取消”的既有能力已经过回归复核；当前候选版本为 `1.0.0-rc1`。阶段 6 加入了 SignalScript 0.6 的语言前端、静态检查、受限解释运行时、文件安全网关和可追溯执行历史；阶段 7 已把这些能力接入基于 Model/View 的主窗口，并完成交互图表、任务中心、分析历史和 SignalScript 控制台。`0.7.1`—`0.7.4` 又补齐历史/任务删除、横向缩放、FIR、单窗口导入、项目信号删除、双信号同轴对比和时间轴滑动条。阶段 8 不再扩展业务范围，集中完成测试、覆盖率、性能、固定资产、文档和 Windows 候选包冻结。
 
 阶段 8 的入口文档为 [用户手册](docs/user-guide.md)、[测试计划](docs/test-plan.md)、[发布资产说明](docs/release-assets.md)、[演示脚本](docs/demo-script.md) 和 [验证记录](docs/stage8-validation.md)。
+
+2026-10-11 实时音频扩展已在 Debug/Release 构建并各通过 308/308 项测试（新增 35 项）。下文阶段 8 的 273 项测试和发布 ZIP 信息属于原冻结版本；新功能需要运行当前源码构建的程序。真实麦克风录音、权限与拔插仍需按用户手册验证。
+
+同日 MariaDB 备份扩展完成后，Debug/Release 全量测试各为 353 项通过、1 项因 Windows 符号链接权限跳过、0 失败；包含真实本机 MariaDB 集成测试。另已完成现有项目的首次备份及独立副本恢复，成功读取全部 6 个信号。连接密码仅保存在仓库外的 Windows 用户加密配置中。
+
+2026-10-13 云端连接改为通过 `mysql.h` 使用原生 MariaDB Connector/C，直接链接 `libmariadb.dll`；本地 SQLite 持久化与一致性快照继续使用 Qt SQL / QSQLITE。当前源码及新打包脚本不依赖或分发 Qt `QMYSQL` 插件。上述 2026-10-11 测试和备份结果保留为当时实现的验证记录。
+
+原生连接改动验证：Debug/Release 均构建成功，各 358 项测试通过、1 项因 Windows 符号链接权限跳过、0 失败；13 项 MariaDB 专项测试全部通过。在 QMYSQL 不可用环境中成功读取旧备份并恢复全部 6 个信号；独立 Release 包通过原生依赖、无 QMYSQL 插件、许可证、哈希和隔离启动检查。
 
 ## 当前可以看到什么
 
@@ -14,6 +22,8 @@ SignalLab 是一个面向课程学习的一维离线信号分析程序。首版�
 - 基于 Qt Model/View 的左侧项目列表，以及所选信号的名称、采样率、样本数和持续时间。
 - 项目信号的持久化删除入口；确认框默认为“否”，存在关联的活动分析或 FIR 任务时不允许删除，删除排队后也会冻结该信号的新分析/FIR 与相关重试；成功后选中相邻信号，删空时清空详情、图表和分析结果。
 - CSV 和 WAV 导入按钮；选定文件后，格式参数、信号元数据、后台预览、行内错误与最终确认都在同一个导入窗口完成，并保留重复逻辑信号提示。
+- “实时采集”页签：选择麦克风、采样率和直通/低通/高通，开始后实时显示原始与滤波波形、时长和电平；停止后保存原始或滤波后的 PCM16 WAV，也可保存并导入项目继续分析。使用方法及麦克风权限排查见[用户手册](docs/user-guide.md#17-麦克风实时采集)。
+- “云端备份”页签：连接本机 MariaDB，手动备份项目数据库及导入源文件、查看历史备份、下载校验后的恢复副本；支持后台进度、取消和 Windows 用户加密保存密码。默认目标为 `127.0.0.1:3306/signallab_backup`，操作方法见[备份说明](docs/user-guide.md#18-mariadb-数据库备份)。
 - 由 Qt Charts 绘制的“时域”和“频域”交互图表。时域图可在主信号之外选择一个第二信号：两条波形以各自相对 `t=0` 在同一秒轴显示，不做重采样或相位对齐，完整时间域取两者中较长的 duration；主信号为实线、对比信号为虚线并显示图例，单位不同时轴标题会明确标注。时域图的滚轮、矩形和显式按钮只缩放横轴，放大后可用图下滑动条平移固定宽度的时间窗口，完整视图下滑动条禁用。图表还支持分别报告两信号的游标/选择信息、复位和 PNG 导出；切换主信号或对比信号会清理旧组合的 Shift 选择覆盖层。大信号会按每条序列的当前可见区独立保留桶内极值，每条提交点数不超过约 `2 × viewport width`。
 - “后台分析所选信号”按钮，以及均值、总体方差、RMS、峰峰值、主频、SNR 和 THD；结果同时显示实际参数、算法版本和单位。
 - FIR 低通/高通侧栏，可设置截止频率和奇数抽头数；滤波在后台计算通道运行，完成后生成、持久化并选中一个带输入来源和算法参数的派生信号。
@@ -142,6 +152,7 @@ WAV 首版只支持 PCM 16-bit 的单声道或双声道文件。双声道可选�
 | Qt / Qt Charts | MSYS2 MINGW64 6.11.1-1 |
 | GoogleTest | MSYS2 MINGW64 1.17.0-1 |
 | SQLite | MSYS2 MINGW64 包 3.53.2-1，通过 QSQLITE 使用 |
+| MariaDB Connector/C | MSYS2 MINGW64 `libmariadbclient 3.4.8-3`，云端备份通过 `mysql.h` 原生接口使用 |
 | CMake / CTest | CLion 自带 4.2.2 |
 | Ninja | CLion 自带 Windows x64 1.13.2 |
 | 调试器 | CLion 自带 GDB 16.3 |
@@ -172,7 +183,7 @@ Set-Location -LiteralPath 'E:\programme\project_c++\SignalLab'
 检查项目依赖包：
 
 ```powershell
-& 'E:\MSYS2\usr\bin\pacman.exe' -Q mingw-w64-x86_64-qt6-base mingw-w64-x86_64-qt6-charts mingw-w64-x86_64-gtest mingw-w64-x86_64-sqlite3 mingw-w64-x86_64-git
+& 'E:\MSYS2\usr\bin\pacman.exe' -Q mingw-w64-x86_64-qt6-base mingw-w64-x86_64-qt6-charts mingw-w64-x86_64-gtest mingw-w64-x86_64-sqlite3 mingw-w64-x86_64-git mingw-w64-x86_64-libmariadbclient
 ```
 
 如果任一命令提示文件或包缺失，请先停止配置和构建，补全环境后再重新检查。
@@ -180,10 +191,12 @@ Set-Location -LiteralPath 'E:\programme\project_c++\SignalLab'
 需要在一台新机器上安装这些包时，可在 PowerShell 中执行：
 
 ```powershell
-& 'E:\MSYS2\usr\bin\pacman.exe' -S --needed mingw-w64-x86_64-qt6-base mingw-w64-x86_64-qt6-charts mingw-w64-x86_64-gtest mingw-w64-x86_64-sqlite3 mingw-w64-x86_64-git
+& 'E:\MSYS2\usr\bin\pacman.exe' -S --needed mingw-w64-x86_64-qt6-base mingw-w64-x86_64-qt6-charts mingw-w64-x86_64-gtest mingw-w64-x86_64-sqlite3 mingw-w64-x86_64-git mingw-w64-x86_64-libmariadbclient
 ```
 
 不要为了本项目执行局部升级，也不要通过 Qt 官方安装器、vcpkg、Conan 或 CMake `FetchContent` 再安装第二套依赖。
+
+云端备份的构建需要同一 MINGW64 环境中的 MariaDB Connector/C 头文件 `include/mariadb/mysql.h`、导入库和 `bin/libmariadb.dll`。本地 SQLite 仍需要 Qt SQL 及 `sqldrivers/qsqlite.dll`；`sqldrivers/qsqlmysql.dll` 不参与当前实现。
 
 ### 3. 配置 CLion Toolchain
 
@@ -255,6 +268,8 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\tools\verify-windows-p
 ```
 
 成功后产物位于 `dist/SignalLab-1.0.0-rc1-windows-x64/`、同名 `.zip` 和 `.zip.sha256`。外部 `.zip.sha256` 是最终 ZIP 哈希的唯一权威记录，不放入 ZIP，从而避免归档自引用。`dist` 下的目录仍处在源码树内，只作为打包暂存和校验对象；功能验收必须把 ZIP 解压到仓库之外的独立可写目录，避免开发树的 `CMakeLists.txt` 让程序误选源码数据根。验证脚本会检查 Qt/MinGW DLL 与插件闭包、固定资产、空白数据库、许可文件和逐文件 SHA-256，并把包复制到系统临时独立目录，在移除 Qt/MSYS2 `PATH` 的子进程中启动 `SignalLab.exe --smoke-test`。同机隔离启动不能替代另一台干净 Windows 机器上的人工验收。
+
+当前打包脚本保留本地 SQLite 的 `qsqlite.dll`，明确排除 `qsqlmysql.dll`，要求程序直接导入 `libmariadb.dll`，并收集、校验 MariaDB 客户端的完整 DLL 依赖和许可证。验证当前源码时应使用独立的 `-DistRoot`，保留原 `dist` 阶段 8 冻结资产。
 
 当前 Qt Charts 开源包为 GPL-3.0-only；在项目权利人选择 GPL 兼容发布方式或提供商业 Qt 许可前，这个候选包仅用于本地验收，不公开分发。详见 [第三方声明](THIRD_PARTY_NOTICES.md) 与 [阶段 8 验证记录](docs/stage8-validation.md)。
 

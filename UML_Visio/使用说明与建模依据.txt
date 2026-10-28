@@ -1,0 +1,76 @@
+SignalLab UML 建模交付
+生成日期：2026-10-23（Asia/Shanghai）
+
+一、打开与修改
+主文件：SignalLab_UML.vsdx
+在 Microsoft Visio 中打开此文件，使用底部分页标签切换各图。
+共有15页，使用原生二维形状、可编辑文字、分组及一维连接线。
+类框按类名、属性、操作分区分组；按 Ctrl 单击或进入组内可编辑分区。
+可移动类框、调整连接线和修改文字。实现箭头为原生线端；组合菱形
+为与连接线位置公式关联的原生几何形状。复杂折线路径可继续手动调整。
+PNG/SVG 仅供预览，修改应在 .vsdx 中进行。
+
+二、页面目录
+00 模型导读：范围、页面索引与 UML 读图约定。
+01 用例图：一个用户角色、系统边界和外部麦克风/MariaDB 参与者。
+02 组件图：以 CMake 目标为基础，表示分层和依赖方向。
+03 领域与导入类：Signal、SignalMetadata、SignalEntry、ImportService 与仓储端口。
+04 应用与持久化类：DatabaseExecutor、SQLite 具体仓储、连接与迁移器。
+05 任务调度类：Scheduler、配置、双线程池、队列、快照和任务上下文。
+06 持久化类图：以 «table» 表示 SQLite 表，标记 PK/FK、可空性与多重性。
+07 导入顺序：用户确认后的后台导入、去重、提交与 GUI 交付。
+08 分析顺序：单独提交分析、加载可信信号、计算、事务保存与结果交付。
+09 SignalScript 活动：历史创建、词法/语法/语义检查、受限执行与收尾。
+10 调度状态：Pending、Running、Succeeded、Failed、Cancelled 五态。
+11 音频采集活动：输入校验、实时处理、GUI 轮询停止、保存与可选导入。
+12 部署图：Windows 工作站、桌面进程、客户端库、本地数据与备份服务。
+13 应用服务类：三类后台适配器与同步服务、Scheduler 和仓储/文件网关。
+14 音频与备份类：AudioInput 与流式 FIR、备份端口及实际适配器。
+
+三、建模约定
+以当前工作区源码为准，包含生成时已有的未提交实时音频/备份扩展。
+本次没有修改项目业务源码，也没有运行项目构建或回归测试。
+图用于软件工程结构和关键行为说明，展示关键成员并省略重复方法、
+基础库依赖以及部分实现细节；这不是全量反射式 API 清单。
+类图保留真实 C++ 类型名，界面与行为使用中文说明。
+引用成员使用普通关联；值成员与内部集合使用组合；shared_ptr 不画独占组合。
+Result<T> 表示成功值或 Error。表图与 C++ 类图通过 «table» 区分。
+每页页脚给出主要源文件；头文件的短路径相对于 include/signallab，
+GUI 与服务实现短路径对应 src/gui、src/app 或 src/task。
+sources/source_snapshot.json 提供本次建模所读源码及相关文档的 SHA-256，
+便于识别后续源码变化。它记录工作区实际文件，不以 Git HEAD 代替当前内容。
+
+四、关键软件工程边界
+1. GUI 与计算/I/O工作线程分开；数据库连接只在专用数据库线程使用。
+2. 应用层依赖仓储接口，由组装根注入实际实现。
+3. 文件归档和数据库注册是带补偿的组合操作，不是跨文件系统事务。
+4. 导入完成后由用户另行提交分析；分析特征与成功状态在同一事务提交。
+5. 运行中 cancel 只请求协作停止；成功提交后的取消不会改写成功结果。
+6. retry 创建新的 TaskId 并记录 retryOf，不将原任务退回 Pending。
+7. Interrupted 仅属于持久化历史的恢复状态，不属于 Scheduler 五态。
+8. SignalScript 访问受限输入/输出根；前端完成后才检查执行前的取消请求。
+9. 音频处理与备份工作者独立于 Scheduler 线程池。
+10. MariaDB 客户端为构建依赖；服务仅在使用备份功能时需要。默认本机连接。
+11. 恢复副本下载到新目录并校验，不覆盖正在使用的项目数据库。
+
+五、目录
+SignalLab_UML.vsdx：唯一可编辑主文档。
+previews/：从已保存的 Visio 页面导出的 PNG 和 SVG。
+sources/*_pages.json：各页节点、文字、关系和布局定义。
+sources/build_visio.ps1：经本机 Visio COM 实际运行的重建脚本。
+verification.json：每页节点数、关系数及导出路径。
+package-verification.json：Visio 包结构、原生形状及连接检查结果。
+editability-verification.json：用 Visio 重开并在内存中移动类框，验证连线和
+组合菱形随动；测试修改已丢弃，保存文件的 SHA-256 保持不变。
+
+如需从模型重建，可在 Windows PowerShell 7 中执行：
+  & .\sources\build_visio.ps1
+需要本机安装 Microsoft Visio。重建前会备份已有同名 .vsdx；JSON 重建
+不会自动合并随后在 Visio 中的手动改动，请将重要手动改动另存。
+
+绘制方法参考本机 visio-image-rebuilder 技能。原生线端和几何公式依据：
+https://learn.microsoft.com/en-us/office/client-developer/visio/endarrow-cell-line-format-section
+https://learn.microsoft.com/en-us/office/client-developer/visio/use-function
+
+最终检查：逐页查看 PNG 预览，并检查 .vsdx 内页数、原生文本、分组、
+连接记录以及无整页图片嵌入。检查结果以配套 JSON 记录为准。

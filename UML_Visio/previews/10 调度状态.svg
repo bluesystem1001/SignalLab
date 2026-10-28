@@ -1,0 +1,302 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- 由 Microsoft Visio, SVG Export 生成 10 调度状态.svg 10 调度状态 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
+		xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" width="16in" height="10in" viewBox="0 0 1152 720"
+		xml:space="preserve" color-interpolation-filters="sRGB" class="st23">
+	<title>SignalLab 杞欢宸ョ▼ UML 璁捐瑙嗗浘</title>
+	<v:documentProperties v:langID="2052" v:metric="true" v:viewMarkup="false"/>
+
+	<style type="text/css">
+	<![CDATA[
+		.st1 {marker-end:url(#mrkr4-6);stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st2 {fill:#273345;fill-opacity:1;stroke:#273345;stroke-opacity:1;stroke-width:0.28409090909091}
+		.st3 {marker-end:url(#mrkr4-27);stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st4 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st5 {fill:#273345;font-family:Microsoft YaHei UI;font-size:1.91666em;font-weight:bold}
+		.st6 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.916672em}
+		.st7 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.4}
+		.st8 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.7}
+		.st9 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.708344em}
+		.st10 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.75em;font-weight:bold}
+		.st11 {fill:#273345;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st12 {fill:#e8f1fc;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st13 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.958328em}
+		.st14 {font-size:1em}
+		.st15 {fill:#e9f6f1;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st16 {fill:#fff4e2;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st17 {fill:#f2f5f8;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st18 {fill:#ffffff;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st19 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st20 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.874992em}
+		.st21 {fill:#ffffff;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st22 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.849998em}
+		.st23 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+	]]>
+	</style>
+
+	<defs id="Markers">
+		<g id="lend4">
+			<path d="M 2 1 L 0 0 L 2 -1 L 2 1 " style="stroke:none"/>
+		</g>
+		<marker id="mrkr4-6" class="st2" v:arrowType="4" v:arrowSize="2" v:setback="7.04" refX="-7.04" orient="auto"
+				markerUnits="strokeWidth" overflow="visible">
+			<use xlink:href="#lend4" transform="scale(-3.52,-3.52) "/>
+		</marker>
+		<marker id="mrkr4-27" class="st2" v:arrowType="4" v:arrowSize="2" v:setback="6.68" refX="-6.68" orient="auto"
+				markerUnits="strokeWidth" overflow="visible">
+			<use xlink:href="#lend4" transform="scale(-3.52,-3.52) "/>
+		</marker>
+	</defs>
+	<g v:mID="13" v:index="11" v:groupContext="foregroundPage">
+		<title>10 调度状态</title>
+		<v:pageProperties v:drawingScale="0.0393701" v:pageScale="0.0393701" v:drawingUnits="24" v:shadowOffsetX="8.50394"
+				v:shadowOffsetY="-8.50394"/>
+		<g id="shape46-1" v:mID="46" v:groupContext="shape" transform="translate(684,-158.4)">
+			<title>UML_Connector_8</title>
+			<path d="M0 720 L28.96 720" class="st1"/>
+		</g>
+		<g id="shape45-7" v:mID="45" v:groupContext="shape" transform="translate(1051.2,-363.6)">
+			<title>UML_Connector_7</title>
+			<path d="M0 720 L28.96 720" class="st1"/>
+		</g>
+		<g id="shape44-12" v:mID="44" v:groupContext="shape" transform="translate(1051.2,-547.2)">
+			<title>UML_Connector_6</title>
+			<path d="M0 720 L28.96 720" class="st1"/>
+		</g>
+		<g id="shape42-17" v:mID="42" v:groupContext="shape" transform="translate(1296,259.2) rotate(90)">
+			<title>UML_Connector_5</title>
+			<path d="M0 720 L255.76 720" class="st1"/>
+		</g>
+		<g id="shape40-22" v:mID="40" v:groupContext="shape" transform="translate(1126.55,-269.53) rotate(42.1376)">
+			<title>UML_Connector_4</title>
+			<path d="M0 659.62 L45.38 618.56 L137.16 720 L203.9 659.62 L203.9 659.62" class="st3"/>
+		</g>
+		<g id="shape38-28" v:mID="38" v:groupContext="shape" transform="translate(476.458,-450.919) rotate(-17.1985)">
+			<title>UML_Connector_3</title>
+			<path d="M0 701.9 L58.46 720 L72.3 675.29 L158.28 701.9 L158.28 701.9" class="st3"/>
+		</g>
+		<g id="shape36-33" v:mID="36" v:groupContext="shape" transform="translate(764.756,-142.442) rotate(52.6961)">
+			<title>UML_Connector_2</title>
+			<path d="M0 662.73 L48.68 699.82 L144.68 573.82 L336.54 720 L380.17 662.73 L380.17 662.73" class="st3"/>
+		</g>
+		<g id="shape34-38" v:mID="34" v:groupContext="shape" transform="translate(345.6,-500.4)">
+			<title>UML_Connector_1</title>
+			<path d="M0 720 L115.36 720" class="st1"/>
+		</g>
+		<g id="shape32-43" v:mID="32" v:groupContext="shape" transform="translate(79.2,-500.4)">
+			<title>UML_Connector_0</title>
+			<path d="M0 720 L43.36 720" class="st1"/>
+		</g>
+		<g id="shape1-48" v:mID="1" v:groupContext="shape" transform="translate(34.56,-668.16)">
+			<title>工作表.1</title>
+			<desc>调度任务状态机</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="702.72" width="1080" height="34.56"/>
+			<rect x="0" y="685.44" width="1080" height="34.56" class="st4"/>
+			<text x="5" y="709.62" class="st5" v:langID="2052"><v:paragraph/><v:tabList/>调度任务状态机</text>		</g>
+		<g id="shape2-51" v:mID="2" v:groupContext="shape" transform="translate(36,-643.68)">
+			<title>工作表.2</title>
+			<desc>对象Scheduler 中单个 TaskId 的 TaskSnapshot取消采用停止令牌合作机制</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="709.56" width="1080" height="20.88"/>
+			<rect x="0" y="699.12" width="1080" height="20.88" class="st4"/>
+			<text x="5" y="712.86" class="st6" v:langID="2052"><v:paragraph/><v:tabList/>对象：Scheduler 中单个 TaskId 的 TaskSnapshot；取消采用停止令牌合作机制</text>		</g>
+		<g id="shape3-54" v:mID="3" v:groupContext="shape" transform="translate(36,-635.04)">
+			<title>工作表.3</title>
+			<path d="M0 720 L1080 720" class="st7"/>
+		</g>
+		<g id="shape4-57" v:mID="4" v:groupContext="shape" transform="translate(36,-48.96)">
+			<title>工作表.4</title>
+			<path d="M0 720 L1080 720" class="st8"/>
+		</g>
+		<g id="shape5-60" v:mID="5" v:groupContext="shape" transform="translate(36,-10.8)">
+			<title>工作表.5</title>
+			<desc>源码task/task.hpp:14–20,65–69 | task/scheduler.cpp:119–178,392–...</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="486" cy="703.8" width="972" height="32.4"/>
+			<rect x="0" y="687.6" width="972" height="32.4" class="st4"/>
+			<text x="5" y="706.35" class="st9" v:langID="2052"><v:paragraph/><v:tabList/>源码：task/task.hpp:14–20,65–69 | task/scheduler.cpp:119–178,392–465,468–527,530–603</text>		</g>
+		<g id="shape6-63" v:mID="6" v:groupContext="shape" transform="translate(1008,-16.56)">
+			<title>工作表.6</title>
+			<desc>SignalLab | 10</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="52.2" cy="709.2" width="104.4" height="21.6"/>
+			<rect x="0" y="698.4" width="104.4" height="21.6" class="st4"/>
+			<text x="36" y="711.9" class="st10" v:langID="2052"><v:paragraph v:horizAlign="2"/><v:tabList/>SignalLab | 10</text>		</g>
+		<g id="shape7-66" v:mID="7" v:groupContext="shape" transform="translate(57.6,-489.6)">
+			<title>UML_s</title>
+			<ellipse cx="10.8" cy="709.2" rx="10.8" ry="10.8" class="st11"/>
+		</g>
+		<g id="shape8-68" v:mID="8" v:groupContext="shape" transform="translate(129.6,-460.8)">
+			<title>UML_pending</title>
+			<desc>Pending待执行 entry / 发布初始任务快照</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="108" cy="680.4" width="216" height="79.2"/>
+			<rect x="0" y="640.8" width="216" height="79.2" rx="3.96" ry="3.96" class="st12"/>
+			<text x="62.25" y="676.95" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>Pending｜待执行<v:newlineChar/><tspan
+						x="41.95" dy="1.2em" class="st14">entry / </tspan>发布初始任务快照</text>		</g>
+		<g id="shape9-72" v:mID="9" v:groupContext="shape" transform="translate(468,-460.8)">
+			<title>UML_running</title>
+			<desc>Running执行中 entry / action(TaskContext) 内部 / reportProgress → ...</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="108" cy="680.4" width="216" height="79.2"/>
+			<rect x="0" y="640.8" width="216" height="79.2" rx="3.96" ry="3.96" class="st12"/>
+			<text x="61.87" y="663.15" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>Running｜执行中<v:newlineChar/><tspan
+						x="33.41" dy="1.2em" class="st14">entry / action(TaskContext)<v:newlineChar/></tspan><tspan x="29.04"
+						dy="1.2em" class="st14">内部</tspan> / reportProgress → 通知<v:newlineChar/><tspan x="24.91" dy="1.2em"
+						class="st14">内部</tspan> / cancel() → request_stop</text>		</g>
+		<g id="shape10-78" v:mID="10" v:groupContext="shape" transform="translate(835.2,-511.2)">
+			<title>UML_success</title>
+			<desc>Succeeded成功 entry / progress = 100</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="108" cy="684" width="216" height="72"/>
+			<rect x="0" y="648" width="216" height="72" rx="3.96" ry="3.96" class="st15"/>
+			<text x="60.98" y="680.55" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>Succeeded｜成功<v:newlineChar/><tspan
+						x="46.19" dy="1.2em" class="st14">entry / progress = 100</tspan></text>		</g>
+		<g id="shape11-82" v:mID="11" v:groupContext="shape" transform="translate(835.2,-327.6)">
+			<title>UML_failed</title>
+			<desc>Failed失败 entry / 保存错误信息</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="108" cy="684" width="216" height="72"/>
+			<rect x="0" y="648" width="216" height="72" rx="3.96" ry="3.96" class="st16"/>
+			<text x="74.52" y="680.55" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>Failed｜失败<v:newlineChar/><tspan
+						x="53.45" dy="1.2em" class="st14">entry / </tspan>保存错误信息</text>		</g>
+		<g id="shape12-86" v:mID="12" v:groupContext="shape" transform="translate(468,-118.8)">
+			<title>UML_cancelled</title>
+			<desc>Cancelled已取消 entry / 保存取消原因</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="108" cy="680.4" width="216" height="79.2"/>
+			<rect x="0" y="640.8" width="216" height="79.2" rx="3.96" ry="3.96" class="st17"/>
+			<text x="58.29" y="676.95" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>Cancelled｜已取消<v:newlineChar/><tspan
+						x="53.45" dy="1.2em" class="st14">entry / </tspan>保存取消原因</text>		</g>
+		<g id="group15-90" transform="translate(1087.2,-537.12)" v:mID="15" v:groupContext="group">
+			<title>UML_Final_end_success</title>
+			<g id="shape13-91" v:mID="13" v:groupContext="shape">
+				<title>工作表.13</title>
+				<ellipse cx="10.08" cy="709.92" rx="10.08" ry="10.08" class="st18"/>
+			</g>
+			<g id="shape14-93" v:mID="14" v:groupContext="shape" transform="translate(3.6,-3.6)">
+				<title>工作表.14</title>
+				<ellipse cx="6.48" cy="713.52" rx="6.48" ry="6.48" class="st11"/>
+			</g>
+		</g>
+		<g id="group18-95" transform="translate(1087.2,-353.52)" v:mID="18" v:groupContext="group">
+			<title>UML_Final_end_failed</title>
+			<g id="shape16-96" v:mID="16" v:groupContext="shape">
+				<title>工作表.16</title>
+				<ellipse cx="10.08" cy="709.92" rx="10.08" ry="10.08" class="st18"/>
+			</g>
+			<g id="shape17-98" v:mID="17" v:groupContext="shape" transform="translate(3.6,-3.6)">
+				<title>工作表.17</title>
+				<ellipse cx="6.48" cy="713.52" rx="6.48" ry="6.48" class="st11"/>
+			</g>
+		</g>
+		<g id="group21-100" transform="translate(720,-148.32)" v:mID="21" v:groupContext="group">
+			<title>UML_Final_end_cancelled</title>
+			<g id="shape19-101" v:mID="19" v:groupContext="shape">
+				<title>工作表.19</title>
+				<ellipse cx="10.08" cy="709.92" rx="10.08" ry="10.08" class="st18"/>
+			</g>
+			<g id="shape20-103" v:mID="20" v:groupContext="shape" transform="translate(3.6,-3.6)">
+				<title>工作表.20</title>
+				<ellipse cx="6.48" cy="713.52" rx="6.48" ry="6.48" class="st11"/>
+			</g>
+		</g>
+		<g id="group26-105" transform="translate(50.4,-205.2)" v:mID="26" v:groupContext="group">
+			<title>UML_Note_retry_note</title>
+			<g id="shape22-106" v:mID="22" v:groupContext="shape">
+				<title>工作表.22</title>
+				<path d="M0 608.4 L289.44 608.4 L302.4 621.36 L302.4 720 L0 720 L0 608.4 Z" class="st16"/>
+			</g>
+			<g id="shape23-108" v:mID="23" v:groupContext="shape" transform="translate(1009.44,608.4) rotate(90)">
+				<title>工作表.23</title>
+				<path d="M0 720 L12.96 720" class="st19"/>
+			</g>
+			<g id="shape24-111" v:mID="24" v:groupContext="shape" transform="translate(289.44,-98.64)">
+				<title>工作表.24</title>
+				<path d="M0 720 L12.96 720" class="st19"/>
+			</g>
+			<g id="shape25-114" v:mID="25" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.25</title>
+				<desc>重试规则 仅终态任务可 retry。 创建新 TaskId状态为 Pending retryOf 记录原任务编号。 原任务...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="146.88" cy="669.6" width="293.76" height="100.8"/>
+				<rect x="0" y="619.2" width="293.76" height="100.8" class="st4"/>
+				<text x="5" y="647.55" class="st20" v:langID="2052"><v:paragraph/><v:tabList/>重试规则<v:newlineChar/><tspan x="5"
+							dy="1.2em" class="st14">仅终态任务可</tspan> retry。<v:newlineChar/><tspan x="5" dy="1.2em" class="st14">创建新</tspan> TaskId，状态为 Pending；<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st14">retryOf </tspan>记录原任务编号。<v:newlineChar/><tspan x="5" dy="1.2em"
+							class="st14">原任务保持原终态</tspan>。</text>			</g>
+		</g>
+		<g id="group31-121" transform="translate(784.8,-151.2)" v:mID="31" v:groupContext="group">
+			<title>UML_Note_commit_note</title>
+			<g id="shape27-122" v:mID="27" v:groupContext="shape">
+				<title>工作表.27</title>
+				<path d="M0 619.2 L296.64 619.2 L309.6 632.16 L309.6 720 L0 720 L0 619.2 Z" class="st16"/>
+			</g>
+			<g id="shape28-124" v:mID="28" v:groupContext="shape" transform="translate(1016.64,619.2) rotate(90)">
+				<title>工作表.28</title>
+				<path d="M0 720 L12.96 720" class="st19"/>
+			</g>
+			<g id="shape29-127" v:mID="29" v:groupContext="shape" transform="translate(296.64,-87.84)">
+				<title>工作表.29</title>
+				<path d="M0 720 L12.96 720" class="st19"/>
+			</g>
+			<g id="shape30-130" v:mID="30" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.30</title>
+				<desc>提交边界 成功 Result 优先于晚到的停止请求。 运行中 cancel() 仅 request_stop 不会立即把状...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="150.48" cy="675" width="300.96" height="90"/>
+				<rect x="0" y="630" width="300.96" height="90" class="st4"/>
+				<text x="5" y="652.95" class="st20" v:langID="2052"><v:paragraph/><v:tabList/>提交边界<v:newlineChar/><tspan x="5"
+							dy="1.2em" class="st14">成功</tspan> Result 优先于晚到的停止请求。<v:newlineChar/><tspan x="5" dy="1.2em"
+							class="st14">运行中</tspan> cancel() 仅 request_stop，<v:newlineChar/><tspan x="5" dy="1.2em" class="st14">不会立即把状态改为</tspan> Cancelled。<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st14">Interrupted </tspan>不属于本状态机。</text>			</g>
+		</g>
+		<g id="shape33-137" v:mID="33" v:groupContext="shape" transform="translate(46.8,-550.08)">
+			<title>工作表.33</title>
+			<desc>submit 有效且调度器接收</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="133.2" cy="709.92" width="266.41" height="20.16"/>
+			<rect x="0" y="699.84" width="266.4" height="20.16" class="st21"/>
+			<text x="74.09" y="712.98" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>submit 有效且调度器接收</text>		</g>
+		<g id="shape35-140" v:mID="35" v:groupContext="shape" transform="translate(350.64,-505.44)">
+			<title>工作表.35</title>
+			<desc>worker 取出 [未请求停止]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="56.16" cy="702.72" width="112.32" height="34.56"/>
+			<rect x="0" y="685.44" width="112.32" height="34.56" class="st21"/>
+			<text x="27.62" y="699.66" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>worker 取出<v:newlineChar/><tspan
+						x="27.25" dy="1.2em" class="st14">[</tspan>未请求停止]</text>		</g>
+		<g id="shape37-144" v:mID="37" v:groupContext="shape" transform="translate(104.4,-406.8)">
+			<title>工作表.37</title>
+			<desc>取消并移出队列 / 启动前已停止 / 关闭队列</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="176.4" cy="704.52" width="352.8" height="30.96"/>
+			<rect x="0" y="689.04" width="352.8" height="30.96" class="st21"/>
+			<text x="79.31" y="707.58" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>取消并移出队列 / 启动前已停止 / 关闭队列</text>		</g>
+		<g id="shape39-147" v:mID="39" v:groupContext="shape" transform="translate(709.2,-553.68)">
+			<title>工作表.39</title>
+			<desc>[action 返回 成功 Result]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="59.4" cy="702" width="118.8" height="36"/>
+			<rect x="0" y="684" width="118.8" height="36" class="st21"/>
+			<text x="30.97" y="698.94" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[action 返回<v:newlineChar/><tspan
+						x="31" dy="1.2em" class="st14">成功</tspan> Result]</text>		</g>
+		<g id="shape41-151" v:mID="41" v:groupContext="shape" transform="translate(752.4,-421.2)">
+			<title>工作表.41</title>
+			<desc>[其他错误 / 抛出异常]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="70.2" cy="702" width="140.4" height="36"/>
+			<rect x="0" y="684" width="140.4" height="36" class="st21"/>
+			<text x="44.41" y="698.94" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[其他错误 /<v:newlineChar/><tspan
+						x="48.1" dy="1.2em" class="st14">抛出异常</tspan>]</text>		</g>
+		<g id="shape43-155" v:mID="43" v:groupContext="shape" transform="translate(584.64,-292.32)">
+			<title>工作表.43</title>
+			<desc>[action 返回 ErrorCode::Cancelled]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="108" cy="703.44" width="216" height="33.12"/>
+			<rect x="0" y="686.88" width="216" height="33.12" class="st21"/>
+			<text x="25.51" y="706.5" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[action 返回 ErrorCode::Cancelled]</text>		</g>
+	</g>
+</svg>

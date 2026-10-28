@@ -43,6 +43,8 @@ target_compile_features(signallab_core PUBLIC cxx_std_20)
 signallab_set_compiler_warnings(signallab_core)
 
 add_library(signallab_repository INTERFACE
+    include/signallab/repository/backup_repository.hpp
+    include/signallab/repository/audio_input.hpp
     include/signallab/repository/file_repository.hpp
     include/signallab/repository/script_file_gateway.hpp
     include/signallab/repository/script_repository.hpp
@@ -62,6 +64,7 @@ add_library(signallab_algorithm STATIC
     include/signallab/algorithm/features.hpp
     include/signallab/algorithm/fft.hpp
     include/signallab/algorithm/fir_filter.hpp
+    include/signallab/algorithm/streaming_fir_filter.hpp
     include/signallab/algorithm/peak_detector.hpp
     include/signallab/algorithm/preprocessing.hpp
     include/signallab/algorithm/quality_metrics.hpp
@@ -70,6 +73,7 @@ add_library(signallab_algorithm STATIC
     src/algorithm/features.cpp
     src/algorithm/fft.cpp
     src/algorithm/fir_filter.cpp
+    src/algorithm/streaming_fir_filter.cpp
     src/algorithm/peak_detector.cpp
     src/algorithm/preprocessing.cpp
     src/algorithm/quality_metrics.cpp
@@ -129,17 +133,23 @@ target_link_libraries(signallab_task PUBLIC signallab_core)
 signallab_set_compiler_warnings(signallab_task)
 
 add_library(signallab_io STATIC
+    include/signallab/io/backup_settings.hpp
+    src/io/backup_settings.cpp
     include/signallab/io/csv_reader.hpp
     include/signallab/io/filesystem_file_repository.hpp
     include/signallab/io/filesystem_script_file_gateway.hpp
     include/signallab/io/hash_service.hpp
     include/signallab/io/import_types.hpp
     include/signallab/io/wav_reader.hpp
+    include/signallab/io/wav_writer.hpp
+    include/signallab/io/windows_audio_input.hpp
     src/io/csv_reader.cpp
     src/io/filesystem_file_repository.cpp
     src/io/filesystem_script_file_gateway.cpp
     src/io/hash_service.cpp
     src/io/wav_reader.cpp
+    src/io/wav_writer.cpp
+    src/io/windows_audio_input.cpp
 )
 
 target_include_directories(signallab_io
@@ -156,7 +166,15 @@ target_link_libraries(signallab_io
 )
 signallab_set_compiler_warnings(signallab_io)
 
+if(WIN32)
+    target_link_libraries(signallab_io PRIVATE winmm crypt32)
+endif()
+
 add_library(signallab_database STATIC
+    include/signallab/database/mariadb_backup_repository.hpp
+    include/signallab/database/project_backup_source.hpp
+    src/database/mariadb_backup_repository.cpp
+    src/database/project_backup_source.cpp
     include/signallab/database/database_connection.hpp
     include/signallab/database/database_executor.hpp
     include/signallab/database/migration_runner.hpp
@@ -182,10 +200,15 @@ target_link_libraries(signallab_database
         signallab_repository
         Qt6::Core
         Qt6::Sql
+    PRIVATE
+        MariaDB::Client
 )
 signallab_set_compiler_warnings(signallab_database)
 
 add_library(signallab_app STATIC
+    include/signallab/app/backup_service.hpp
+    src/app/backup_service.cpp
+    include/signallab/app/audio_capture_service.hpp
     include/signallab/app/analysis_service.hpp
     include/signallab/app/background_analysis_service.hpp
     include/signallab/app/background_file_service.hpp
@@ -196,6 +219,7 @@ add_library(signallab_app STATIC
     include/signallab/app/script_runtime/value.hpp
     include/signallab/app/script_service.hpp
     src/app/analysis_service.cpp
+    src/app/audio_capture_service.cpp
     src/app/background_analysis_service.cpp
     src/app/background_file_service.cpp
     src/app/background_script_service.cpp
@@ -222,6 +246,10 @@ target_link_libraries(signallab_app
 signallab_set_compiler_warnings(signallab_app)
 
 add_library(signallab_gui STATIC
+    src/gui/database_backup_widget.cpp
+    src/gui/database_backup_widget.hpp
+    src/gui/audio_capture_widget.cpp
+    src/gui/audio_capture_widget.hpp
     src/gui/file_import_dialog.cpp
     src/gui/file_import_dialog.hpp
     src/gui/interactive_chart_view.cpp
@@ -247,6 +275,7 @@ target_compile_definitions(signallab_gui
 target_link_libraries(signallab_gui
     PUBLIC
         signallab_app
+        signallab_io
         Qt6::Core
         Qt6::Widgets
         Qt6::Charts

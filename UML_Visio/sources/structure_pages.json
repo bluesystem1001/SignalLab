@@ -1,0 +1,1334 @@
+[
+  {
+    "name": "01 用例图",
+    "title": "SignalLab · 系统用例图",
+    "subtitle": "当前源码实现范围 · 单用户信号分析工作站 · UML 系统边界与外部参与者",
+    "footer": "依据：docs/user-guide.md:31–109,155–189；README.md:19–36。相同用户角色在三行重复显示，仅为减少交叉连线。",
+    "nodes": [
+      {
+        "id": "uc_system",
+        "type": "frame",
+        "x": 260,
+        "y": 145,
+        "w": 1110,
+        "h": 695,
+        "text": "SignalLab 一维信号分析系统"
+      },
+      {
+        "id": "user1",
+        "type": "actor",
+        "x": 65,
+        "y": 225,
+        "w": 110,
+        "h": 110,
+        "text": "信号分析用户"
+      },
+      {
+        "id": "user2",
+        "type": "actor",
+        "x": 65,
+        "y": 445,
+        "w": 110,
+        "h": 110,
+        "text": "信号分析用户"
+      },
+      {
+        "id": "user3",
+        "type": "actor",
+        "x": 65,
+        "y": 665,
+        "w": 110,
+        "h": 110,
+        "text": "信号分析用户"
+      },
+      {
+        "id": "uc_import",
+        "type": "ellipse",
+        "x": 300,
+        "y": 225,
+        "w": 260,
+        "h": 110,
+        "text": "导入 CSV / WAV\n参数配置 · 预览 · 去重",
+        "fill": "blue"
+      },
+      {
+        "id": "uc_view",
+        "type": "ellipse",
+        "x": 660,
+        "y": 225,
+        "w": 260,
+        "h": 110,
+        "text": "查看与对比波形\n缩放 · 游标 · PNG 导出",
+        "fill": "blue"
+      },
+      {
+        "id": "uc_analysis",
+        "type": "ellipse",
+        "x": 1020,
+        "y": 225,
+        "w": 260,
+        "h": 110,
+        "text": "FFT 与特征分析\n频谱 · 峰值 · SNR / THD",
+        "fill": "blue"
+      },
+      {
+        "id": "uc_fir",
+        "type": "ellipse",
+        "x": 300,
+        "y": 445,
+        "w": 260,
+        "h": 110,
+        "text": "生成 FIR 派生信号\n低通 / 高通 · 持久化",
+        "fill": "green"
+      },
+      {
+        "id": "uc_tasks",
+        "type": "ellipse",
+        "x": 660,
+        "y": 445,
+        "w": 260,
+        "h": 110,
+        "text": "管理后台任务\n查看 · 取消 · 重试 · 移除",
+        "fill": "green"
+      },
+      {
+        "id": "uc_audio",
+        "type": "ellipse",
+        "x": 1020,
+        "y": 445,
+        "w": 260,
+        "h": 110,
+        "text": "采集与实时滤波\n保存 WAV / 保存并导入",
+        "fill": "green"
+      },
+      {
+        "id": "uc_script",
+        "type": "ellipse",
+        "x": 300,
+        "y": 665,
+        "w": 260,
+        "h": 110,
+        "text": "运行 SignalScript\n编辑 · 诊断 · 绘图 / 导出",
+        "fill": "purple"
+      },
+      {
+        "id": "uc_history",
+        "type": "ellipse",
+        "x": 660,
+        "y": 665,
+        "w": 260,
+        "h": 110,
+        "text": "管理项目与追溯\n查看历史 · 受限删除",
+        "fill": "purple"
+      },
+      {
+        "id": "uc_backup",
+        "type": "ellipse",
+        "x": 1020,
+        "y": 665,
+        "w": 260,
+        "h": 110,
+        "text": "管理项目备份\n配置 · 上传 · 下载恢复副本",
+        "fill": "purple"
+      },
+      {
+        "id": "microphone",
+        "type": "actor",
+        "x": 1410,
+        "y": 445,
+        "w": 140,
+        "h": 110,
+        "text": "«device»\n麦克风设备"
+      },
+      {
+        "id": "backup_actor",
+        "type": "actor",
+        "x": 1410,
+        "y": 665,
+        "w": 140,
+        "h": 110,
+        "text": "«system»\nMariaDB 服务"
+      },
+      {
+        "id": "uc_scope_note",
+        "type": "note",
+        "x": 270,
+        "y": 865,
+        "w": 1100,
+        "h": 55,
+        "text": "追溯管理：查看分析 / 脚本历史，删除终态分析或项目信号；任务中心仅维护本次进程快照。\n恢复副本写入新目录；脚本仅访问受限目录；未实现登录、多人协作或动态插件。",
+        "fill": "gray"
+      }
+    ],
+    "edges": [
+      {
+        "from": "user1",
+        "to": "uc_import",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            280
+          ],
+          [
+            300,
+            280
+          ]
+        ]
+      },
+      {
+        "from": "user1",
+        "to": "uc_view",
+        "fromSide": "R",
+        "toSide": "T",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            280
+          ],
+          [
+            215,
+            280
+          ],
+          [
+            215,
+            190
+          ],
+          [
+            790,
+            190
+          ],
+          [
+            790,
+            225
+          ]
+        ]
+      },
+      {
+        "from": "user1",
+        "to": "uc_analysis",
+        "fromSide": "R",
+        "toSide": "B",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            280
+          ],
+          [
+            235,
+            280
+          ],
+          [
+            235,
+            380
+          ],
+          [
+            1150,
+            380
+          ],
+          [
+            1150,
+            335
+          ]
+        ]
+      },
+      {
+        "from": "user2",
+        "to": "uc_fir",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            500
+          ],
+          [
+            300,
+            500
+          ]
+        ]
+      },
+      {
+        "from": "user2",
+        "to": "uc_tasks",
+        "fromSide": "R",
+        "toSide": "T",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            500
+          ],
+          [
+            215,
+            500
+          ],
+          [
+            215,
+            410
+          ],
+          [
+            790,
+            410
+          ],
+          [
+            790,
+            445
+          ]
+        ]
+      },
+      {
+        "from": "user2",
+        "to": "uc_audio",
+        "fromSide": "R",
+        "toSide": "B",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            500
+          ],
+          [
+            235,
+            500
+          ],
+          [
+            235,
+            600
+          ],
+          [
+            1150,
+            600
+          ],
+          [
+            1150,
+            555
+          ]
+        ]
+      },
+      {
+        "from": "user3",
+        "to": "uc_script",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            720
+          ],
+          [
+            300,
+            720
+          ]
+        ]
+      },
+      {
+        "from": "user3",
+        "to": "uc_history",
+        "fromSide": "R",
+        "toSide": "T",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            720
+          ],
+          [
+            215,
+            720
+          ],
+          [
+            215,
+            630
+          ],
+          [
+            790,
+            630
+          ],
+          [
+            790,
+            665
+          ]
+        ]
+      },
+      {
+        "from": "user3",
+        "to": "uc_backup",
+        "fromSide": "R",
+        "toSide": "B",
+        "style": "plain",
+        "points": [
+          [
+            175,
+            720
+          ],
+          [
+            235,
+            720
+          ],
+          [
+            235,
+            815
+          ],
+          [
+            1150,
+            815
+          ],
+          [
+            1150,
+            775
+          ]
+        ]
+      },
+      {
+        "from": "microphone",
+        "to": "uc_audio",
+        "fromSide": "L",
+        "toSide": "R",
+        "style": "plain",
+        "points": [
+          [
+            1410,
+            500
+          ],
+          [
+            1280,
+            500
+          ]
+        ]
+      },
+      {
+        "from": "backup_actor",
+        "to": "uc_backup",
+        "fromSide": "L",
+        "toSide": "R",
+        "style": "plain",
+        "points": [
+          [
+            1410,
+            720
+          ],
+          [
+            1280,
+            720
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "name": "02 组件图",
+    "title": "SignalLab · 分层组件与依赖",
+    "subtitle": "依赖方向与 CMake 目标一致 · 组装根注入接口实现 · 领域算法保持独立",
+    "footer": "依据：CMakeLists.txt:28–296；src/gui/main.cpp:98–189。虚线箭头表示依赖，图内省略重复的 core 基础依赖。",
+    "nodes": [
+      {
+        "id": "cmp_root",
+        "type": "component",
+        "x": 620,
+        "y": 145,
+        "w": 360,
+        "h": 75,
+        "text": "SignalLab\n组装根 · src/gui/main.cpp",
+        "fill": "blue"
+      },
+      {
+        "id": "cmp_gui",
+        "type": "component",
+        "x": 620,
+        "y": 290,
+        "w": 360,
+        "h": 105,
+        "text": "signallab_gui\nMainWindow · Models · Widgets\nQt Core / Widgets / Charts",
+        "fill": "blue"
+      },
+      {
+        "id": "cmp_io",
+        "type": "component",
+        "x": 80,
+        "y": 300,
+        "w": 340,
+        "h": 115,
+        "text": "signallab_io\n文件仓库 · 脚本文件网关 · 音频\nQt Core · WinMM · DPAPI",
+        "fill": "orange"
+      },
+      {
+        "id": "cmp_db",
+        "type": "component",
+        "x": 1180,
+        "y": 300,
+        "w": 340,
+        "h": 115,
+        "text": "signallab_database\nDatabaseExecutor · SQLite 仓库\nQt SQL · MariaDB Connector/C",
+        "fill": "orange"
+      },
+      {
+        "id": "cmp_app",
+        "type": "component",
+        "x": 620,
+        "y": 470,
+        "w": 360,
+        "h": 105,
+        "text": "signallab_app\n导入 · 分析 · 脚本 · 采集 · 备份\n应用服务与后台适配器",
+        "fill": "green"
+      },
+      {
+        "id": "cmp_algorithm",
+        "type": "component",
+        "x": 80,
+        "y": 665,
+        "w": 300,
+        "h": 105,
+        "text": "signallab_algorithm\nFFT · 特征 · FIR · Streaming FIR\n无 Qt 依赖",
+        "fill": "purple"
+      },
+      {
+        "id": "cmp_parser",
+        "type": "component",
+        "x": 455,
+        "y": 665,
+        "w": 300,
+        "h": 105,
+        "text": "signallab_parser\nLexer · Parser · SemanticChecker\nSignalScript AST",
+        "fill": "purple"
+      },
+      {
+        "id": "cmp_task",
+        "type": "component",
+        "x": 830,
+        "y": 665,
+        "w": 300,
+        "h": 105,
+        "text": "signallab_task\nScheduler · ThreadPool · TaskQueue\n计算队列 / I/O 队列",
+        "fill": "purple"
+      },
+      {
+        "id": "cmp_repo",
+        "type": "component",
+        "x": 1205,
+        "y": 665,
+        "w": 315,
+        "h": 105,
+        "text": "signallab_repository\nSignal / Task / Script / File 接口\nAudioInput / Backup 接口",
+        "fill": "purple"
+      },
+      {
+        "id": "cmp_core",
+        "type": "component",
+        "x": 620,
+        "y": 825,
+        "w": 360,
+        "h": 75,
+        "text": "signallab_core\nSignal · Metadata · Result / Error",
+        "fill": "gray"
+      },
+      {
+        "id": "cmp_base_note",
+        "type": "note",
+        "x": 75,
+        "y": 815,
+        "w": 450,
+        "h": 90,
+        "text": "基础依赖省略：app、algorithm、parser、\ntask、repository、io 均依赖 core。\ncore / algorithm / parser / task 不依赖 Qt。",
+        "fill": "gray"
+      },
+      {
+        "id": "cmp_runtime_note",
+        "type": "note",
+        "x": 1075,
+        "y": 815,
+        "w": 450,
+        "h": 90,
+        "text": "I/O 与数据库实现 repository 抽象。\n音频处理线程、备份 std::async 独立运行，\n不属于 Scheduler 的计算 / I/O 池。",
+        "fill": "gray"
+      }
+    ],
+    "edges": [
+      {
+        "from": "cmp_root",
+        "to": "cmp_gui",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            800,
+            220
+          ],
+          [
+            800,
+            290
+          ]
+        ]
+      },
+      {
+        "from": "cmp_root",
+        "to": "cmp_io",
+        "fromSide": "L",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            620,
+            182.5
+          ],
+          [
+            250,
+            182.5
+          ],
+          [
+            250,
+            300
+          ]
+        ]
+      },
+      {
+        "from": "cmp_root",
+        "to": "cmp_db",
+        "fromSide": "R",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            980,
+            182.5
+          ],
+          [
+            1350,
+            182.5
+          ],
+          [
+            1350,
+            300
+          ]
+        ]
+      },
+      {
+        "from": "cmp_gui",
+        "to": "cmp_app",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            800,
+            395
+          ],
+          [
+            800,
+            470
+          ]
+        ]
+      },
+      {
+        "from": "cmp_gui",
+        "to": "cmp_io",
+        "fromSide": "L",
+        "toSide": "R",
+        "style": "dependency",
+        "points": [
+          [
+            620,
+            342.5
+          ],
+          [
+            520,
+            342.5
+          ],
+          [
+            520,
+            357.5
+          ],
+          [
+            420,
+            357.5
+          ]
+        ]
+      },
+      {
+        "from": "cmp_app",
+        "to": "cmp_algorithm",
+        "fromSide": "L",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            620,
+            522.5
+          ],
+          [
+            230,
+            522.5
+          ],
+          [
+            230,
+            665
+          ]
+        ]
+      },
+      {
+        "from": "cmp_app",
+        "to": "cmp_parser",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            800,
+            575
+          ],
+          [
+            800,
+            620
+          ],
+          [
+            605,
+            620
+          ],
+          [
+            605,
+            665
+          ]
+        ]
+      },
+      {
+        "from": "cmp_app",
+        "to": "cmp_task",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            800,
+            575
+          ],
+          [
+            800,
+            620
+          ],
+          [
+            980,
+            620
+          ],
+          [
+            980,
+            665
+          ]
+        ]
+      },
+      {
+        "from": "cmp_app",
+        "to": "cmp_repo",
+        "fromSide": "R",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            980,
+            522.5
+          ],
+          [
+            1362.5,
+            522.5
+          ],
+          [
+            1362.5,
+            665
+          ]
+        ]
+      },
+      {
+        "from": "cmp_io",
+        "to": "cmp_repo",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "dependency",
+        "points": [
+          [
+            420,
+            357.5
+          ],
+          [
+            470,
+            357.5
+          ],
+          [
+            470,
+            440
+          ],
+          [
+            1155,
+            440
+          ],
+          [
+            1155,
+            717.5
+          ],
+          [
+            1205,
+            717.5
+          ]
+        ]
+      },
+      {
+        "from": "cmp_db",
+        "to": "cmp_repo",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "dependency",
+        "points": [
+          [
+            1350,
+            415
+          ],
+          [
+            1455,
+            450
+          ],
+          [
+            1455,
+            620
+          ],
+          [
+            1455,
+            665
+          ]
+        ]
+      }
+    ]
+  },
+  {
+    "name": "06 持久化类图",
+    "title": "SignalLab · 逻辑持久化类图",
+    "subtitle": "UML 类表示 SQLite 表 · 明确可空外键、多重性与删除语义 · 基于全部现有迁移",
+    "footer": "依据：migrations/001_init.sql:4–98；002_task_scheduler.sql:6–37；003_signal_script.sql:6–54。多重性按 SQL 约束标注。",
+    "nodes": [
+      {
+        "id": "tbl_file",
+        "type": "class",
+        "x": 70,
+        "y": 170,
+        "w": 355,
+        "h": 235,
+        "text": "«table» file_version",
+        "fill": "orange",
+        "sections": [
+          "PK id: INTEGER\ncontent_hash: TEXT {unique}\nstored_relative_path: TEXT {unique}\noriginal_name / byte_size\ncreated_utc: TEXT",
+          "SHA-256 内容寻址\n外部原文件不参与项目删除"
+        ]
+      },
+      {
+        "id": "tbl_source",
+        "type": "class",
+        "x": 605,
+        "y": 170,
+        "w": 365,
+        "h": 235,
+        "text": "«table» signal_source",
+        "fill": "blue",
+        "sections": [
+          "PK id: INTEGER\nsource_type: GENERATED | CSV | WAV\nsource_key: TEXT {unique}\nFK file_version_id: INTEGER?\nsource_path / parameters_json",
+          "文件版本删除 → 外键置 NULL\nGENERATED 不要求文件版本"
+        ]
+      },
+      {
+        "id": "tbl_signal",
+        "type": "class",
+        "x": 1130,
+        "y": 170,
+        "w": 395,
+        "h": 235,
+        "text": "«table» signal_record",
+        "fill": "green",
+        "sections": [
+          "PK id: INTEGER\nFK source_id: INTEGER {unique}\nsample_rate / sample_count\nsample_blob: BLOB / sample_hash\nsignal_name / signal_unit\nsignal_source_label",
+          "来源删除 → 信号记录级联删除\n导入事务保证来源与记录一起保存"
+        ]
+      },
+      {
+        "id": "tbl_script",
+        "type": "class",
+        "x": 70,
+        "y": 540,
+        "w": 355,
+        "h": 230,
+        "text": "«table» script_history",
+        "fill": "purple",
+        "sections": [
+          "PK id: INTEGER\nscript_text / source_hash\nstatus / created_utc / finished_utc\nerror_line? / error_column?\nerror_message: TEXT",
+          "独立执行历史，无信号外键\nRUNNING 仅能转为一次终态"
+        ]
+      },
+      {
+        "id": "tbl_feature",
+        "type": "class",
+        "x": 605,
+        "y": 540,
+        "w": 365,
+        "h": 230,
+        "text": "«table» feature_result",
+        "fill": "green",
+        "sections": [
+          "PK id: INTEGER\nFK task_id: INTEGER\nfeature_name: TEXT\nnumeric_value: REAL? / value_text\nunit: TEXT",
+          "UNIQUE(task_id, feature_name)\n任务删除 → 特征级联删除"
+        ]
+      },
+      {
+        "id": "tbl_task",
+        "type": "class",
+        "x": 1130,
+        "y": 540,
+        "w": 395,
+        "h": 285,
+        "text": "«table» analysis_task",
+        "fill": "blue",
+        "sections": [
+          "PK id: INTEGER\nFK signal_record_id: INTEGER?\nsignal_name / status\nalgorithm_name / algorithm_version\nparameters_json / input_hash\noutput_hash / UTC 时间 / error_message",
+          "信号删除 → 外键置 NULL\n终态含 CANCELLED / INTERRUPTED\n特征与 SUCCEEDED 状态原子提交"
+        ]
+      },
+      {
+        "id": "tbl_audit",
+        "type": "class",
+        "x": 70,
+        "y": 800,
+        "w": 355,
+        "h": 120,
+        "text": "«table» operation_log",
+        "fill": "gray",
+        "sections": [
+          "PK id / operation / entity_type\nentity_id? / detail / created_utc",
+          "无实体外键；审计记录独立保留"
+        ]
+      },
+      {
+        "id": "tbl_note",
+        "type": "note",
+        "x": 605,
+        "y": 810,
+        "w": 450,
+        "h": 105,
+        "text": "schema_migration 由迁移执行器管理。\nsignal_source 在 SQL 上允许无信号记录；\n应用事务保证正常业务中一来源一记录。\n任务中心快照不对应持久化业务表。",
+        "fill": "gray"
+      },
+      {
+        "id": "tbl_delete_note",
+        "type": "note",
+        "x": 490,
+        "y": 435,
+        "w": 590,
+        "h": 70,
+        "text": "线端多重性：每个来源可关联 0..1 文件版本；\n每个信号可被多个分析引用，信号删除后历史与特征继续保留。",
+        "fill": "gray"
+      }
+    ],
+    "edges": [
+      {
+        "from": "tbl_file",
+        "to": "tbl_source",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            425,
+            287.5
+          ],
+          [
+            605,
+            287.5
+          ]
+        ],
+        "label": "存档来源",
+        "labelAt": [
+          445,
+          252,
+          140,
+          28
+        ],
+        "sourceMultiplicity": "0..1",
+        "targetMultiplicity": "0..*"
+      },
+      {
+        "from": "tbl_source",
+        "to": "tbl_signal",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            970,
+            287.5
+          ],
+          [
+            1130,
+            287.5
+          ]
+        ],
+        "label": "来源记录",
+        "labelAt": [
+          980,
+          252,
+          140,
+          28
+        ],
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..1"
+      },
+      {
+        "from": "tbl_signal",
+        "to": "tbl_task",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "plain",
+        "points": [
+          [
+            1327.5,
+            405
+          ],
+          [
+            1327.5,
+            540
+          ]
+        ],
+        "label": "分析输入",
+        "labelAt": [
+          1348,
+          447,
+          135,
+          30
+        ],
+        "sourceMultiplicity": "0..1",
+        "targetMultiplicity": "0..*"
+      },
+      {
+        "from": "tbl_task",
+        "to": "tbl_feature",
+        "fromSide": "L",
+        "toSide": "R",
+        "style": "plain",
+        "points": [
+          [
+            1130,
+            655
+          ],
+          [
+            970,
+            655
+          ]
+        ],
+        "label": "特征结果",
+        "labelAt": [
+          980,
+          620,
+          140,
+          28
+        ],
+        "sourceMultiplicity": "1",
+        "targetMultiplicity": "0..*"
+      }
+    ]
+  },
+  {
+    "name": "12 部署图",
+    "title": "SignalLab · Windows 部署图",
+    "subtitle": "当前实际部署：Windows x64 桌面应用 + 本机可选备份服务 · 客户端库随程序分发",
+    "footer": "依据：src/gui/main.cpp:85–208；cmake/Dependencies.cmake:3–24；docs/user-guide.md:173–189；tools/package-windows.ps1:276–346。",
+    "nodes": [
+      {
+        "id": "dep_pc",
+        "type": "frame",
+        "x": 50,
+        "y": 145,
+        "w": 1500,
+        "h": 775,
+        "text": "«device» Windows x64 工作站"
+      },
+      {
+        "id": "dep_process",
+        "type": "frame",
+        "x": 85,
+        "y": 200,
+        "w": 850,
+        "h": 400,
+        "text": "«executionEnvironment» SignalLab 桌面进程"
+      },
+      {
+        "id": "dep_exe",
+        "type": "artifact",
+        "x": 110,
+        "y": 250,
+        "w": 310,
+        "h": 105,
+        "text": "«artifact» SignalLab.exe\nC++20 / Qt 桌面程序\n可写的独立发布目录",
+        "fill": "blue"
+      },
+      {
+        "id": "dep_runtime",
+        "type": "artifact",
+        "x": 515,
+        "y": 250,
+        "w": 385,
+        "h": 105,
+        "text": "必需的客户端运行库\nQt 6 · qwindows.dll · qsqlite.dll\nMinGW DLL · libmariadb.dll",
+        "fill": "green"
+      },
+      {
+        "id": "dep_threads",
+        "type": "note",
+        "x": 110,
+        "y": 405,
+        "w": 790,
+        "h": 155,
+        "text": "进程内执行边界\nQt GUI 线程；Scheduler 的计算池与 I/O 池；DatabaseExecutor 专属线程。\n音频：独立 WinMM 采集 / 处理线程；备份：独立 std::async 工作者。\n跨线程结果回到 GUI；SQLite 连接不跨线程共享。",
+        "fill": "gray"
+      },
+      {
+        "id": "dep_mariadb",
+        "type": "device",
+        "x": 1035,
+        "y": 230,
+        "w": 445,
+        "h": 230,
+        "text": "«executionEnvironment»\nMariaDB 服务（备份时需要）\n默认 127.0.0.1:3306\n数据库：signallab_backup\n备份元数据 · 文件清单 · 文件分块",
+        "fill": "purple"
+      },
+      {
+        "id": "dep_microphone",
+        "type": "device",
+        "x": 1045,
+        "y": 535,
+        "w": 435,
+        "h": 100,
+        "text": "«device» 麦克风 / Windows 音频\nWinMM waveIn* · PCM16 输入",
+        "fill": "orange"
+      },
+      {
+        "id": "dep_files",
+        "type": "box",
+        "x": 110,
+        "y": 670,
+        "w": 790,
+        "h": 190,
+        "text": "«artifact» 项目文件与导出\ndata/signallab.sqlite3（含 WAL / SHM 运行文件）\ndata/imports/<sha256>.source（导入存档）\ndata/script_outputs/（脚本 CSV / JSON）\nmigrations/*.sql（启动时按序迁移）\n独立 WAV / PNG 导出由用户指定路径",
+        "fill": "blue"
+      },
+      {
+        "id": "dep_config",
+        "type": "box",
+        "x": 1035,
+        "y": 690,
+        "w": 445,
+        "h": 90,
+        "text": "«artifact» 当前用户连接配置\n%LOCALAPPDATA%/SignalLab/\nmariadb-backup.json · 密码可用 DPAPI 加密",
+        "fill": "gray"
+      },
+      {
+        "id": "dep_restore",
+        "type": "box",
+        "x": 1035,
+        "y": 820,
+        "w": 445,
+        "h": 75,
+        "text": "«artifact» 下载恢复副本（新目录）\nSQLite 快照 + 被引用的 imports\n校验后交付；不覆盖当前项目",
+        "fill": "green"
+      }
+    ],
+    "edges": [
+      {
+        "from": "dep_exe",
+        "to": "dep_runtime",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "dependency",
+        "points": [
+          [
+            420,
+            302.5
+          ],
+          [
+            515,
+            302.5
+          ]
+        ],
+        "label": "加载",
+        "labelAt": [
+          425,
+          267,
+          85,
+          26
+        ]
+      },
+      {
+        "from": "dep_runtime",
+        "to": "dep_mariadb",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            900,
+            302.5
+          ],
+          [
+            975,
+            302.5
+          ],
+          [
+            975,
+            345
+          ],
+          [
+            1035,
+            345
+          ]
+        ],
+        "label": "Connector/C · TCP",
+        "labelAt": [
+          935,
+          265,
+          220,
+          26
+        ]
+      },
+      {
+        "from": "dep_runtime",
+        "to": "dep_microphone",
+        "fromSide": "B",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            707.5,
+            355
+          ],
+          [
+            707.5,
+            380
+          ],
+          [
+            965,
+            380
+          ],
+          [
+            965,
+            585
+          ],
+          [
+            1045,
+            585
+          ]
+        ],
+        "label": "WinMM",
+        "labelAt": [
+          975,
+          550,
+          80,
+          26
+        ]
+      },
+      {
+        "from": "dep_exe",
+        "to": "dep_files",
+        "fromSide": "L",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            110,
+            302.5
+          ],
+          [
+            70,
+            302.5
+          ],
+          [
+            70,
+            765
+          ],
+          [
+            110,
+            765
+          ]
+        ],
+        "label": "本地读写",
+        "labelAt": [
+          80,
+          620,
+          145,
+          26
+        ]
+      },
+      {
+        "from": "dep_runtime",
+        "to": "dep_config",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "plain",
+        "points": [
+          [
+            900,
+            302.5
+          ],
+          [
+            995,
+            302.5
+          ],
+          [
+            995,
+            735
+          ],
+          [
+            1035,
+            735
+          ]
+        ],
+        "label": "配置 / DPAPI",
+        "labelAt": [
+          875,
+          650,
+          155,
+          26
+        ]
+      },
+      {
+        "from": "dep_mariadb",
+        "to": "dep_restore",
+        "fromSide": "R",
+        "toSide": "R",
+        "style": "flow",
+        "points": [
+          [
+            1480,
+            345
+          ],
+          [
+            1520,
+            345
+          ],
+          [
+            1520,
+            857.5
+          ],
+          [
+            1480,
+            857.5
+          ]
+        ],
+        "label": "下载并校验",
+        "labelAt": [
+          1330,
+          645,
+          175,
+          26
+        ]
+      }
+    ]
+  }
+]

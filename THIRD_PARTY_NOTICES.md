@@ -20,10 +20,13 @@ This is a release decision, not something that `windeployqt6` or the packaging s
 | Qt 6 Base | `mingw-w64-x86_64-qt6-base 6.11.1-1` | Core, Widgets, GUI, SQL, OpenGL support, deployment tool and plugins | `licenses/third-party/qt6-base/` |
 | Qt Charts | `mingw-w64-x86_64-qt6-charts 6.11.1-1` | Time-domain and frequency-domain charts | `licenses/third-party/qt6-charts/` |
 | SQLite | `mingw-w64-x86_64-sqlite3 3.53.2-1` | QSQLITE runtime backend | `licenses/third-party/sqlite3/` |
+| MariaDB Connector/C | `mingw-w64-x86_64-libmariadbclient 3.4.8-3` | Native `mysql.h` database backup, directly linked through `libmariadb.dll` | `licenses/third-party/libmariadbclient/COPYING.LIB` |
 | GCC runtime | `mingw-w64-x86_64-gcc-libs 16.1.0-5` | `libgcc_s_seh-1.dll` and `libstdc++-6.dll` | `licenses/third-party/gcc-libs/` |
 | MinGW-w64 runtime | `mingw-w64-x86_64-libwinpthread 14.0.0.r92.g818fa6510-1` plus matching CRT/headers | Win32 C/C++ runtime support and `libwinpthread-1.dll` | `licenses/third-party/libwinpthread/`, `crt/`, `headers/`, `winpthreads/` |
 
 The application uses SQLite only through Qt's QSQLITE driver and does not link a second application-owned SQLite implementation.
+
+The MariaDB backup extension added on 2026-10-11 installs the missing Connector/C package without upgrading the frozen toolchain. The 2026-10-13 implementation calls Connector/C directly through `mysql.h`; new Windows packages require `libmariadb.dll` and its dependency closure and explicitly exclude Qt's `qsqlmysql.dll`. Qt SQL and QSQLITE remain responsible for local SQLite access and snapshots. The local MariaDB server is separately installed and is not bundled. This change reuses the existing Connector/C and transitive license payload; the historical Stage 8 package is unchanged.
 
 ## Transitive runtime dependencies
 
@@ -50,6 +53,20 @@ The frozen Qt/MSYS2 DLL closure can also include the components below. The Windo
 | zstd | `1.5.7-2` | `licenses/third-party/zstd/` |
 
 Windows system DLLs are supplied by the operating system and are not copied into the SignalLab archive.
+
+The MariaDB client also imports the already installed curl runtime. Its additional DLL dependencies, inspected with `objdump`, are listed below; Brotli, gettext, libiconv, zlib and zstd reuse the license payload already listed above. These entries extend the existing payload and do not change the historical Stage 8 package.
+
+| Installed component | Installed package version | License directory |
+|---|---:|---|
+| curl | `8.20.0-1` | `licenses/third-party/curl/` |
+| libidn2 | `2.3.8-4` | `licenses/third-party/libidn2/NOTICE`; standard LGPLv3/GPLv3 texts in `libunistring/`, GPLv2 text in `qt6-base/GPL-2.0-or-later.txt` |
+| libpsl | `0.21.5-3` | `licenses/third-party/libpsl/` |
+| libssh2 | `1.11.1-2` | `licenses/third-party/libssh2/` |
+| libunistring | `1.4.2-1` | `licenses/third-party/libunistring/` |
+| nghttp2 | `1.69.0-1` | `licenses/third-party/nghttp2/` |
+| nghttp3 | `1.16.0-1` | `licenses/third-party/nghttp3/` |
+| ngtcp2 | `1.23.0-1` | `licenses/third-party/ngtcp2/` |
+| OpenSSL | `3.6.3-1` | `licenses/third-party/openssl/` |
 
 ## Test-only dependency
 

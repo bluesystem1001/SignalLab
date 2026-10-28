@@ -1,0 +1,506 @@
+{
+  "basis": "current working tree, including uncommitted files",
+  "generatedDate": "2026-10-23",
+  "files": [
+    {
+      "sha256": "6aa5df6d5bae12e8bfa800b5368f9a84665c707e698d2350d1b4a0d247ad6cdd",
+      "path": "cmake/Dependencies.cmake"
+    },
+    {
+      "sha256": "86a461151ca4e7c86f9f264eda78a71ff4b498b96ff4c2f58d9d4632090cb523",
+      "path": "CMakeLists.txt"
+    },
+    {
+      "sha256": "4f12a2dc755009de67064713fc7796a99d9b481474d9af7f40ea6b0898b8f2b3",
+      "path": "docs/architecture.md"
+    },
+    {
+      "sha256": "a00de3dd09e25410d5c92bcd96bf543683eef0e61a34351caa98e6b301e3031a",
+      "path": "docs/user-guide.md"
+    },
+    {
+      "sha256": "06d772e0afda6b14ef3cd97bab9df220b910bda68b234d097afaa90401f0aa8d",
+      "path": "include/signallab/algorithm/features.hpp"
+    },
+    {
+      "sha256": "491352c21ff3497d0c532e1d0c7ae0ac544aa3e6365967455bdb50fdc7c57ac8",
+      "path": "include/signallab/algorithm/fft.hpp"
+    },
+    {
+      "sha256": "3a8fa640623a07a3296d5a305390fd9814709109cf3ee31a1db5b5391218fcc4",
+      "path": "include/signallab/algorithm/fir_filter.hpp"
+    },
+    {
+      "sha256": "72efa73954deb8e5bb3c46b7e4175d69e1687cd79b9429a1c99d9dcdd09edeca",
+      "path": "include/signallab/algorithm/peak_detector.hpp"
+    },
+    {
+      "sha256": "213ddb528a2013d8cfcebbf05182d09b4946f84400789be99e5a67348136cffe",
+      "path": "include/signallab/algorithm/preprocessing.hpp"
+    },
+    {
+      "sha256": "b3fa797037c5598f92c15b337dd8c987c1531a1c7ab5b072e36414bdc2679937",
+      "path": "include/signallab/algorithm/quality_metrics.hpp"
+    },
+    {
+      "sha256": "eff7c34a9d09b6ba71d6ed54b6e978c03735cf5912fdc11c0e4362ce3ebaf8e3",
+      "path": "include/signallab/algorithm/spectrum.hpp"
+    },
+    {
+      "sha256": "d2393752bff89f5c4a0811cb5fcd2861b489d0fb5da360261e4e555a111374ba",
+      "path": "include/signallab/algorithm/streaming_fir_filter.hpp"
+    },
+    {
+      "sha256": "b0a274d7b471336eda4b48d9876460f7a617ff6cd28b17ea1a1009f531f18efd",
+      "path": "include/signallab/algorithm/window.hpp"
+    },
+    {
+      "sha256": "9e2e4eda5728de36acdae106211ce13ea2b0cab6262096a7e0bc8f120f6a6bd4",
+      "path": "include/signallab/app/analysis_service.hpp"
+    },
+    {
+      "sha256": "7182f563e3f52c56b2da2515dc3f8d49e28fbd0e5c5101158443dd5b6b3e4021",
+      "path": "include/signallab/app/audio_capture_service.hpp"
+    },
+    {
+      "sha256": "c253dbf046bb3af499750535697bc93af88d8f0c9876594d04fb20678536f5af",
+      "path": "include/signallab/app/background_analysis_service.hpp"
+    },
+    {
+      "sha256": "c7c3258143c1d2abcedb67a41fe4918f97fce6e0cc38b0937673fb6ffb41e646",
+      "path": "include/signallab/app/background_file_service.hpp"
+    },
+    {
+      "sha256": "7e2911a24f8c049b141ae04934ce5f395b9d5233fa7253a7bf61e36626de9574",
+      "path": "include/signallab/app/background_script_service.hpp"
+    },
+    {
+      "sha256": "38ad7434a7a70cdfe4127af805148dcea6c3e0cb6838dc17c9312af6adb8d46b",
+      "path": "include/signallab/app/backup_service.hpp"
+    },
+    {
+      "sha256": "7ddb14688fe8288931b6396c8f9440bc0349f1b765a291a2a8bb3757e14ecf9a",
+      "path": "include/signallab/app/display_downsampler.hpp"
+    },
+    {
+      "sha256": "81881c4e37ed058ec8a51d8561d110ac0dece98b8007179d6ad553179341bfb1",
+      "path": "include/signallab/app/import_service.hpp"
+    },
+    {
+      "sha256": "044f3fe699d306904255514371cab57b350234866ad1287c8cacc6e4b0323e07",
+      "path": "include/signallab/app/script_runtime/evaluator.hpp"
+    },
+    {
+      "sha256": "9316120fce7bcb9cf1fbead63388cf38d06a8a52bb8b3366d5dafe4e189c2716",
+      "path": "include/signallab/app/script_runtime/value.hpp"
+    },
+    {
+      "sha256": "392bf43a8fea2ead112e915de0119f140a3dbfbf5499039e8140d933eff9bc7b",
+      "path": "include/signallab/app/script_service.hpp"
+    },
+    {
+      "sha256": "c2862dd76bde7e0ac3dd6d269d27f71c0303b6342ad37a762f0402e335f6769b",
+      "path": "include/signallab/core/error.hpp"
+    },
+    {
+      "sha256": "882d3edbfe665e8d168b87aba3cf5e717aeb19504f93e9bfd928697231415989",
+      "path": "include/signallab/core/result.hpp"
+    },
+    {
+      "sha256": "3d418b93914b9bd045fe4dd8df5267c8532559e4819c19d08f6cba2ce12363c3",
+      "path": "include/signallab/core/signal_generator.hpp"
+    },
+    {
+      "sha256": "323ed534533871a36bd9475f2ffdf4aee4a88a3eeab703e1f1f7b77bc1ed6061",
+      "path": "include/signallab/core/signal.hpp"
+    },
+    {
+      "sha256": "861b68ea0200a481e80f9670107248c36a6690eaea2a4459dc60c3d24a8a99f0",
+      "path": "include/signallab/database/database_connection.hpp"
+    },
+    {
+      "sha256": "ac09cf55a86de9cdb83a77704e9aeb993dea00df7540799595e54d2965222745",
+      "path": "include/signallab/database/database_executor.hpp"
+    },
+    {
+      "sha256": "df8df1a4b4a43852a143e4cb7cae9bb02d87891efd5da91f127f5cbc01111200",
+      "path": "include/signallab/database/mariadb_backup_repository.hpp"
+    },
+    {
+      "sha256": "eb46584297d407bccb0a26a0b59f47556a5f69c4a1a6c87677d2eace3446c22e",
+      "path": "include/signallab/database/migration_runner.hpp"
+    },
+    {
+      "sha256": "81afd09ac1e6e8bb9e547b089530494b19bb5cc8d3e3817a6ecbb11c624741e3",
+      "path": "include/signallab/database/project_backup_source.hpp"
+    },
+    {
+      "sha256": "f7b2fa013d82118baa82d8287480fe3bd30edcdfeb80ed5ff06667f32e5297d1",
+      "path": "include/signallab/database/sqlite_script_repository.hpp"
+    },
+    {
+      "sha256": "237058b299c6ae5153f5e80d54f36aaa20a71c9e184efd699a1df9f3d453c235",
+      "path": "include/signallab/database/sqlite_signal_repository.hpp"
+    },
+    {
+      "sha256": "8df23faf924cbf54799b9a0451f3d70db1445ec841faae2bac9cff759136530e",
+      "path": "include/signallab/database/sqlite_task_repository.hpp"
+    },
+    {
+      "sha256": "0578108d75d7fd5d92b82de71a253c96d11c27c20a57ba443216f21d9f4b480c",
+      "path": "include/signallab/io/backup_settings.hpp"
+    },
+    {
+      "sha256": "226d312821faa2b28a851510650b9aa4b2d1ce3c42ef01857cbbfbb41b10c683",
+      "path": "include/signallab/io/csv_reader.hpp"
+    },
+    {
+      "sha256": "575ddbe7d210141e940aba9781a1d97f9665cbe86bf12b28b9a6e9a006e17111",
+      "path": "include/signallab/io/filesystem_file_repository.hpp"
+    },
+    {
+      "sha256": "c969153d4131332e28b81b5b966020a3f5f496def528956a52d662288abd95c4",
+      "path": "include/signallab/io/filesystem_script_file_gateway.hpp"
+    },
+    {
+      "sha256": "31b4f2e7e5d134b3b47c27db3c81a5ec821a20ed56e0d9f0b6b8caed0f105364",
+      "path": "include/signallab/io/hash_service.hpp"
+    },
+    {
+      "sha256": "5518c29291c4b7e93465c5c49c48687838a80a73c1b68de76f5c864a0eff7846",
+      "path": "include/signallab/io/import_types.hpp"
+    },
+    {
+      "sha256": "307592ec25fe39987bd07deb515f2b30e52f9ba2cb1fbe35f8023b13e237adbc",
+      "path": "include/signallab/io/wav_reader.hpp"
+    },
+    {
+      "sha256": "a9860db3aa4aba661504d413bc40b400c920036f1ce0b98b67606f3cb8da7dc0",
+      "path": "include/signallab/io/wav_writer.hpp"
+    },
+    {
+      "sha256": "e3dc4bc71839a7e007ce917b4807bc658ee58f239963c135bddaf600fad9b90c",
+      "path": "include/signallab/io/windows_audio_input.hpp"
+    },
+    {
+      "sha256": "e88ec7f18b3ada6498bf8eeafd7d8589e34440ea1e384df7e2a4fd21ddf6c177",
+      "path": "include/signallab/parser/ast.hpp"
+    },
+    {
+      "sha256": "66507768d1370fa585b770a5fb1d08172363e6375efa7ebd495f6af542806038",
+      "path": "include/signallab/parser/diagnostic.hpp"
+    },
+    {
+      "sha256": "ebda402f3e46760e603e9e0e5fc0124c4a1a9301af4c570ab2c7fb4de3724105",
+      "path": "include/signallab/parser/lexer.hpp"
+    },
+    {
+      "sha256": "fa1ea5eee2f5ad60f9340e1c8e61360f54d13bd1d113743d0de50954667dce67",
+      "path": "include/signallab/parser/parser.hpp"
+    },
+    {
+      "sha256": "8ff6ca269c54443550f4d022eb0060e70a4150abaa987aac932e4260b96513d6",
+      "path": "include/signallab/parser/semantic_checker.hpp"
+    },
+    {
+      "sha256": "15eb6f2a02d6b21356c6ac4942f92cb6808f65adbd0dd6d4bdae0a1767ccc44b",
+      "path": "include/signallab/parser/source_location.hpp"
+    },
+    {
+      "sha256": "fbf9ea611103a86a4a5a71bdc8d99c79873395a475d572532d636309e2499c6e",
+      "path": "include/signallab/parser/token.hpp"
+    },
+    {
+      "sha256": "26ddb7ec88879a143e9f17bed9b4d8538b0edb9a5590238f1cab59e49584a282",
+      "path": "include/signallab/repository/audio_input.hpp"
+    },
+    {
+      "sha256": "eb14e8a7c553e6771d0f69555bafaf8e75ad5da83b13e64711131c8667a9da36",
+      "path": "include/signallab/repository/backup_repository.hpp"
+    },
+    {
+      "sha256": "488fb857208f2df665dcd46e2581b50952989db9e836d7f53700145c92b74e34",
+      "path": "include/signallab/repository/file_repository.hpp"
+    },
+    {
+      "sha256": "caa8f5b56133b2b052b6e6c243a0ceede3a70d1afe56a4a6952884523a804623",
+      "path": "include/signallab/repository/script_file_gateway.hpp"
+    },
+    {
+      "sha256": "9d28d09a4992caea2bc3a594cd39c6067f75459baaf3786f4eb417c294e8b844",
+      "path": "include/signallab/repository/script_repository.hpp"
+    },
+    {
+      "sha256": "ac3a164b6de8ecdf2857d43714c48a88cc71c4315c837ede9446fe6614b91b25",
+      "path": "include/signallab/repository/signal_repository.hpp"
+    },
+    {
+      "sha256": "a618b7f556bf1f202e398b590524df1259dbd014aef0536488585957e733ed6a",
+      "path": "include/signallab/repository/task_repository.hpp"
+    },
+    {
+      "sha256": "5defa3948f0ad52376fe1a2ff1a0fa91c31f41b57fb4d007f4ca3b809abd0dd5",
+      "path": "include/signallab/task/scheduler.hpp"
+    },
+    {
+      "sha256": "9c5734c5d2a6a292767471c3df39be6d514dc2a5cf749f5d7a1fd0f2b333de87",
+      "path": "include/signallab/task/task_queue.hpp"
+    },
+    {
+      "sha256": "76e488c2f1ecd08753f7af1d0e70c7d1ae331fd8b50a74c11069fe1332a6420b",
+      "path": "include/signallab/task/task.hpp"
+    },
+    {
+      "sha256": "af122c0f6b1e1549c8f06fba4d22bfff28846a998ef310aaf2ad83bd3f97e75d",
+      "path": "include/signallab/task/thread_pool.hpp"
+    },
+    {
+      "sha256": "51ce3901947862df2b776a5dd364ac03c83c0fd922ee0edb4c6e7f554a78d67d",
+      "path": "migrations/001_init.sql"
+    },
+    {
+      "sha256": "f80acdf871f5bc2abd072965db343489b1d3013e162da10b7d700cbd15e80a38",
+      "path": "migrations/002_task_scheduler.sql"
+    },
+    {
+      "sha256": "e0dccb82930d9432f277acd52fc3c0410a9da9f2bca34c2f6fd8cc21ea09de93",
+      "path": "migrations/003_signal_script.sql"
+    },
+    {
+      "sha256": "785ffa0c1236138aebd23c1200054acac4243143dbdafc6ceec684a06c6780f6",
+      "path": "README.md"
+    },
+    {
+      "sha256": "61f081691f44d4c7b43641b181504d3d60ce8bdc3b789a6a61110caba00f52ca",
+      "path": "src/algorithm/features.cpp"
+    },
+    {
+      "sha256": "726c8a84281bc995416699d6795d8385517d1056c12a7b9473ced6acb9ad8e57",
+      "path": "src/algorithm/fft.cpp"
+    },
+    {
+      "sha256": "cc2e6f163a0bc89cd20a04c5cf090bb03aef31056774d6f6c6acff7b7bc33b53",
+      "path": "src/algorithm/fir_filter.cpp"
+    },
+    {
+      "sha256": "caf926da91429c76da6e843b53042eac89be8cdc7e316e9260701a46cd81b6f1",
+      "path": "src/algorithm/peak_detector.cpp"
+    },
+    {
+      "sha256": "2e93d267749610969d3e6181cce0aaf067b6fcf0283d9a493c1068f6483a9fd5",
+      "path": "src/algorithm/preprocessing.cpp"
+    },
+    {
+      "sha256": "3620895c841c7ee39f7f2b6c903334d9e67ae93dc6614353edaf5d17c48460f6",
+      "path": "src/algorithm/quality_metrics.cpp"
+    },
+    {
+      "sha256": "bafdf3104aec17a5c7ef13ca694907bd2b89fab5aa33649da754e54a21861200",
+      "path": "src/algorithm/spectrum.cpp"
+    },
+    {
+      "sha256": "cbd2e9f3184a92116fed00802403ccc31e87d15b1ec77f9f08bd6a746a3514a9",
+      "path": "src/algorithm/streaming_fir_filter.cpp"
+    },
+    {
+      "sha256": "7e1ed1cdfab708c7a53f4819de6292ca05c732d4a6fec977650d29be22387dc8",
+      "path": "src/algorithm/window.cpp"
+    },
+    {
+      "sha256": "b02220f7d7e46c128e2650907b311429c79b74c2b8f8ae443b5395107e56e5d7",
+      "path": "src/app/analysis_service.cpp"
+    },
+    {
+      "sha256": "748bc5e7e8fc15b6e69a8ef387ee4ea90aa281e51f3187c4fc91c9dfa10a1a23",
+      "path": "src/app/audio_capture_service.cpp"
+    },
+    {
+      "sha256": "622dd43c7da886b9dc13afde720026c179e34ebb43edea42b30f6cea350023e2",
+      "path": "src/app/background_analysis_service.cpp"
+    },
+    {
+      "sha256": "7f5e85df7db562d8af1bd991153f53129c8bc188fee05a1d206b2e7f58fe6e54",
+      "path": "src/app/background_file_service.cpp"
+    },
+    {
+      "sha256": "297a6b54c69f6e0274d3a8195a90ac3a5e676f8d2851382eebe95a991bfaad93",
+      "path": "src/app/background_script_service.cpp"
+    },
+    {
+      "sha256": "67657436d3182fc9e1ec9e32659bc858ee676c3bda554a7856e5d016c2f64075",
+      "path": "src/app/backup_service.cpp"
+    },
+    {
+      "sha256": "2d304c53f21d14d9270ebbeb67c95a700cd5923333495ff5e0beeeaa458514d4",
+      "path": "src/app/display_downsampler.cpp"
+    },
+    {
+      "sha256": "924692c309cf8985bf4fddf35e6c3502f35c9aeaf51a3f12fba949325df0c6e3",
+      "path": "src/app/import_service.cpp"
+    },
+    {
+      "sha256": "4754be44f4932e0bf7573d73347e07b8f156ed48d3f065877867600b702eb873",
+      "path": "src/app/script_runtime/evaluator.cpp"
+    },
+    {
+      "sha256": "2d460f1bd937247b3384ec725c15c4c9954270a35156687193c1c11b70073624",
+      "path": "src/app/script_service.cpp"
+    },
+    {
+      "sha256": "984e725755d2bdf687b2a68fab33990638c4501ebe1e6a5d172136485e896c94",
+      "path": "src/core/signal_generator.cpp"
+    },
+    {
+      "sha256": "798dadbd9c29148a23074af48388e3dc663568c5443a36b6dd808b8e9c45a311",
+      "path": "src/core/signal.cpp"
+    },
+    {
+      "sha256": "a059e87cd9c15c5a44ac42093ad57b66ec70442bc68c3812992cd938194442d0",
+      "path": "src/database/database_connection.cpp"
+    },
+    {
+      "sha256": "31b233f990500056aa5e6433a82d901f485a145dfb385c90636c0bf434870427",
+      "path": "src/database/database_executor.cpp"
+    },
+    {
+      "sha256": "18f587c73c2736956955beb39bc9782b3ba9e84f7e8496e9de46ef7b4ea42e33",
+      "path": "src/database/database_helpers.hpp"
+    },
+    {
+      "sha256": "936bb57d0db4469ff0b27fe92863f4b8df50cc79f13088974810b1c4ce7a0f62",
+      "path": "src/database/mariadb_backup_repository.cpp"
+    },
+    {
+      "sha256": "b6aee3effafc5c7bfa58611d6ebba82c0eaab88804292fe55287731710809c72",
+      "path": "src/database/migration_runner.cpp"
+    },
+    {
+      "sha256": "fef1a268bd3c56ac99ad97896e891916074a84a5341838a775df8be7388eb828",
+      "path": "src/database/project_backup_source.cpp"
+    },
+    {
+      "sha256": "b0d0b184008846b21371dc7955ee2579e27ce16659015a2bb66442988a61108f",
+      "path": "src/database/sqlite_script_repository.cpp"
+    },
+    {
+      "sha256": "376eb1f9059865444eae865d51d4269a650ee857d5dcf993f04e1cd0eb0bde91",
+      "path": "src/database/sqlite_signal_repository.cpp"
+    },
+    {
+      "sha256": "a5de63fa39bb171c5e183cf0172f89e28f8b2e542fe489151221eaf8829381aa",
+      "path": "src/database/sqlite_task_repository.cpp"
+    },
+    {
+      "sha256": "4dc42639aebe72e162a099673ddad19e8870434355856352c5a7ff12b90ffe02",
+      "path": "src/gui/audio_capture_widget.cpp"
+    },
+    {
+      "sha256": "3c80e9403160d0abefbf1553102e0ea85b65e41764bc429b85a323ce103c75d8",
+      "path": "src/gui/audio_capture_widget.hpp"
+    },
+    {
+      "sha256": "45a194976b5f9d416973c63d2c026124d4f5dc83a921e7bb764ea1ddd707a6c8",
+      "path": "src/gui/database_backup_widget.cpp"
+    },
+    {
+      "sha256": "4aeac4fdb693769b06d5de0bfdaad519094785ea602b96ce8af3c1c0db3b3cf6",
+      "path": "src/gui/database_backup_widget.hpp"
+    },
+    {
+      "sha256": "e6f9f73da6b7c1585bf33f518e20f823acdb6659313380984c3d4c6ceaa64310",
+      "path": "src/gui/file_import_dialog.cpp"
+    },
+    {
+      "sha256": "21350bc54dee63f6c40b5cef4c866dd3b1d09544be7ddd07ce135f865837a5b4",
+      "path": "src/gui/file_import_dialog.hpp"
+    },
+    {
+      "sha256": "16686e311175db07ad8ab76b9cb30cf17a2270feb1e6ae2bcb520fd6b12891c8",
+      "path": "src/gui/interactive_chart_view.cpp"
+    },
+    {
+      "sha256": "9f12686c038a91d15e71711bbfc22dd8cbe172ee190db5221eab9e2069e2a57c",
+      "path": "src/gui/interactive_chart_view.hpp"
+    },
+    {
+      "sha256": "57dcb856767ed6d1fa1d642cfef4ece7a3aceb40b2323f8f67109ce01ed112e0",
+      "path": "src/gui/main_window.cpp"
+    },
+    {
+      "sha256": "767ced6c046a9678d23cda42b818d50eb058eaaa0471a88278519fcaf98d4e0a",
+      "path": "src/gui/main_window.hpp"
+    },
+    {
+      "sha256": "0d6753309565e8a735ced51a0725552b6e75442ab084d3ceb7fdb32603e6cac0",
+      "path": "src/gui/main.cpp"
+    },
+    {
+      "sha256": "bb79b0d39d72180017f07faa359c33bed24ace25c15b7379dbeec5884c4badde",
+      "path": "src/gui/stage7_models.cpp"
+    },
+    {
+      "sha256": "9c39cdb4be784e0ad68398facccbcedbf8a8628de166cf507599b267ecf54771",
+      "path": "src/gui/stage7_models.hpp"
+    },
+    {
+      "sha256": "44538102a3af4521c273d044ad90c353e6039c1760246523c4b9137010662ffe",
+      "path": "src/io/backup_settings.cpp"
+    },
+    {
+      "sha256": "87a2f0704dccd868eafd62c11d9f94ae313112b35902804e22cc1ccedb5e4646",
+      "path": "src/io/csv_reader.cpp"
+    },
+    {
+      "sha256": "72da09f63596687e2710f6d23e45f4192cd19c9f8575fa8453228f2037635488",
+      "path": "src/io/filesystem_file_repository.cpp"
+    },
+    {
+      "sha256": "412ced40abb08bfbc4ce8a5c6b2b9bc9c80838007ecbd79ab21734ca61466b08",
+      "path": "src/io/filesystem_script_file_gateway.cpp"
+    },
+    {
+      "sha256": "974b37d9c15e068807da6350185e7ea13d9880cc588a5753dccf4018486134f6",
+      "path": "src/io/hash_service.cpp"
+    },
+    {
+      "sha256": "43e686401463f78e6ab3d192f615110c5e295e8be0a97ef2355ab86828a6fd62",
+      "path": "src/io/wav_reader.cpp"
+    },
+    {
+      "sha256": "03218822f09b95a31dbb3ac0ecddfd9faf727592874640ae034788e0b03e62dc",
+      "path": "src/io/wav_writer.cpp"
+    },
+    {
+      "sha256": "35728f9844a353820ae4624a6a685cdd0124d4e212785e34987a08af4fc353ca",
+      "path": "src/io/windows_audio_input.cpp"
+    },
+    {
+      "sha256": "d7cf920a3e340a211af76c4dc1cf3615ee7f9b238724bd7f3e9bbdc4f2c9fa21",
+      "path": "src/parser/ast.cpp"
+    },
+    {
+      "sha256": "06f9ee8897ae36cdda137003f984c47ca1c4fbbd63e2edc29c18c524b461ad35",
+      "path": "src/parser/lexer.cpp"
+    },
+    {
+      "sha256": "389fcae00a38f5cda985f5d53a8d5a4d1671ef1268d667588c0c568e49e47ebe",
+      "path": "src/parser/parser.cpp"
+    },
+    {
+      "sha256": "e8f32068e25434c02216d3f07090a280526fdb924aeeba6044dfe27aecfdde2b",
+      "path": "src/parser/semantic_checker.cpp"
+    },
+    {
+      "sha256": "778a356939ee254cd4885d68b9ba4e57a53e0270acadfc8b27964edaee4fe86d",
+      "path": "src/task/scheduler.cpp"
+    },
+    {
+      "sha256": "ef6cba20761bc9570d92d5f5b83c855f688c7245d067a87733586c4575dfab60",
+      "path": "src/task/task_queue.cpp"
+    },
+    {
+      "sha256": "65b6ae908c5e33bc53423bd73477cda7fbf783edd9811e93b1ce1839b8945d76",
+      "path": "src/task/thread_pool.cpp"
+    }
+  ]
+}

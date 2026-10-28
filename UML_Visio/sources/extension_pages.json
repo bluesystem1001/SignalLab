@@ -1,0 +1,32 @@
+[
+  {
+    "name": "14 音频与备份类",
+    "title": "14  音频采集与项目备份类图",
+    "subtitle": "两个独立扩展模块 · 独占采集资源使用组合 · 可共享备份协作者使用普通关联",
+    "footer": "依据：app/{audio_capture_service,backup_service}.hpp；repository/{audio_input,backup_repository}.hpp；algorithm/streaming_fir_filter.hpp；io/windows_audio_input.hpp；database/*backup*.hpp。",
+    "nodes": [
+      {"id":"ext_audio_frame","type":"frame","x":50,"y":135,"w":720,"h":785,"text":"实时音频：app / repository / io / algorithm"},
+      {"id":"ext_backup_frame","type":"frame","x":830,"y":135,"w":720,"h":785,"text":"项目备份：app / repository / database"},
+      {"id":"ext_audio_service","type":"class","x":230,"y":185,"w":350,"h":235,"text":"app::AudioCaptureService","fill":"green","sections":["-input_: unique_ptr<AudioInput>\n-filter_: optional<StreamingFirFilter>\n-rawSamples_ / filteredSamples_","+start(options): Result<bool>\n+stop()\n+snapshot(...): AudioCaptureSnapshot\n+recordedSignal(filtered): Result<Signal>"]},
+      {"id":"ext_audio_input","type":"class","x":70,"y":515,"w":310,"h":190,"text":"«interface»\nrepository::AudioInput","fill":"purple","sections":["采样与错误通过回调交付","+devices(): Result<vector<...>>\n+start(deviceId, format, callbacks)\n+stop()"]},
+      {"id":"ext_stream_filter","type":"class","x":440,"y":515,"w":310,"h":190,"text":"algorithm::StreamingFirFilter","fill":"blue","sections":["-coefficients_ / history_: vector\n-nextWriteIndex_: size_t","+create(coefficients) {static}\n+reset()\n+processSample(sample): double"]},
+      {"id":"ext_windows_audio","type":"class","x":70,"y":755,"w":310,"h":150,"text":"io::WindowsAudioInput","fill":"orange","sections":["-impl_: unique_ptr<Impl>","+devices() override\n+start(...) override\n+stop() override"]},
+      {"id":"ext_audio_note","type":"note","x":440,"y":750,"w":310,"h":155,"text":"input_ 由 unique_ptr 独占持有；\nfilter_ 是可选值成员。\n直通模式无 StreamingFirFilter。\nWinMM 采集 / 处理使用独立线程，\n不经过 Scheduler 线程池。","fill":"gray"},
+      {"id":"ext_backup_service","type":"class","x":1015,"y":185,"w":350,"h":235,"text":"app::BackupService","fill":"green","sections":["-source_: shared_ptr<BackupSource>\n-repository_: shared_ptr<...>","+testConnection(options)\n+list(options)\n+backup(options, label, ...)\n+restoreCopy(options, id, path, ...)"]},
+      {"id":"ext_backup_source","type":"class","x":850,"y":515,"w":310,"h":190,"text":"«interface»\nrepository::BackupSource","fill":"purple","sections":["一致性快照与恢复校验端口","+snapshot(stagingDir, stopToken)\n+verify(directory, files, stopToken)"]},
+      {"id":"ext_backup_repository","type":"class","x":1220,"y":515,"w":310,"h":190,"text":"«interface»\nrepository::BackupRepository","fill":"purple","sections":["远端存储端口","+testConnection(options)\n+upload(options, record, files, ...)\n+list(options)\n+download(options, id, directory, ...)"]},
+      {"id":"ext_project_backup","type":"class","x":850,"y":755,"w":310,"h":150,"text":"database::ProjectBackupSource","fill":"orange","sections":["-projectRoot_: path","+snapshot(...) override\n+verify(...) override"]},
+      {"id":"ext_mariadb_backup","type":"class","x":1220,"y":755,"w":310,"h":150,"text":"MariaDbBackupRepository\nnamespace: database","fill":"orange","sections":["MariaDB Connector/C 实现","+testConnection(...) / list(...)\n+upload(...) / download(...)"]},
+      {"id":"ext_backup_note","type":"note","x":855,"y":435,"w":665,"h":55,"text":"shared_ptr 可共享且可空，采用普通关联；不表示独占组合。\nDatabaseBackupWidget 的 std::async 工作者调用备份服务。","fill":"gray"}
+    ],
+    "edges": [
+      {"from":"ext_audio_service","to":"ext_audio_input","fromSide":"L","toSide":"T","style":"composition","points":[[230,302.5],[190,302.5],[190,470],[225,470],[225,515]],"label":"input_","labelAt":[80,435,110,25],"targetMultiplicity":"0..1"},
+      {"from":"ext_audio_service","to":"ext_stream_filter","fromSide":"R","toSide":"T","style":"composition","points":[[580,302.5],[635,302.5],[635,470],[595,470],[595,515]],"label":"filter_","labelAt":[640,435,100,25],"targetMultiplicity":"0..1"},
+      {"from":"ext_windows_audio","to":"ext_audio_input","fromSide":"T","toSide":"B","style":"realization","points":[[225,755],[225,705]]},
+      {"from":"ext_backup_service","to":"ext_backup_source","fromSide":"L","toSide":"T","style":"association","points":[[1015,302.5],[840,302.5],[840,500],[1005,500],[1005,515]],"label":"source_","labelAt":[855,385,130,25],"targetMultiplicity":"0..1","targetMultiplicityAt":[1025,490,55,24]},
+      {"from":"ext_backup_service","to":"ext_backup_repository","fromSide":"R","toSide":"T","style":"association","points":[[1365,302.5],[1540,302.5],[1540,500],[1375,500],[1375,515]],"label":"repository_","labelAt":[1375,385,150,25],"targetMultiplicity":"0..1","targetMultiplicityAt":[1390,490,55,24]},
+      {"from":"ext_project_backup","to":"ext_backup_source","fromSide":"T","toSide":"B","style":"realization","points":[[1005,755],[1005,705]]},
+      {"from":"ext_mariadb_backup","to":"ext_backup_repository","fromSide":"T","toSide":"B","style":"realization","points":[[1375,755],[1375,705]]}
+    ]
+  }
+]

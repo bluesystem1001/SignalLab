@@ -1,0 +1,22 @@
+[
+  {
+    "name":"00-模型导读",
+    "title":"SignalLab · 软件工程 UML 模型",
+    "subtitle":"当前工作区实现视图 · 2026-10-23 · 同一文档分页面建模 · 原生形状、文本与连接线均可编辑",
+    "footer":"依据：当前工作区 C++ 头文件/实现、CMakeLists.txt、migrations 与用户手册。图中省略非关键成员；业务抽象与代码实体均有说明。",
+    "nodes":[
+      {"id":"scope","type":"box","x":60,"y":155,"w":680,"h":150,"fill":"blue","text":"建模范围\n单用户 Windows 桌面信号分析软件\n导入/波形/FIR/FFT/SignalScript/异步任务\nSQLite 追溯、实时麦克风与 MariaDB 项目备份"},
+      {"id":"index","type":"box","x":60,"y":340,"w":680,"h":430,"fill":"gray","text":"页面索引（共 15 页，含本页）\n01 用例：用户目标与系统边界\n02 组件：CMake 模块与依赖方向\n03 领域与导入类：信号模型、文件导入\n04 应用与持久化类：仓储接口与数据库线程\n05 任务调度类：线程池、队列与任务记录\n06 逻辑持久化类：表、键、外键与多重性\n07 导入顺序　08 分析顺序\n09 SignalScript 活动　10 调度状态\n11 音频采集活动　12 部署\n13 应用服务类　14 音频与备份类"},
+      {"id":"example_a","type":"class","x":840,"y":155,"w":270,"h":180,"fill":"blue","text":"«示例»\nConcreteService","sections":["- dependency_: Interface&","+ operation(): Result<T>"]},
+      {"id":"example_b","type":"class","x":1240,"y":155,"w":270,"h":180,"fill":"green","text":"«interface»\nInterface","sections":["","+ operation(): Result<T>"]},
+      {"id":"example_c","type":"class","x":840,"y":435,"w":270,"h":140,"fill":"purple","text":"Owner","sections":["- value_: Value","+ operation()"]},
+      {"id":"example_d","type":"class","x":1240,"y":435,"w":270,"h":140,"fill":"purple","text":"Value","sections":["+ field: Type",""]},
+      {"id":"legend","type":"note","x":810,"y":635,"w":700,"h":235,"text":"UML 读图约定\n实线：关联；黑菱形：组合，菱形在整体端。\n虚线开箭：依赖；虚线空三角：接口实现。\n顺序图：实心箭头为调用，开箭为异步，虚线为返回。\n类成员：+ public，- private；Result<T> 为成功值或 Error。\n多重性标在关联端；«table» 明确表示表而非 C++ 类。\n活动边标守卫 [条件]；状态转换使用触发/效果或条件说明。"},
+      {"id":"boundary","type":"note","x":60,"y":800,"w":680,"h":90,"text":"阅读边界：以当前源码为准，包含未提交扩展。\n历史文档中的阶段规划不作为已实现能力；未运行应用回归测试。"}
+    ],
+    "edges":[
+      {"from":"example_a","to":"example_b","fromSide":"R","toSide":"L","style":"realization","label":"实现","labelAt":[1115,213,120,30]},
+      {"from":"example_c","to":"example_d","fromSide":"R","toSide":"L","style":"composition","sourceMultiplicity":"1","targetMultiplicity":"1","label":"值成员","labelAt":[1115,455,120,30]}
+    ]
+  }
+]

@@ -1,0 +1,468 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- 由 Microsoft Visio, SVG Export 生成 03领域与导入类.svg 03领域与导入类 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
+		xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" width="16in" height="10in" viewBox="0 0 1152 720"
+		xml:space="preserve" color-interpolation-filters="sRGB" class="st24">
+	<title>SignalLab 杞欢宸ョ▼ UML 璁捐瑙嗗浘</title>
+	<v:documentProperties v:langID="2052" v:metric="true" v:viewMarkup="false"/>
+
+	<style type="text/css">
+	<![CDATA[
+		.st1 {marker-end:url(#mrkr14-6);stroke:#273345;stroke-dasharray:7,5;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st2 {fill:#273345;fill-opacity:1;stroke:#273345;stroke-opacity:1;stroke-width:0.23584905660377}
+		.st3 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st4 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st5 {fill:#273345;font-family:Microsoft YaHei UI;font-size:1.91666em;font-weight:bold}
+		.st6 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.916672em}
+		.st7 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.4}
+		.st8 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.7}
+		.st9 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.708344em}
+		.st10 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.75em;font-weight:bold}
+		.st11 {fill:#ffffff;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st12 {fill:#e8f1fc;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st13 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.958328em;font-weight:bold}
+		.st14 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.866661em}
+		.st15 {font-size:1em}
+		.st16 {fill:#e9f6f1;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st17 {fill:#f2edfb;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st18 {fill:#fff4e2;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st19 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.874992em}
+		.st20 {fill:#273345;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st21 {fill:#ffffff;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st22 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.849998em}
+		.st23 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.833336em}
+		.st24 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+	]]>
+	</style>
+
+	<defs id="Markers">
+		<g id="lend14">
+			<path d="M 3 -1 L 0 0 L 3 1 L 3 -1 " style="stroke-linecap:round;stroke-linejoin:round;fill:none"/>
+		</g>
+		<marker id="mrkr14-6" class="st2" v:arrowType="14" v:arrowSize="3" v:setback="12.72" refX="-12.72" orient="auto"
+				markerUnits="strokeWidth" overflow="visible">
+			<use xlink:href="#lend14" transform="scale(-4.24,-4.24) "/>
+		</marker>
+	</defs>
+	<g v:mID="6" v:index="4" v:groupContext="foregroundPage">
+		<title>03领域与导入类</title>
+		<v:pageProperties v:drawingScale="0.0393701" v:pageScale="0.0393701" v:drawingUnits="24" v:shadowOffsetX="8.50394"
+				v:shadowOffsetY="-8.50394"/>
+		<g id="shape75-1" v:mID="75" v:groupContext="shape" transform="translate(-522,568.8) rotate(-90)">
+			<title>UML_Connector_5</title>
+			<path d="M0 720 L23.28 720" class="st1"/>
+		</g>
+		<g id="shape73-7" v:mID="73" v:groupContext="shape" transform="translate(663.468,-246.585) rotate(-4.23639)">
+			<title>UML_Connector_4</title>
+			<path d="M0 716.54 L46.67 720 L47.2 712.82 L97.47 716.54" class="st3"/>
+		</g>
+		<g id="shape71-10" v:mID="71" v:groupContext="shape" transform="translate(281.612,1160.94) rotate(-167.471)">
+			<title>UML_Connector_3</title>
+			<path d="M0 709.85 L49.2 698.91 L53.89 720 L99.57 709.85" class="st3"/>
+		</g>
+		<g id="shape67-13" v:mID="67" v:groupContext="shape" transform="translate(442.412,-307.941) rotate(-11.3099)">
+			<title>UML_Connector_2</title>
+			<path d="M0 681.17 L7.06 645.87 L377.72 720 L385.49 681.17" class="st3"/>
+		</g>
+		<g id="shape63-16" v:mID="63" v:groupContext="shape" transform="translate(773.817,912.3) rotate(-176.82)">
+			<title>UML_Connector_1</title>
+			<path d="M0 717.2 L46.73 714.61 L47.03 720 L97.35 717.2" class="st3"/>
+		</g>
+		<g id="shape59-19" v:mID="59" v:groupContext="shape" transform="translate(258.082,875.514) rotate(-165.466)">
+			<title>UML_Connector_0</title>
+			<path d="M0 707.35 L45.3 695.61 L51.63 720 L100.41 707.35" class="st3"/>
+		</g>
+		<g id="shape1-22" v:mID="1" v:groupContext="shape" transform="translate(34.56,-668.16)">
+			<title>工作表.1</title>
+			<desc>03 领域模型与信号导入类图</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="702.72" width="1080" height="34.56"/>
+			<rect x="0" y="685.44" width="1080" height="34.56" class="st4"/>
+			<text x="5" y="709.62" class="st5" v:langID="2052"><v:paragraph/><v:tabList/>03  领域模型与信号导入类图</text>		</g>
+		<g id="shape2-25" v:mID="2" v:groupContext="shape" transform="translate(36,-643.68)">
+			<title>工作表.2</title>
+			<desc>代码结构视图保留关键成员引用关联与值成员组合分别表示</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="709.56" width="1080" height="20.88"/>
+			<rect x="0" y="699.12" width="1080" height="20.88" class="st4"/>
+			<text x="5" y="712.86" class="st6" v:langID="2052"><v:paragraph/><v:tabList/>代码结构视图｜保留关键成员；引用关联与值成员组合分别表示</text>		</g>
+		<g id="shape3-28" v:mID="3" v:groupContext="shape" transform="translate(36,-635.04)">
+			<title>工作表.3</title>
+			<path d="M0 720 L1080 720" class="st7"/>
+		</g>
+		<g id="shape4-31" v:mID="4" v:groupContext="shape" transform="translate(36,-48.96)">
+			<title>工作表.4</title>
+			<path d="M0 720 L1080 720" class="st8"/>
+		</g>
+		<g id="shape5-34" v:mID="5" v:groupContext="shape" transform="translate(36,-10.8)">
+			<title>工作表.5</title>
+			<desc>依据core/signal.hppapp/import_service.hpprepository/{file,signa...</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="486" cy="703.8" width="972" height="32.4"/>
+			<rect x="0" y="687.6" width="972" height="32.4" class="st4"/>
+			<text x="5" y="706.35" class="st9" v:langID="2052"><v:paragraph/><v:tabList/>依据：core/signal.hpp；app/import_service.hpp；repository/{file,signal}_repository.hpp；io/filesystem_file_repository.hpp。省略部分查询方法、错误类型及参数；Result&#60;T&#62; 表示成功值或 Error。</text>		</g>
+		<g id="shape6-37" v:mID="6" v:groupContext="shape" transform="translate(1008,-16.56)">
+			<title>工作表.6</title>
+			<desc>SignalLab | 03</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="52.2" cy="709.2" width="104.4" height="21.6"/>
+			<rect x="0" y="698.4" width="104.4" height="21.6" class="st4"/>
+			<text x="36" y="711.9" class="st10" v:langID="2052"><v:paragraph v:horizAlign="2"/><v:tabList/>SignalLab | 03</text>		</g>
+		<g id="group12-40" transform="translate(57.6,-496.8)" v:mID="12" v:groupContext="group">
+			<title>UML_Class_metadata</title>
+			<g id="shape7-41" v:mID="7" v:groupContext="shape">
+				<title>工作表.7</title>
+				<rect x="0" y="604.8" width="280.8" height="115.2" class="st11"/>
+			</g>
+			<g id="shape8-43" v:mID="8" v:groupContext="shape" transform="translate(0,-77.76)">
+				<title>工作表.8</title>
+				<desc>core::SignalMetadata</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="140.4" cy="701.28" width="280.8" height="37.44"/>
+				<rect x="0" y="682.56" width="280.8" height="37.44" class="st12"/>
+				<text x="79.04" y="704.73" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>core::SignalMetadata</text>			</g>
+			<g id="shape9-46" v:mID="9" v:groupContext="shape" transform="translate(2.16,-20.88)">
+				<title>工作表.9</title>
+				<desc>+name: string +unit: string +source: string</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="692.28" width="276.48" height="55.44"/>
+				<rect x="0" y="664.56" width="276.48" height="55.44" class="st4"/>
+				<text x="5" y="676.92" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>+name: string<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">+unit: string<v:newlineChar/></tspan><tspan x="5" dy="1.2em" class="st15">+source: string</tspan></text>			</g>
+			<g id="shape10-51" v:mID="10" v:groupContext="shape" transform="translate(0,-19.44)">
+				<title>工作表.10</title>
+				<path d="M0 720 L280.8 720" class="st3"/>
+			</g>
+			<g id="shape11-54" v:mID="11" v:groupContext="shape" transform="translate(2.16,-1.44)">
+				<title>工作表.11</title>
+				<rect x="0" y="703.44" width="276.48" height="16.56" class="st4"/>
+			</g>
+		</g>
+		<g id="group18-56" transform="translate(435.6,-446.4)" v:mID="18" v:groupContext="group">
+			<title>UML_Class_signal</title>
+			<g id="shape13-57" v:mID="13" v:groupContext="shape">
+				<title>工作表.13</title>
+				<rect x="0" y="554.4" width="280.8" height="165.6" class="st11"/>
+			</g>
+			<g id="shape14-59" v:mID="14" v:groupContext="shape" transform="translate(0,-128.16)">
+				<title>工作表.14</title>
+				<desc>core::Signal</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="140.4" cy="701.28" width="280.8" height="37.44"/>
+				<rect x="0" y="682.56" width="280.8" height="37.44" class="st12"/>
+				<text x="106.85" y="704.73" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>core::Signal</text>			</g>
+			<g id="shape15-62" v:mID="15" v:groupContext="shape" transform="translate(2.16,-81.54)">
+				<title>工作表.15</title>
+				<desc>-samples_: shared_ptr&#60;...&#62; -sample_rate_: double -metadata_: ...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="697.41" width="276.48" height="45.18"/>
+				<rect x="0" y="674.82" width="276.48" height="45.18" class="st4"/>
+				<text x="5" y="687.18" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>-samples_: shared_ptr&#60;...&#62;<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">-</tspan>sample_rate_: double<v:newlineChar/><tspan x="5" dy="1.2em"
+							class="st15">-</tspan>metadata_: SignalMetadata</text>			</g>
+			<g id="shape16-67" v:mID="16" v:groupContext="shape" transform="translate(0,-80.1)">
+				<title>工作表.16</title>
+				<path d="M0 720 L280.8 720" class="st3"/>
+			</g>
+			<g id="shape17-70" v:mID="17" v:groupContext="shape" transform="translate(2.16,-1.44)">
+				<title>工作表.17</title>
+				<desc>+create(...): Result&#60;Signal&#62; {static} +samples(): span&#60;const ...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="681.39" width="276.48" height="77.22"/>
+				<rect x="0" y="642.78" width="276.48" height="77.22" class="st4"/>
+				<text x="5" y="655.14" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>+create(...): Result&#60;Signal&#62; {static}<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">+samples(): span&#60;const double&#62;<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+sampleRate(): double<v:newlineChar/></tspan><tspan x="5" dy="1.2em"
+							class="st15">+sampleCount(): size_t<v:newlineChar/></tspan><tspan x="5" dy="1.2em" class="st15">+withMetadata(...): Signal</tspan></text>			</g>
+		</g>
+		<g id="group24-77" transform="translate(813.6,-435.6)" v:mID="24" v:groupContext="group">
+			<title>UML_Class_entry</title>
+			<g id="shape19-78" v:mID="19" v:groupContext="shape">
+				<title>工作表.19</title>
+				<rect x="0" y="543.6" width="280.8" height="176.4" class="st11"/>
+			</g>
+			<g id="shape20-80" v:mID="20" v:groupContext="shape" transform="translate(0,-138.96)">
+				<title>工作表.20</title>
+				<desc>app::SignalEntry</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="140.4" cy="701.28" width="280.8" height="37.44"/>
+				<rect x="0" y="682.56" width="280.8" height="37.44" class="st12"/>
+				<text x="93.27" y="704.73" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>app::SignalEntry</text>			</g>
+			<g id="shape21-83" v:mID="21" v:groupContext="shape" transform="translate(2.16,-18.81)">
+				<title>工作表.21</title>
+				<desc>+recordId: int64 +sourceId: int64 +sourceType: SignalSourceTy...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="660.645" width="276.48" height="118.71"/>
+				<rect x="0" y="601.29" width="276.48" height="118.71" class="st4"/>
+				<text x="5" y="613.65" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>+recordId: int64<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">+sourceId: int64<v:newlineChar/></tspan><tspan x="5" dy="1.2em"
+							class="st15">+sourceType: SignalSourceType<v:newlineChar/></tspan><tspan x="5" dy="1.2em" class="st15">+displayName: string<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+hash / sampleHash: string<v:newlineChar/></tspan><tspan x="5" dy="1.2em"
+							class="st15">+storedRelativePath: path<v:newlineChar/></tspan><tspan x="5" dy="1.2em" class="st15">+signal: Signal</tspan></text>			</g>
+			<g id="shape22-92" v:mID="22" v:groupContext="shape" transform="translate(0,-17.37)">
+				<title>工作表.22</title>
+				<path d="M0 720 L280.8 720" class="st3"/>
+			</g>
+			<g id="shape23-95" v:mID="23" v:groupContext="shape" transform="translate(2.16,-1.44)">
+				<title>工作表.23</title>
+				<rect x="0" y="705.51" width="276.48" height="14.49" class="st4"/>
+			</g>
+		</g>
+		<g id="group30-97" transform="translate(435.6,-144)" v:mID="30" v:groupContext="group">
+			<title>UML_Class_import</title>
+			<g id="shape25-98" v:mID="25" v:groupContext="shape">
+				<title>工作表.25</title>
+				<rect x="0" y="504" width="280.8" height="216" class="st11"/>
+			</g>
+			<g id="shape26-100" v:mID="26" v:groupContext="shape" transform="translate(0,-178.56)">
+				<title>工作表.26</title>
+				<desc>app::ImportService</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="140.4" cy="701.28" width="280.8" height="37.44"/>
+				<rect x="0" y="682.56" width="280.8" height="37.44" class="st16"/>
+				<text x="85.55" y="704.73" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>app::ImportService</text>			</g>
+			<g id="shape27-103" v:mID="27" v:groupContext="shape" transform="translate(2.16,-120.48)">
+				<title>工作表.27</title>
+				<desc>-entries_: vector&#60;SignalEntry&#62; -fileRepository_: FileReposito...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="691.68" width="276.48" height="56.64"/>
+				<rect x="0" y="663.36" width="276.48" height="56.64" class="st4"/>
+				<text x="5" y="675.72" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>-entries_: vector&#60;SignalEntry&#62;<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">-</tspan>fileRepository_: FileRepository&#38;<v:newlineChar/><tspan x="5"
+							dy="1.2em" class="st15">-</tspan>signalRepository_: SignalRepository&#38;</text>			</g>
+			<g id="shape28-108" v:mID="28" v:groupContext="shape" transform="translate(0,-119.04)">
+				<title>工作表.28</title>
+				<path d="M0 720 L280.8 720" class="st3"/>
+			</g>
+			<g id="shape29-111" v:mID="29" v:groupContext="shape" transform="translate(2.16,-1.44)">
+				<title>工作表.29</title>
+				<desc>+restoreSignals(): Result&#60;size_t&#62; +loadCsv(...): Result&#60;Signa...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="661.92" width="276.48" height="116.16"/>
+				<rect x="0" y="603.84" width="276.48" height="116.16" class="st4"/>
+				<text x="5" y="616.2" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>+restoreSignals(): Result&#60;size_t&#62;<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">+loadCsv(...): Result&#60;SignalEntry&#62;<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+loadWav(...): Result&#60;SignalEntry&#62;<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+persistGeneratedSignal(...)<v:newlineChar/></tspan><tspan x="5"
+							dy="1.2em" class="st15">+acceptImportedSignal(...)<v:newlineChar/></tspan><tspan x="5" dy="1.2em"
+							class="st15">+removePersistedSignal(id)</tspan></text>			</g>
+		</g>
+		<g id="group36-119" transform="translate(57.6,-187.2)" v:mID="36" v:groupContext="group">
+			<title>UML_Class_fileRepo</title>
+			<g id="shape31-120" v:mID="31" v:groupContext="shape">
+				<title>工作表.31</title>
+				<rect x="0" y="547.2" width="280.8" height="172.8" class="st11"/>
+			</g>
+			<g id="shape32-122" v:mID="32" v:groupContext="shape" transform="translate(0,-126.72)">
+				<title>工作表.32</title>
+				<desc>«interface» repository::FileRepository</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="140.4" cy="696.96" width="280.8" height="46.08"/>
+				<rect x="0" y="673.92" width="280.8" height="46.08" class="st17"/>
+				<text x="107.74" y="693.51" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«interface»<v:newlineChar/><tspan
+							x="65.92" dy="1.2em" class="st15">repository::FileRepository</tspan></text>			</g>
+			<g id="shape33-126" v:mID="33" v:groupContext="shape" transform="translate(2.16,-110.057)">
+				<title>工作表.33</title>
+				<rect x="0" y="704.777" width="276.48" height="15.2229" class="st4"/>
+			</g>
+			<g id="shape34-128" v:mID="34" v:groupContext="shape" transform="translate(0,-108.617)">
+				<title>工作表.34</title>
+				<path d="M0 720 L280.8 720" class="st3"/>
+			</g>
+			<g id="shape35-131" v:mID="35" v:groupContext="shape" transform="translate(2.16,-1.44)">
+				<title>工作表.35</title>
+				<desc>+previewCsv(...):Result&#60;ImportPreview&#62; +previewWav(...):Resul...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="667.131" width="276.48" height="105.737"/>
+				<rect x="0" y="614.263" width="276.48" height="105.737" class="st4"/>
+				<text x="5" y="626.62" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>+previewCsv(...):Result&#60;ImportPreview&#62;<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">+previewWav(...):Result&#60;ImportPreview&#62;<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+importCsv(...): Result&#60;FileImport&#62;<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+importWav(...): Result&#60;FileImport&#62;<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+validateStoredFile(...): Result&#60;bool&#62;<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+removeStoredFile(...): Result&#60;bool&#62;</tspan></text>			</g>
+		</g>
+		<g id="group42-139" transform="translate(813.6,-158.4)" v:mID="42" v:groupContext="group">
+			<title>UML_Class_signalRepo</title>
+			<g id="shape37-140" v:mID="37" v:groupContext="shape">
+				<title>工作表.37</title>
+				<rect x="0" y="518.4" width="280.8" height="201.6" class="st11"/>
+			</g>
+			<g id="shape38-142" v:mID="38" v:groupContext="shape" transform="translate(0,-155.52)">
+				<title>工作表.38</title>
+				<desc>«interface» repository::SignalRepository</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="140.4" cy="696.96" width="280.8" height="46.08"/>
+				<rect x="0" y="673.92" width="280.8" height="46.08" class="st17"/>
+				<text x="107.74" y="693.51" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«interface»<v:newlineChar/><tspan
+							x="58.15" dy="1.2em" class="st15">repository::SignalRepository</tspan></text>			</g>
+			<g id="shape39-146" v:mID="39" v:groupContext="shape" transform="translate(2.16,-134.743)">
+				<title>工作表.39</title>
+				<rect x="0" y="700.663" width="276.48" height="19.3371" class="st4"/>
+			</g>
+			<g id="shape40-148" v:mID="40" v:groupContext="shape" transform="translate(0,-133.303)">
+				<title>工作表.40</title>
+				<path d="M0 720 L280.8 720" class="st3"/>
+			</g>
+			<g id="shape41-151" v:mID="41" v:groupContext="shape" transform="translate(2.16,-1.44)">
+				<title>工作表.41</title>
+				<desc>+saveSignal(...): Result&#60;StoredSignal&#62; +findBySourceKey(...) ...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="654.789" width="276.48" height="130.423"/>
+				<rect x="0" y="589.577" width="276.48" height="130.423" class="st4"/>
+				<text x="5" y="601.94" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>+saveSignal(...): Result&#60;StoredSignal&#62;<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">+findBySourceKey(...)<v:newlineChar/></tspan><tspan x="5" dy="1.2em"
+							class="st15">+findByRecordId(...)<v:newlineChar/></tspan><tspan x="5" dy="1.2em" class="st15">+findByFileHash(...)<v:newlineChar/></tspan><tspan
+							x="5" dy="1.2em" class="st15">+listSignals()<v:newlineChar/></tspan><tspan x="5" dy="1.2em"
+							class="st15">+removeSignal(id)</tspan></text>			</g>
+		</g>
+		<g id="group48-159" transform="translate(57.6,-72)" v:mID="48" v:groupContext="group">
+			<title>UML_Class_filesystem</title>
+			<g id="shape43-160" v:mID="43" v:groupContext="shape">
+				<title>工作表.43</title>
+				<rect x="0" y="640.8" width="280.8" height="79.2" class="st11"/>
+			</g>
+			<g id="shape44-162" v:mID="44" v:groupContext="shape" transform="translate(0,-41.76)">
+				<title>工作表.44</title>
+				<desc>io::FilesystemFileRepository</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="140.4" cy="701.28" width="280.8" height="37.44"/>
+				<rect x="0" y="682.56" width="280.8" height="37.44" class="st18"/>
+				<text x="59.96" y="704.73" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>io::FilesystemFileRepository</text>			</g>
+			<g id="shape45-165" v:mID="45" v:groupContext="shape" transform="translate(2.16,-22.32)">
+				<title>工作表.45</title>
+				<desc>-projectRoot_: path</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="711" width="276.48" height="18"/>
+				<rect x="0" y="702" width="276.48" height="18" class="st4"/>
+				<text x="5" y="714.36" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>-projectRoot_: path</text>			</g>
+			<g id="shape46-168" v:mID="46" v:groupContext="shape" transform="translate(0,-20.88)">
+				<title>工作表.46</title>
+				<path d="M0 720 L280.8 720" class="st3"/>
+			</g>
+			<g id="shape47-171" v:mID="47" v:groupContext="shape" transform="translate(2.16,-1.44)">
+				<title>工作表.47</title>
+				<desc>+FilesystemFileRepository(root)</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197" v:verticalAlign="0"/>
+				<v:textRect cx="138.24" cy="711" width="276.48" height="18"/>
+				<rect x="0" y="702" width="276.48" height="18" class="st4"/>
+				<text x="5" y="714.36" class="st14" v:langID="2052"><v:paragraph/><v:tabList/>+FilesystemFileRepository(root)</text>			</g>
+		</g>
+		<g id="group53-174" transform="translate(813.6,-72)" v:mID="53" v:groupContext="group">
+			<title>UML_Note_signalNote</title>
+			<g id="shape49-175" v:mID="49" v:groupContext="shape">
+				<title>工作表.49</title>
+				<path d="M0 658.8 L267.84 658.8 L280.8 671.76 L280.8 720 L0 720 L0 658.8 Z" class="st18"/>
+			</g>
+			<g id="shape50-177" v:mID="50" v:groupContext="shape" transform="translate(987.84,658.8) rotate(90)">
+				<title>工作表.50</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape51-180" v:mID="51" v:groupContext="shape" transform="translate(267.84,-48.24)">
+				<title>工作表.51</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape52-183" v:mID="52" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.52</title>
+				<desc>Signal 的副本共享不可变样本缓冲区。 SignalEntry 与 SignalMetadata 是值成员。 导入记录...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="136.08" cy="694.8" width="272.16" height="50.4"/>
+				<rect x="0" y="669.6" width="272.16" height="50.4" class="st4"/>
+				<text x="5" y="685.35" class="st19" v:langID="2052"><v:paragraph/><v:tabList/>Signal 的副本共享不可变样本缓冲区。<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">SignalEntry </tspan>与 SignalMetadata 是值成员。<v:newlineChar/><tspan x="5"
+							dy="1.2em" class="st15">导入记录及文件去重细节在此省略</tspan>。</text>			</g>
+		</g>
+		<g id="group58-188" transform="translate(435.6,-72)" v:mID="58" v:groupContext="group">
+			<title>UML_Note_importNote</title>
+			<g id="shape54-189" v:mID="54" v:groupContext="shape">
+				<title>工作表.54</title>
+				<path d="M0 673.2 L267.84 673.2 L280.8 686.16 L280.8 720 L0 720 L0 673.2 Z" class="st18"/>
+			</g>
+			<g id="shape55-191" v:mID="55" v:groupContext="shape" transform="translate(987.84,673.2) rotate(90)">
+				<title>工作表.55</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape56-194" v:mID="56" v:groupContext="shape" transform="translate(267.84,-33.84)">
+				<title>工作表.56</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape57-197" v:mID="57" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.57</title>
+				<desc>仓储引用为普通关联表示协作关系。 组合仅用于代码中的值成员及其集合。</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="136.08" cy="702" width="272.16" height="36"/>
+				<rect x="0" y="684" width="272.16" height="36" class="st4"/>
+				<text x="5" y="698.85" class="st19" v:langID="2052"><v:paragraph/><v:tabList/>仓储引用为普通关联，表示协作关系。<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">组合仅用于代码中的值成员及其集合</tspan>。</text>			</g>
+		</g>
+		<g id="shape60-201" v:mID="60" v:groupContext="shape" transform="translate(419.76,-524.16) rotate(1.46038E-07)">
+			<title>工作表.60</title>
+			<path d="M15.84 714.96 L7.92 720 L0 714.96 L7.92 709.92 L15.84 714.96 Z" class="st20"/>
+		</g>
+		<g id="shape61-203" v:mID="61" v:groupContext="shape" transform="translate(342,-565.2)">
+			<title>工作表.61</title>
+			<desc>metadata</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="43.2" cy="711" width="86.4" height="18"/>
+			<rect x="0" y="702" width="86.4" height="18" class="st21"/>
+			<text x="20.01" y="714.06" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>metadata</text>		</g>
+		<g id="shape62-206" v:mID="62" v:groupContext="shape" transform="translate(342,-565.92)">
+			<title>工作表.62</title>
+			<desc>1</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="15.84" cy="711.36" width="31.68" height="17.28"/>
+			<rect x="0" y="702.72" width="31.68" height="17.28" class="st21"/>
+			<text x="12.91" y="714.36" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>1</text>		</g>
+		<g id="shape64-209" v:mID="64" v:groupContext="shape" transform="translate(797.76,-518.76) rotate(9.48766E-08)">
+			<title>工作表.64</title>
+			<path d="M15.84 714.96 L7.92 720 L0 714.96 L7.92 709.92 L15.84 714.96 Z" class="st20"/>
+		</g>
+		<g id="shape65-211" v:mID="65" v:groupContext="shape" transform="translate(723.6,-543.6)">
+			<title>工作表.65</title>
+			<desc>signal</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="41.4" cy="711" width="82.8" height="18"/>
+			<rect x="0" y="702" width="82.8" height="18" class="st21"/>
+			<text x="27.1" y="714.06" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>signal</text>		</g>
+		<g id="shape66-214" v:mID="66" v:groupContext="shape" transform="translate(720,-540.72)">
+			<title>工作表.66</title>
+			<desc>1</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="15.84" cy="711.36" width="31.68" height="17.28"/>
+			<rect x="0" y="702.72" width="31.68" height="17.28" class="st21"/>
+			<text x="12.91" y="714.36" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>1</text>		</g>
+		<g id="shape68-217" v:mID="68" v:groupContext="shape" transform="translate(570.96,-360)">
+			<title>工作表.68</title>
+			<path d="M5.04 720 L0 712.08 L5.04 704.16 L10.08 712.08 L5.04 720 Z" class="st20"/>
+		</g>
+		<g id="shape69-219" v:mID="69" v:groupContext="shape" transform="translate(734.4,-406.8)">
+			<title>工作表.69</title>
+			<desc>entries</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="64.8" cy="711" width="129.6" height="18"/>
+			<rect x="0" y="702" width="129.6" height="18" class="st21"/>
+			<text x="48.3" y="714.06" class="st22" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>entries</text>		</g>
+		<g id="shape70-222" v:mID="70" v:groupContext="shape" transform="translate(962.64,-407.52)">
+			<title>工作表.70</title>
+			<desc>0..*</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="20.16" cy="711.36" width="40.32" height="17.28"/>
+			<rect x="0" y="702.72" width="40.32" height="17.28" class="st21"/>
+			<text x="12.55" y="714.36" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>0..*</text>		</g>
+		<g id="shape72-225" v:mID="72" v:groupContext="shape" transform="translate(342,-285.12)">
+			<title>工作表.72</title>
+			<desc>1</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="15.84" cy="711.36" width="31.68" height="17.28"/>
+			<rect x="0" y="702.72" width="31.68" height="17.28" class="st21"/>
+			<text x="12.91" y="714.36" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>1</text>		</g>
+		<g id="shape74-228" v:mID="74" v:groupContext="shape" transform="translate(778.32,-270.72)">
+			<title>工作表.74</title>
+			<desc>1</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="15.84" cy="711.36" width="31.68" height="17.28"/>
+			<rect x="0" y="702.72" width="31.68" height="17.28" class="st21"/>
+			<text x="12.91" y="714.36" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>1</text>		</g>
+	</g>
+</svg>

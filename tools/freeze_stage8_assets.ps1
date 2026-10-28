@@ -226,6 +226,7 @@ function Copy-ThirdPartyLicenses {
         'brotli',
         'bzip2',
         'crt',
+        'curl',
         'double-conversion',
         'freetype',
         'gcc-libs',
@@ -238,9 +239,17 @@ function Copy-ThirdPartyLicenses {
         'libb2',
         'libiconv',
         'libjpeg-turbo',
+        'libmariadbclient',
         'libpng',
+        'libpsl',
+        'libssh2',
+        'libunistring',
         'libwinpthread',
         'md4c',
+        'nghttp2',
+        'nghttp3',
+        'ngtcp2',
+        'openssl',
         'pcre2',
         'qt6-base',
         'qt6-charts',
@@ -273,6 +282,20 @@ function Copy-ThirdPartyLicenses {
     $icuTarget = Join-Path $icuTargetDirectory 'LICENSE'
     if ($Force -or -not (Test-Path -LiteralPath $icuTarget)) {
         Copy-Item -LiteralPath $icuSource -Destination $icuTarget -Force
+    }
+
+    $idnHeader = 'E:\MSYS2\mingw64\include\idn2.h'
+    if (-not (Test-Path -LiteralPath $idnHeader -PathType Leaf)) {
+        throw "Installed libidn2 license notice source is missing: $idnHeader"
+    }
+    $idnSource = [IO.File]::ReadAllText($idnHeader)
+    $idnNoticeEnd = $idnSource.IndexOf('*/')
+    if (-not $idnSource.StartsWith('/*') -or $idnNoticeEnd -lt 0) {
+        throw "Installed libidn2 header does not begin with the expected license notice."
+    }
+    $idnTarget = Assert-InProject (Join-Path $targetRoot 'libidn2\NOTICE')
+    if ($Force -or -not (Test-Path -LiteralPath $idnTarget)) {
+        Write-Utf8Lf $idnTarget ($idnSource.Substring(0, $idnNoticeEnd + 2) + "`n")
     }
 
     $licensesRoot = [IO.Path]::GetFullPath(

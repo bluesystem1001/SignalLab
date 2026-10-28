@@ -1,0 +1,349 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- 由 Microsoft Visio, SVG Export 生成 12 部署图.svg 12 部署图 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
+		xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" width="16in" height="10in" viewBox="0 0 1152 720"
+		xml:space="preserve" color-interpolation-filters="sRGB" class="st24">
+	<title>SignalLab 杞欢宸ョ▼ UML 璁捐瑙嗗浘</title>
+	<v:documentProperties v:langID="2052" v:metric="true" v:viewMarkup="false"/>
+
+	<style type="text/css">
+	<![CDATA[
+		.st1 {marker-end:url(#mrkr4-6);stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st2 {fill:#273345;fill-opacity:1;stroke:#273345;stroke-opacity:1;stroke-width:0.28409090909091}
+		.st3 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st4 {marker-end:url(#mrkr1-24);stroke:#273345;stroke-dasharray:7,5;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st5 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st6 {fill:#273345;font-family:Microsoft YaHei UI;font-size:1.91666em;font-weight:bold}
+		.st7 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.916672em}
+		.st8 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.4}
+		.st9 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.7}
+		.st10 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.708344em}
+		.st11 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.75em;font-weight:bold}
+		.st12 {fill:none;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st13 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.891678em;font-weight:bold}
+		.st14 {fill:#e8f1fc;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st15 {font-size:1em}
+		.st16 {fill:#e9f6f1;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st17 {fill:#fff4e2;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st18 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.874992em}
+		.st19 {fill:#f2edfb;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st20 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.958328em}
+		.st21 {fill:#f2f5f8;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st22 {fill:#ffffff;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st23 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.849998em}
+		.st24 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+	]]>
+	</style>
+
+	<defs id="Markers">
+		<g id="lend4">
+			<path d="M 2 1 L 0 0 L 2 -1 L 2 1 " style="stroke:none"/>
+		</g>
+		<marker id="mrkr4-6" class="st2" v:arrowType="4" v:arrowSize="2" v:setback="6.68" refX="-6.68" orient="auto"
+				markerUnits="strokeWidth" overflow="visible">
+			<use xlink:href="#lend4" transform="scale(-3.52,-3.52) "/>
+		</marker>
+		<g id="lend1">
+			<path d="M 1 -1 L 0 0 L 1 1 " style="stroke-linecap:round;stroke-linejoin:round;fill:none"/>
+		</g>
+		<marker id="mrkr1-24" class="st2" v:arrowType="1" v:arrowSize="2" orient="auto" markerUnits="strokeWidth"
+				overflow="visible">
+			<use xlink:href="#lend1" transform="scale(-3.52,-3.52) "/>
+		</marker>
+	</defs>
+	<g v:mID="15" v:index="13" v:groupContext="foregroundPage">
+		<title>12 部署图</title>
+		<v:pageProperties v:drawingScale="0.0393701" v:pageScale="0.0393701" v:drawingUnits="24" v:shadowOffsetX="8.50394"
+				v:shadowOffsetY="-8.50394"/>
+		<g id="shape53-1" v:mID="53" v:groupContext="shape" transform="translate(1785.6,248.4) rotate(90)">
+			<title>UML_Connector_5</title>
+			<path d="M0 720 L0 691.2 L369 691.2 L369 720 L369 720" class="st1"/>
+		</g>
+		<g id="shape51-7" v:mID="51" v:groupContext="shape" transform="translate(1309.05,11.4597) rotate(72.6648)">
+			<title>UML_Connector_4</title>
+			<path d="M0 692.51 L20.38 627.22 L317.64 720 L326.22 692.51" class="st3"/>
+		</g>
+		<g id="shape49-10" v:mID="49" v:groupContext="shape" transform="translate(770.4,217.8) rotate(90)">
+			<title>UML_Connector_3</title>
+			<path d="M0 691.2 L0 720 L333 720 L333 691.2" class="st3"/>
+		</g>
+		<g id="shape47-13" v:mID="47" v:groupContext="shape" transform="translate(896.599,-312.572) rotate(34.2737)">
+			<title>UML_Connector_2</title>
+			<path d="M0 687.56 L10.14 702.44 L163.34 598.03 L246.46 720 L294.06 687.56" class="st3"/>
+		</g>
+		<g id="shape45-16" v:mID="45" v:groupContext="shape" transform="translate(860.31,-456.598) rotate(17.4748)">
+			<title>UML_Connector_1</title>
+			<path d="M0 707.03 L51.51 690.81 L60.7 720 L101.9 707.03" class="st3"/>
+		</g>
+		<g id="shape43-19" v:mID="43" v:groupContext="shape" transform="translate(302.4,-502.2)">
+			<title>UML_Connector_0</title>
+			<path d="M0 720 L68.4 720" class="st4"/>
+		</g>
+		<g id="shape1-25" v:mID="1" v:groupContext="shape" transform="translate(34.56,-668.16)">
+			<title>工作表.1</title>
+			<desc>SignalLab · Windows 部署图</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="702.72" width="1080" height="34.56"/>
+			<rect x="0" y="685.44" width="1080" height="34.56" class="st5"/>
+			<text x="5" y="709.62" class="st6" v:langID="2052"><v:paragraph/><v:tabList/>SignalLab · Windows 部署图</text>		</g>
+		<g id="shape2-28" v:mID="2" v:groupContext="shape" transform="translate(36,-643.68)">
+			<title>工作表.2</title>
+			<desc>当前实际部署Windows x64 桌面应用 + 本机可选备份服务 · 客户端库随程序分发</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="709.56" width="1080" height="20.88"/>
+			<rect x="0" y="699.12" width="1080" height="20.88" class="st5"/>
+			<text x="5" y="712.86" class="st7" v:langID="2052"><v:paragraph/><v:tabList/>当前实际部署：Windows x64 桌面应用 + 本机可选备份服务 · 客户端库随程序分发</text>		</g>
+		<g id="shape3-31" v:mID="3" v:groupContext="shape" transform="translate(36,-635.04)">
+			<title>工作表.3</title>
+			<path d="M0 720 L1080 720" class="st8"/>
+		</g>
+		<g id="shape4-34" v:mID="4" v:groupContext="shape" transform="translate(36,-48.96)">
+			<title>工作表.4</title>
+			<path d="M0 720 L1080 720" class="st9"/>
+		</g>
+		<g id="shape5-37" v:mID="5" v:groupContext="shape" transform="translate(36,-10.8)">
+			<title>工作表.5</title>
+			<desc>依据src/gui/main.cpp:85–208cmake/Dependencies.cmake:3–24docs/us...</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="486" cy="703.8" width="972" height="32.4"/>
+			<rect x="0" y="687.6" width="972" height="32.4" class="st5"/>
+			<text x="5" y="706.35" class="st10" v:langID="2052"><v:paragraph/><v:tabList/>依据：src/gui/main.cpp:85–208；cmake/Dependencies.cmake:3–24；docs/user-guide.md:173–189；tools/package-windows.ps1:276–346。</text>		</g>
+		<g id="shape6-40" v:mID="6" v:groupContext="shape" transform="translate(1008,-16.56)">
+			<title>工作表.6</title>
+			<desc>SignalLab | 12</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="52.2" cy="709.2" width="104.4" height="21.6"/>
+			<rect x="0" y="698.4" width="104.4" height="21.6" class="st5"/>
+			<text x="36" y="711.9" class="st11" v:langID="2052"><v:paragraph v:horizAlign="2"/><v:tabList/>SignalLab | 12</text>		</g>
+		<g id="group9-43" transform="translate(36,-57.6)" v:mID="9" v:groupContext="group">
+			<title>UML_Frame_dep_pc</title>
+			<g id="shape7-44" v:mID="7" v:groupContext="shape">
+				<title>工作表.7</title>
+				<rect x="0" y="162" width="1080" height="558" class="st12"/>
+			</g>
+			<g id="shape8-46" v:mID="8" v:groupContext="shape" transform="translate(5.76,-534.24)">
+				<title>工作表.8</title>
+				<desc>«device» Windows x64 工作站</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="534.24" cy="709.2" width="1068.48" height="21.6"/>
+				<rect x="0" y="698.4" width="1068.48" height="21.6" class="st5"/>
+				<text x="5" y="712.41" class="st13" v:langID="2052"><v:paragraph/><v:tabList/>«device» Windows x64 工作站</text>			</g>
+		</g>
+		<g id="group12-49" transform="translate(61.2,-288)" v:mID="12" v:groupContext="group">
+			<title>UML_Frame_dep_process</title>
+			<g id="shape10-50" v:mID="10" v:groupContext="shape">
+				<title>工作表.10</title>
+				<rect x="0" y="432" width="612" height="288" class="st12"/>
+			</g>
+			<g id="shape11-52" v:mID="11" v:groupContext="shape" transform="translate(5.76,-264.24)">
+				<title>工作表.11</title>
+				<desc>«executionEnvironment» SignalLab 桌面进程</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="300.24" cy="709.2" width="600.48" height="21.6"/>
+				<rect x="0" y="698.4" width="600.48" height="21.6" class="st5"/>
+				<text x="5" y="712.41" class="st13" v:langID="2052"><v:paragraph/><v:tabList/>«executionEnvironment» SignalLab 桌面进程</text>			</g>
+		</g>
+		<g id="group17-55" transform="translate(79.2,-464.4)" v:mID="17" v:groupContext="group">
+			<title>UML_Artifact_dep_exe</title>
+			<g id="shape13-56" v:mID="13" v:groupContext="shape">
+				<title>工作表.13</title>
+				<path d="M0 644.4 L210.24 644.4 L223.2 657.36 L223.2 720 L0 720 L0 644.4 Z" class="st14"/>
+			</g>
+			<g id="shape14-58" v:mID="14" v:groupContext="shape" transform="translate(930.24,644.4) rotate(90)">
+				<title>工作表.14</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape15-61" v:mID="15" v:groupContext="shape" transform="translate(210.24,-62.64)">
+				<title>工作表.15</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape16-64" v:mID="16" v:groupContext="shape" transform="translate(3.6,-3.6)">
+				<title>工作表.16</title>
+				<desc>«artifact» SignalLab.exe C++20 / Qt 桌面程序 可写的独立发布目录</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="107.28" cy="686.52" width="214.56" height="66.96"/>
+				<rect x="0" y="653.04" width="214.56" height="66.96" class="st5"/>
+				<text x="45.36" y="676.62" class="st7" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«artifact» SignalLab.exe<v:newlineChar/><tspan
+							x="53.23" dy="1.2em" class="st15">C++20 / Qt </tspan>桌面程序<v:newlineChar/><tspan x="57.78" dy="1.2em"
+							class="st15">可写的独立发布目录</tspan></text>			</g>
+		</g>
+		<g id="group22-69" transform="translate(370.8,-464.4)" v:mID="22" v:groupContext="group">
+			<title>UML_Artifact_dep_runtime</title>
+			<g id="shape18-70" v:mID="18" v:groupContext="shape">
+				<title>工作表.18</title>
+				<path d="M0 644.4 L264.24 644.4 L277.2 657.36 L277.2 720 L0 720 L0 644.4 Z" class="st16"/>
+			</g>
+			<g id="shape19-72" v:mID="19" v:groupContext="shape" transform="translate(984.24,644.4) rotate(90)">
+				<title>工作表.19</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape20-75" v:mID="20" v:groupContext="shape" transform="translate(264.24,-62.64)">
+				<title>工作表.20</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape21-78" v:mID="21" v:groupContext="shape" transform="translate(3.6,-3.6)">
+				<title>工作表.21</title>
+				<desc>必需的客户端运行库 Qt 6 · qwindows.dll · qsqlite.dll MinGW DLL · libma...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="134.28" cy="686.52" width="268.56" height="66.96"/>
+				<rect x="0" y="653.04" width="268.56" height="66.96" class="st5"/>
+				<text x="84.78" y="676.62" class="st7" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>必需的客户端运行库<v:newlineChar/><tspan
+							x="53.9" dy="1.2em" class="st15">Qt 6 · qwindows.dll · qsqlite.dll<v:newlineChar/></tspan><tspan
+							x="62.29" dy="1.2em" class="st15">MinGW DLL · libmariadb.dll</tspan></text>			</g>
+		</g>
+		<g id="group27-83" transform="translate(79.2,-316.8)" v:mID="27" v:groupContext="group">
+			<title>UML_Note_dep_threads</title>
+			<g id="shape23-84" v:mID="23" v:groupContext="shape">
+				<title>工作表.23</title>
+				<path d="M0 608.4 L555.84 608.4 L568.8 621.36 L568.8 720 L0 720 L0 608.4 Z" class="st17"/>
+			</g>
+			<g id="shape24-86" v:mID="24" v:groupContext="shape" transform="translate(1275.84,608.4) rotate(90)">
+				<title>工作表.24</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape25-89" v:mID="25" v:groupContext="shape" transform="translate(555.84,-98.64)">
+				<title>工作表.25</title>
+				<path d="M0 720 L12.96 720" class="st3"/>
+			</g>
+			<g id="shape26-92" v:mID="26" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.26</title>
+				<desc>进程内执行边界 Qt GUI 线程Scheduler 的计算池与 I/O 池DatabaseExecutor 专属线程。 ...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="280.08" cy="669.6" width="560.16" height="100.8"/>
+				<rect x="0" y="619.2" width="560.16" height="100.8" class="st5"/>
+				<text x="5" y="653.85" class="st18" v:langID="2052"><v:paragraph/><v:tabList/>进程内执行边界<v:newlineChar/><tspan x="5"
+							dy="1.2em" class="st15">Qt GUI </tspan>线程；Scheduler 的计算池与 I/O 池；DatabaseExecutor 专属线程。<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">音频</tspan>：独立 WinMM 采集 / 处理线程；备份：独立 std::async 工作者。<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">跨线程结果回到</tspan> GUI；SQLite 连接不跨线程共享。</text>			</g>
+		</g>
+		<g id="group33-98" transform="translate(745.2,-388.8)" v:mID="33" v:groupContext="group">
+			<title>UML_Device_dep_mariadb</title>
+			<g id="shape28-99" v:mID="28" v:groupContext="shape">
+				<title>工作表.28</title>
+				<path d="M0 564.48 L14.4 554.4 L320.4 554.4 L320.4 709.92 L306 720 L0 720 L0 564.48 Z" class="st19"/>
+			</g>
+			<g id="shape29-101" v:mID="29" v:groupContext="shape" transform="translate(0,-155.52)">
+				<title>工作表.29</title>
+				<path d="M0 720 L306 720" class="st3"/>
+			</g>
+			<g id="shape30-104" v:mID="30" v:groupContext="shape" transform="translate(-106.893,-25.367) rotate(-34.992)">
+				<title>工作表.30</title>
+				<path d="M0 720 L17.58 720" class="st3"/>
+			</g>
+			<g id="shape31-107" v:mID="31" v:groupContext="shape" transform="translate(1026,564.48) rotate(90)">
+				<title>工作表.31</title>
+				<path d="M0 720 L155.52 720" class="st3"/>
+			</g>
+			<g id="shape32-110" v:mID="32" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.32</title>
+				<desc>«executionEnvironment» MariaDB 服务备份时需要 默认 127.0.0.1:3306 数据库s...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="149.4" cy="646.56" width="298.8" height="146.88"/>
+				<rect x="0" y="573.12" width="298.8" height="146.88" class="st5"/>
+				<text x="84.25" y="623.46" class="st7" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«executionEnvironment»<v:newlineChar/><tspan
+							x="75.61" dy="1.2em" class="st15">MariaDB </tspan>服务（备份时需要）<v:newlineChar/><tspan x="99.22" dy="1.2em"
+							class="st15">默认</tspan> 127.0.0.1:3306<v:newlineChar/><tspan x="82.29" dy="1.2em" class="st15">数据库</tspan>：signallab_backup<v:newlineChar/><tspan
+							x="68.74" dy="1.2em" class="st15">备份元数据</tspan> · 文件清单 · 文件分块</text>			</g>
+		</g>
+		<g id="group39-117" transform="translate(752.4,-262.8)" v:mID="39" v:groupContext="group">
+			<title>UML_Device_dep_microphone</title>
+			<g id="shape34-118" v:mID="34" v:groupContext="shape">
+				<title>工作表.34</title>
+				<path d="M0 658.08 L14.4 648 L313.2 648 L313.2 709.92 L298.8 720 L0 720 L0 658.08 Z" class="st17"/>
+			</g>
+			<g id="shape35-120" v:mID="35" v:groupContext="shape" transform="translate(0,-61.92)">
+				<title>工作表.35</title>
+				<path d="M0 720 L298.8 720" class="st3"/>
+			</g>
+			<g id="shape36-123" v:mID="36" v:groupContext="shape" transform="translate(-114.093,68.233) rotate(-34.992)">
+				<title>工作表.36</title>
+				<path d="M0 720 L17.58 720" class="st3"/>
+			</g>
+			<g id="shape37-126" v:mID="37" v:groupContext="shape" transform="translate(1018.8,658.08) rotate(90)">
+				<title>工作表.37</title>
+				<path d="M0 720 L61.92 720" class="st3"/>
+			</g>
+			<g id="shape38-129" v:mID="38" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.38</title>
+				<desc>«device» 麦克风 / Windows 音频 WinMM waveIn* · PCM16 输入</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="145.8" cy="693.36" width="291.6" height="53.28"/>
+				<rect x="0" y="666.72" width="291.6" height="53.28" class="st5"/>
+				<text x="62.11" y="690.06" class="st7" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«device» 麦克风 / Windows 音频<v:newlineChar/><tspan
+							x="66" dy="1.2em" class="st15">WinMM waveIn* · PCM16 </tspan>输入</text>			</g>
+		</g>
+		<g id="shape40-133" v:mID="40" v:groupContext="shape" transform="translate(79.2,-100.8)">
+			<title>UML_dep_files</title>
+			<desc>«artifact» 项目文件与导出 data/signallab.sqlite3含 WAL / SHM 运行文件 dat...</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="284.4" cy="651.6" width="568.81" height="136.8"/>
+			<rect x="0" y="583.2" width="568.8" height="136.8" rx="3.96" ry="3.96" class="st14"/>
+			<text x="216.82" y="620.55" class="st20" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«artifact» 项目文件与导出<v:newlineChar/><tspan
+						x="149.96" dy="1.2em" class="st15">data/signallab.sqlite3</tspan>（含 WAL / SHM 运行文件）<v:newlineChar/><tspan
+						x="163.95" dy="1.2em" class="st15">data/imports/&#60;sha256&#62;.source</tspan>（导入存档）<v:newlineChar/><tspan
+						x="171.72" dy="1.2em" class="st15">data/script_outputs/</tspan>（脚本 CSV / JSON）<v:newlineChar/><tspan
+						x="188.82" dy="1.2em" class="st15">migrations/*.sql</tspan>（启动时按序迁移）<v:newlineChar/><tspan x="185.63"
+						dy="1.2em" class="st15">独立</tspan> WAV / PNG 导出由用户指定路径</text>		</g>
+		<g id="shape41-141" v:mID="41" v:groupContext="shape" transform="translate(745.2,-158.4)">
+			<title>UML_dep_config</title>
+			<desc>«artifact» 当前用户连接配置 %LOCALAPPDATA%/SignalLab/ mariadb-backup....</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="160.2" cy="687.6" width="320.41" height="64.8"/>
+			<rect x="0" y="655.2" width="320.4" height="64.8" rx="3.96" ry="3.96" class="st21"/>
+			<text x="86.87" y="677.25" class="st20" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«artifact» 当前用户连接配置<v:newlineChar/><tspan
+						x="73.15" dy="1.2em" class="st15">%LOCALAPPDATA%/SignalLab/<v:newlineChar/></tspan><tspan x="42.19"
+						dy="1.2em" class="st15">mariadb</tspan>-backup.json · 密码可用 DPAPI 加密</text>		</g>
+		<g id="shape42-146" v:mID="42" v:groupContext="shape" transform="translate(745.2,-75.6)">
+			<title>UML_dep_restore</title>
+			<desc>«artifact» 下载恢复副本新目录 SQLite 快照 + 被引用的 imports 校验后交付不覆盖当前项目</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="160.2" cy="693" width="320.41" height="54"/>
+			<rect x="0" y="666" width="320.4" height="54" rx="3.96" ry="3.96" class="st16"/>
+			<text x="69.62" y="682.65" class="st20" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«artifact» 下载恢复副本（新目录）<v:newlineChar/><tspan
+						x="75.49" dy="1.2em" class="st15">SQLite </tspan>快照 + 被引用的 imports<v:newlineChar/><tspan x="85.45"
+						dy="1.2em" class="st15">校验后交付</tspan>；不覆盖当前项目</text>		</g>
+		<g id="shape44-151" v:mID="44" v:groupContext="shape" transform="translate(306,-509.04)">
+			<title>工作表.44</title>
+			<desc>加载</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="30.6" cy="710.64" width="61.21" height="18.72"/>
+			<rect x="0" y="701.28" width="61.2" height="18.72" class="st22"/>
+			<text x="20.4" y="713.7" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>加载</text>		</g>
+		<g id="shape46-154" v:mID="46" v:groupContext="shape" transform="translate(673.2,-510.48)">
+			<title>工作表.46</title>
+			<desc>Connector/C · TCP</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="79.2" cy="710.64" width="158.4" height="18.72"/>
+			<rect x="0" y="701.28" width="158.4" height="18.72" class="st22"/>
+			<text x="34.43" y="713.7" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>Connector/C · TCP</text>		</g>
+		<g id="shape48-157" v:mID="48" v:groupContext="shape" transform="translate(702,-305.28)">
+			<title>工作表.48</title>
+			<desc>WinMM</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="710.64" width="57.61" height="18.72"/>
+			<rect x="0" y="701.28" width="57.6" height="18.72" class="st22"/>
+			<text x="9.14" y="713.7" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>WinMM</text>		</g>
+		<g id="shape50-160" v:mID="50" v:groupContext="shape" transform="translate(57.6,-254.88)">
+			<title>工作表.50</title>
+			<desc>本地读写</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="52.2" cy="710.64" width="104.4" height="18.72"/>
+			<rect x="0" y="701.28" width="104.4" height="18.72" class="st22"/>
+			<text x="31.8" y="713.7" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>本地读写</text>		</g>
+		<g id="shape52-163" v:mID="52" v:groupContext="shape" transform="translate(630,-233.28)">
+			<title>工作表.52</title>
+			<desc>配置 / DPAPI</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="55.8" cy="710.64" width="111.6" height="18.72"/>
+			<rect x="0" y="701.28" width="111.6" height="18.72" class="st22"/>
+			<text x="25.19" y="713.7" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>配置 / DPAPI</text>		</g>
+		<g id="shape54-166" v:mID="54" v:groupContext="shape" transform="translate(957.6,-236.88)">
+			<title>工作表.54</title>
+			<desc>下载并校验</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="63" cy="710.64" width="126" height="18.72"/>
+			<rect x="0" y="701.28" width="126" height="18.72" class="st22"/>
+			<text x="37.5" y="713.7" class="st23" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>下载并校验</text>		</g>
+	</g>
+</svg>

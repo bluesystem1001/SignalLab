@@ -1,0 +1,380 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- 由 Microsoft Visio, SVG Export 生成 01 用例图.svg 01 用例图 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
+		xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" width="16in" height="10in" viewBox="0 0 1152 720"
+		xml:space="preserve" color-interpolation-filters="sRGB" class="st19">
+	<title>SignalLab 杞欢宸ョ▼ UML 璁捐瑙嗗浘</title>
+	<v:documentProperties v:langID="2052" v:metric="true" v:viewMarkup="false"/>
+
+	<style type="text/css">
+	<![CDATA[
+		.st1 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st2 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st3 {fill:#273345;font-family:Microsoft YaHei UI;font-size:1.91666em;font-weight:bold}
+		.st4 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.916672em}
+		.st5 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.4}
+		.st6 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.7}
+		.st7 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.708344em}
+		.st8 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.75em;font-weight:bold}
+		.st9 {fill:none;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st10 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.891678em;font-weight:bold}
+		.st11 {fill:#ffffff;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st12 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.874992em}
+		.st13 {fill:#e8f1fc;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st14 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.958328em}
+		.st15 {font-size:1em}
+		.st16 {fill:#e9f6f1;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st17 {fill:#f2edfb;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st18 {fill:#fff4e2;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st19 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+	]]>
+	</style>
+
+	<g v:mID="4" v:index="2" v:groupContext="foregroundPage">
+		<title>01 用例图</title>
+		<v:pageProperties v:drawingScale="0.0393701" v:pageScale="0.0393701" v:drawingUnits="24" v:shadowOffsetX="8.50394"
+				v:shadowOffsetY="-8.50394"/>
+		<g id="shape69-1" v:mID="69" v:groupContext="shape" transform="translate(1001.36,1240.07) rotate(-178.898)">
+			<title>UML_Connector_10</title>
+			<path d="M0 720 L93.62 720" class="st1"/>
+		</g>
+		<g id="shape68-4" v:mID="68" v:groupContext="shape" transform="translate(1001.36,1081.67) rotate(-178.898)">
+			<title>UML_Connector_9</title>
+			<path d="M0 720 L93.62 720" class="st1"/>
+		</g>
+		<g id="shape67-7" v:mID="67" v:groupContext="shape" transform="translate(161.172,-132.995) rotate(3.08218)">
+			<title>UML_Connector_8</title>
+			<path d="M0 654.14 L43.13 651.71 L46.98 720 L704.64 682.9 L703.02 654.14" class="st1"/>
+		</g>
+		<g id="shape66-10" v:mID="66" v:groupContext="shape" transform="translate(59.214,-194.119) rotate(-5.34139)">
+			<title>UML_Connector_7</title>
+			<path d="M0 717.43 L28.7 720 L34.47 655.46 L446.98 692.33 L444.73 717.43" class="st1"/>
+		</g>
+		<g id="shape65-13" v:mID="65" v:groupContext="shape" transform="translate(111.603,-199.656) rotate(-1.14576)">
+			<title>UML_Connector_6</title>
+			<path d="M0 720 L90.02 720" class="st1"/>
+		</g>
+		<g id="shape64-16" v:mID="64" v:groupContext="shape" transform="translate(160.979,-287.806) rotate(3.08218)">
+			<title>UML_Connector_5</title>
+			<path d="M0 650.55 L43.13 648.11 L47.18 720 L704.84 682.9 L703.02 650.55" class="st1"/>
+		</g>
+		<g id="shape63-19" v:mID="63" v:groupContext="shape" transform="translate(59.214,-352.519) rotate(-5.34139)">
+			<title>UML_Connector_4</title>
+			<path d="M0 717.43 L28.7 720 L34.47 655.46 L446.98 692.33 L444.73 717.43" class="st1"/>
+		</g>
+		<g id="shape62-22" v:mID="62" v:groupContext="shape" transform="translate(111.603,-358.056) rotate(-1.14576)">
+			<title>UML_Connector_3</title>
+			<path d="M0 720 L90.02 720" class="st1"/>
+		</g>
+		<g id="shape61-25" v:mID="61" v:groupContext="shape" transform="translate(160.979,-446.206) rotate(3.08218)">
+			<title>UML_Connector_2</title>
+			<path d="M0 650.55 L43.13 648.11 L47.18 720 L704.84 682.9 L703.02 650.55" class="st1"/>
+		</g>
+		<g id="shape60-28" v:mID="60" v:groupContext="shape" transform="translate(59.214,-510.919) rotate(-5.34139)">
+			<title>UML_Connector_1</title>
+			<path d="M0 717.43 L28.7 720 L34.47 655.46 L446.98 692.33 L444.73 717.43" class="st1"/>
+		</g>
+		<g id="shape59-31" v:mID="59" v:groupContext="shape" transform="translate(111.603,-516.456) rotate(-1.14576)">
+			<title>UML_Connector_0</title>
+			<path d="M0 720 L90.02 720" class="st1"/>
+		</g>
+		<g id="shape1-34" v:mID="1" v:groupContext="shape" transform="translate(34.56,-668.16)">
+			<title>工作表.1</title>
+			<desc>SignalLab · 系统用例图</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="702.72" width="1080" height="34.56"/>
+			<rect x="0" y="685.44" width="1080" height="34.56" class="st2"/>
+			<text x="5" y="709.62" class="st3" v:langID="2052"><v:paragraph/><v:tabList/>SignalLab · 系统用例图</text>		</g>
+		<g id="shape2-37" v:mID="2" v:groupContext="shape" transform="translate(36,-643.68)">
+			<title>工作表.2</title>
+			<desc>当前源码实现范围 · 单用户信号分析工作站 · UML 系统边界与外部参与者</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="709.56" width="1080" height="20.88"/>
+			<rect x="0" y="699.12" width="1080" height="20.88" class="st2"/>
+			<text x="5" y="712.86" class="st4" v:langID="2052"><v:paragraph/><v:tabList/>当前源码实现范围 · 单用户信号分析工作站 · UML 系统边界与外部参与者</text>		</g>
+		<g id="shape3-40" v:mID="3" v:groupContext="shape" transform="translate(36,-635.04)">
+			<title>工作表.3</title>
+			<path d="M0 720 L1080 720" class="st5"/>
+		</g>
+		<g id="shape4-43" v:mID="4" v:groupContext="shape" transform="translate(36,-48.96)">
+			<title>工作表.4</title>
+			<path d="M0 720 L1080 720" class="st6"/>
+		</g>
+		<g id="shape5-46" v:mID="5" v:groupContext="shape" transform="translate(36,-10.8)">
+			<title>工作表.5</title>
+			<desc>依据docs/user-guide.md:31–109,155–189README.md:19–36。相同用户角色在三行重...</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="486" cy="703.8" width="972" height="32.4"/>
+			<rect x="0" y="687.6" width="972" height="32.4" class="st2"/>
+			<text x="5" y="706.35" class="st7" v:langID="2052"><v:paragraph/><v:tabList/>依据：docs/user-guide.md:31–109,155–189；README.md:19–36。相同用户角色在三行重复显示，仅为减少交叉连线。</text>		</g>
+		<g id="shape6-49" v:mID="6" v:groupContext="shape" transform="translate(1008,-16.56)">
+			<title>工作表.6</title>
+			<desc>SignalLab | 01</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="52.2" cy="709.2" width="104.4" height="21.6"/>
+			<rect x="0" y="698.4" width="104.4" height="21.6" class="st2"/>
+			<text x="36" y="711.9" class="st8" v:langID="2052"><v:paragraph v:horizAlign="2"/><v:tabList/>SignalLab | 01</text>		</g>
+		<g id="group9-52" transform="translate(187.2,-115.2)" v:mID="9" v:groupContext="group">
+			<title>UML_Frame_uc_system</title>
+			<g id="shape7-53" v:mID="7" v:groupContext="shape">
+				<title>工作表.7</title>
+				<rect x="0" y="219.6" width="799.2" height="500.4" class="st9"/>
+			</g>
+			<g id="shape8-55" v:mID="8" v:groupContext="shape" transform="translate(5.76,-476.64)">
+				<title>工作表.8</title>
+				<desc>SignalLab 一维信号分析系统</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="393.84" cy="709.2" width="787.68" height="21.6"/>
+				<rect x="0" y="698.4" width="787.68" height="21.6" class="st2"/>
+				<text x="5" y="712.41" class="st10" v:langID="2052"><v:paragraph/><v:tabList/>SignalLab 一维信号分析系统</text>			</g>
+		</g>
+		<g id="group16-58" transform="translate(46.8,-477.36)" v:mID="16" v:groupContext="group">
+			<title>UML_Actor_user1</title>
+			<g id="shape10-59" v:mID="10" v:groupContext="shape" transform="translate(33.3792,-66.0384)">
+				<title>工作表.10</title>
+				<ellipse cx="6.2208" cy="713.779" rx="6.2208" ry="6.2208" class="st11"/>
+			</g>
+			<g id="shape11-61" v:mID="11" v:groupContext="shape" transform="translate(759.6,653.962) rotate(90)">
+				<title>工作表.11</title>
+				<path d="M0 720 L21.77 720" class="st1"/>
+			</g>
+			<g id="shape12-64" v:mID="12" v:groupContext="shape" transform="translate(23.5296,-58.2624)">
+				<title>工作表.12</title>
+				<path d="M0 720 L32.14 720" class="st1"/>
+			</g>
+			<g id="shape13-67" v:mID="13" v:groupContext="shape" transform="translate(574.772,1157.39) rotate(131.987)">
+				<title>工作表.13</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape14-70" v:mID="14" v:groupContext="shape" transform="translate(574.772,194.08) rotate(48.0128)">
+				<title>工作表.14</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape15-73" v:mID="15" v:groupContext="shape">
+				<title>工作表.15</title>
+				<desc>信号分析用户</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="39.6" cy="706.32" width="79.2" height="27.36"/>
+				<rect x="0" y="692.64" width="79.2" height="27.36" class="st2"/>
+				<text x="8.1" y="709.47" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>信号分析用户</text>			</g>
+		</g>
+		<g id="group23-76" transform="translate(46.8,-318.96)" v:mID="23" v:groupContext="group">
+			<title>UML_Actor_user2</title>
+			<g id="shape17-77" v:mID="17" v:groupContext="shape" transform="translate(33.3792,-66.0384)">
+				<title>工作表.17</title>
+				<ellipse cx="6.2208" cy="713.779" rx="6.2208" ry="6.2208" class="st11"/>
+			</g>
+			<g id="shape18-79" v:mID="18" v:groupContext="shape" transform="translate(759.6,653.962) rotate(90)">
+				<title>工作表.18</title>
+				<path d="M0 720 L21.77 720" class="st1"/>
+			</g>
+			<g id="shape19-82" v:mID="19" v:groupContext="shape" transform="translate(23.5296,-58.2624)">
+				<title>工作表.19</title>
+				<path d="M0 720 L32.14 720" class="st1"/>
+			</g>
+			<g id="shape20-85" v:mID="20" v:groupContext="shape" transform="translate(574.772,1157.39) rotate(131.987)">
+				<title>工作表.20</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape21-88" v:mID="21" v:groupContext="shape" transform="translate(574.772,194.08) rotate(48.0128)">
+				<title>工作表.21</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape22-91" v:mID="22" v:groupContext="shape">
+				<title>工作表.22</title>
+				<desc>信号分析用户</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="39.6" cy="706.32" width="79.2" height="27.36"/>
+				<rect x="0" y="692.64" width="79.2" height="27.36" class="st2"/>
+				<text x="8.1" y="709.47" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>信号分析用户</text>			</g>
+		</g>
+		<g id="group30-94" transform="translate(46.8,-160.56)" v:mID="30" v:groupContext="group">
+			<title>UML_Actor_user3</title>
+			<g id="shape24-95" v:mID="24" v:groupContext="shape" transform="translate(33.3792,-66.0384)">
+				<title>工作表.24</title>
+				<ellipse cx="6.2208" cy="713.779" rx="6.2208" ry="6.2208" class="st11"/>
+			</g>
+			<g id="shape25-97" v:mID="25" v:groupContext="shape" transform="translate(759.6,653.962) rotate(90)">
+				<title>工作表.25</title>
+				<path d="M0 720 L21.77 720" class="st1"/>
+			</g>
+			<g id="shape26-100" v:mID="26" v:groupContext="shape" transform="translate(23.5296,-58.2624)">
+				<title>工作表.26</title>
+				<path d="M0 720 L32.14 720" class="st1"/>
+			</g>
+			<g id="shape27-103" v:mID="27" v:groupContext="shape" transform="translate(574.772,1157.39) rotate(131.987)">
+				<title>工作表.27</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape28-106" v:mID="28" v:groupContext="shape" transform="translate(574.772,194.08) rotate(48.0128)">
+				<title>工作表.28</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape29-109" v:mID="29" v:groupContext="shape">
+				<title>工作表.29</title>
+				<desc>信号分析用户</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="39.6" cy="706.32" width="79.2" height="27.36"/>
+				<rect x="0" y="692.64" width="79.2" height="27.36" class="st2"/>
+				<text x="8.1" y="709.47" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>信号分析用户</text>			</g>
+		</g>
+		<g id="shape31-112" v:mID="31" v:groupContext="shape" transform="translate(216,-478.8)">
+			<title>UML_uc_import</title>
+			<desc>导入 CSV / WAV 参数配置 · 预览 · 去重</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st13"/>
+			<text x="49.7" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>导入 CSV / WAV<v:newlineChar/><tspan
+						x="38.03" dy="1.2em" class="st15">参数配置</tspan> · 预览 · 去重</text>		</g>
+		<g id="shape32-116" v:mID="32" v:groupContext="shape" transform="translate(475.2,-478.8)">
+			<title>UML_uc_view</title>
+			<desc>查看与对比波形 缩放 · 游标 · PNG 导出</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st13"/>
+			<text x="53.35" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>查看与对比波形<v:newlineChar/><tspan
+						x="35.36" dy="1.2em" class="st15">缩放</tspan> · 游标 · PNG 导出</text>		</g>
+		<g id="shape33-120" v:mID="33" v:groupContext="shape" transform="translate(734.4,-478.8)">
+			<title>UML_uc_analysis</title>
+			<desc>FFT 与特征分析 频谱 · 峰值 · SNR / THD</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st13"/>
+			<text x="53.74" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>FFT 与特征分析<v:newlineChar/><tspan
+						x="31.3" dy="1.2em" class="st15">频谱</tspan> · 峰值 · SNR / THD</text>		</g>
+		<g id="shape34-124" v:mID="34" v:groupContext="shape" transform="translate(216,-320.4)">
+			<title>UML_uc_fir</title>
+			<desc>生成 FIR 派生信号 低通 / 高通 · 持久化</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st16"/>
+			<text x="47.2" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>生成 FIR 派生信号<v:newlineChar/><tspan
+						x="42.7" dy="1.2em" class="st15">低通</tspan> / 高通 · 持久化</text>		</g>
+		<g id="shape35-128" v:mID="35" v:groupContext="shape" transform="translate(475.2,-320.4)">
+			<title>UML_uc_tasks</title>
+			<desc>管理后台任务 查看 · 取消 · 重试 · 移除</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st16"/>
+			<text x="59.1" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>管理后台任务<v:newlineChar/><tspan
+						x="33.24" dy="1.2em" class="st15">查看</tspan> · 取消 · 重试 · 移除</text>		</g>
+		<g id="shape36-132" v:mID="36" v:groupContext="shape" transform="translate(734.4,-320.4)">
+			<title>UML_uc_audio</title>
+			<desc>采集与实时滤波 保存 WAV / 保存并导入</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st16"/>
+			<text x="53.35" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>采集与实时滤波<v:newlineChar/><tspan
+						x="32" dy="1.2em" class="st15">保存</tspan> WAV / 保存并导入</text>		</g>
+		<g id="shape37-136" v:mID="37" v:groupContext="shape" transform="translate(216,-162)">
+			<title>UML_uc_script</title>
+			<desc>运行 SignalScript 编辑 · 诊断 · 绘图 / 导出</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st17"/>
+			<text x="47.88" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>运行 SignalScript<v:newlineChar/><tspan
+						x="32.17" dy="1.2em" class="st15">编辑</tspan> · 诊断 · 绘图 / 导出</text>		</g>
+		<g id="shape38-140" v:mID="38" v:groupContext="shape" transform="translate(475.2,-162)">
+			<title>UML_uc_history</title>
+			<desc>管理项目与追溯 查看历史 · 受限删除</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st17"/>
+			<text x="53.35" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>管理项目与追溯<v:newlineChar/><tspan
+						x="42.81" dy="1.2em" class="st15">查看历史</tspan> · 受限删除</text>		</g>
+		<g id="shape39-144" v:mID="39" v:groupContext="shape" transform="translate(734.4,-162)">
+			<title>UML_uc_backup</title>
+			<desc>管理项目备份 配置 · 上传 · 下载恢复副本</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="680.4" width="187.2" height="79.2"/>
+			<ellipse cx="93.6" cy="680.4" rx="93.6" ry="39.6" class="st17"/>
+			<text x="59.1" y="676.95" class="st14" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>管理项目备份<v:newlineChar/><tspan
+						x="26.53" dy="1.2em" class="st15">配置</tspan> · 上传 · 下载恢复副本</text>		</g>
+		<g id="group46-148" transform="translate(1015.2,-318.96)" v:mID="46" v:groupContext="group">
+			<title>UML_Actor_microphone</title>
+			<g id="shape40-149" v:mID="40" v:groupContext="shape" transform="translate(44.1792,-66.0384)">
+				<title>工作表.40</title>
+				<ellipse cx="6.2208" cy="713.779" rx="6.2208" ry="6.2208" class="st11"/>
+			</g>
+			<g id="shape41-151" v:mID="41" v:groupContext="shape" transform="translate(770.4,653.962) rotate(90)">
+				<title>工作表.41</title>
+				<path d="M0 720 L21.77 720" class="st1"/>
+			</g>
+			<g id="shape42-154" v:mID="42" v:groupContext="shape" transform="translate(34.3296,-58.2624)">
+				<title>工作表.42</title>
+				<path d="M0 720 L32.14 720" class="st1"/>
+			</g>
+			<g id="shape43-157" v:mID="43" v:groupContext="shape" transform="translate(585.572,1157.39) rotate(131.987)">
+				<title>工作表.43</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape44-160" v:mID="44" v:groupContext="shape" transform="translate(585.572,194.08) rotate(48.0128)">
+				<title>工作表.44</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape45-163" v:mID="45" v:groupContext="shape">
+				<title>工作表.45</title>
+				<desc>«device» 麦克风设备</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="50.4" cy="706.32" width="100.8" height="27.36"/>
+				<rect x="0" y="692.64" width="100.8" height="27.36" class="st2"/>
+				<text x="28.46" y="703.17" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«device»<v:newlineChar/><tspan
+							x="24.15" dy="1.2em" class="st15">麦克风设备</tspan></text>			</g>
+		</g>
+		<g id="group53-167" transform="translate(1015.2,-160.56)" v:mID="53" v:groupContext="group">
+			<title>UML_Actor_backup_actor</title>
+			<g id="shape47-168" v:mID="47" v:groupContext="shape" transform="translate(44.1792,-66.0384)">
+				<title>工作表.47</title>
+				<ellipse cx="6.2208" cy="713.779" rx="6.2208" ry="6.2208" class="st11"/>
+			</g>
+			<g id="shape48-170" v:mID="48" v:groupContext="shape" transform="translate(770.4,653.962) rotate(90)">
+				<title>工作表.48</title>
+				<path d="M0 720 L21.77 720" class="st1"/>
+			</g>
+			<g id="shape49-173" v:mID="49" v:groupContext="shape" transform="translate(34.3296,-58.2624)">
+				<title>工作表.49</title>
+				<path d="M0 720 L32.14 720" class="st1"/>
+			</g>
+			<g id="shape50-176" v:mID="50" v:groupContext="shape" transform="translate(585.572,1157.39) rotate(131.987)">
+				<title>工作表.50</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape51-179" v:mID="51" v:groupContext="shape" transform="translate(585.572,194.08) rotate(48.0128)">
+				<title>工作表.51</title>
+				<path d="M0 720 L20.92 720" class="st1"/>
+			</g>
+			<g id="shape52-182" v:mID="52" v:groupContext="shape">
+				<title>工作表.52</title>
+				<desc>«system» MariaDB 服务</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="50.4" cy="706.32" width="100.8" height="27.36"/>
+				<rect x="0" y="692.64" width="100.8" height="27.36" class="st2"/>
+				<text x="27.07" y="703.17" class="st12" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>«system»<v:newlineChar/><tspan
+							x="16.72" dy="1.2em" class="st15">MariaDB </tspan>服务</text>			</g>
+		</g>
+		<g id="group58-186" transform="translate(194.4,-57.6)" v:mID="58" v:groupContext="group">
+			<title>UML_Note_uc_scope_note</title>
+			<g id="shape54-187" v:mID="54" v:groupContext="shape">
+				<title>工作表.54</title>
+				<path d="M0 680.4 L779.04 680.4 L792 693.36 L792 720 L0 720 L0 680.4 Z" class="st18"/>
+			</g>
+			<g id="shape55-189" v:mID="55" v:groupContext="shape" transform="translate(1499.04,680.4) rotate(90)">
+				<title>工作表.55</title>
+				<path d="M0 720 L12.96 720" class="st1"/>
+			</g>
+			<g id="shape56-192" v:mID="56" v:groupContext="shape" transform="translate(779.04,-26.64)">
+				<title>工作表.56</title>
+				<path d="M0 720 L12.96 720" class="st1"/>
+			</g>
+			<g id="shape57-195" v:mID="57" v:groupContext="shape" transform="translate(3.6,-4.32)">
+				<title>工作表.57</title>
+				<desc>追溯管理查看分析 / 脚本历史删除终态分析或项目信号任务中心仅维护本次进程快照。 恢复副本写入新目录脚本仅访问受限目录未实...</desc>
+				<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+				<v:textRect cx="391.68" cy="705.6" width="783.36" height="28.8"/>
+				<rect x="0" y="691.2" width="783.36" height="28.8" class="st2"/>
+				<text x="5" y="702.45" class="st12" v:langID="2052"><v:paragraph/><v:tabList/>追溯管理：查看分析 / 脚本历史，删除终态分析或项目信号；任务中心仅维护本次进程快照。<v:newlineChar/><tspan
+							x="5" dy="1.2em" class="st15">恢复副本写入新目录</tspan>；脚本仅访问受限目录；未实现登录、多人协作或动态插件。</text>			</g>
+		</g>
+	</g>
+</svg>

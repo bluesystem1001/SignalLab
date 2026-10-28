@@ -1,0 +1,450 @@
+{
+  "file": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\SignalLab_UML.vsdx",
+  "sha256": "3ef40a15afc8a4f969c6bd8bd37644a7574609fb33af0fa3f77adea36f3ab46c",
+  "checked_at_utc": "2026-10-23T08:52:38.349205+00:00",
+  "validator": "Python standard-library ZIP/XML inspection; no Visio automation",
+  "page_count": 15,
+  "all_page_names_match_manifest": true,
+  "native_editable_content": true,
+  "visio_media_parts": [],
+  "embedded_object_parts": [],
+  "image_relationships": [],
+  "package_thumbnail_parts": [
+    "docProps/thumbnail.emf"
+  ],
+  "thumbnail_note": "The standard docProps thumbnail is a package preview, not a diagram image or page shape.",
+  "pages": [
+    {
+      "page": "00-模型导读",
+      "part": "visio/pages/page1.xml",
+      "top_level_shape_count": 21,
+      "all_shape_count_including_group_children": 49,
+      "native_group_count": 6,
+      "text_shape_count": 22,
+      "native_connector_count": 2,
+      "glued_connector_count": 2,
+      "local_glue_records": 4,
+      "local_sheet_formula_reference_count": 245,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "建模范围\n单用户 Windows 桌面信号分析软件\n导入/波形/FIR/FFT/SignalScript/异步任务\nSQLite 追溯、实时麦克风与 MariaDB 项目备份",
+        "页面索引（共 15 页，含本页）\n01 用例：用户目标与系统边界\n02 组件：CMake 模块与依赖方向\n03 领域与导入类：信号模型、文件导入\n04 应用与持久化类：仓储接口与数据库线程\n05 任务调度类：线程池、队列与任务记录\n06 逻辑持久化类：表、键、外键与多重性\n07 导入顺序　08 分析顺序\n09 SignalScript 活动　10 调度状态\n11 音频采集活动　12 部署\n13 应用服务类　14 音频与备份类",
+        "«示例»\nConcreteService",
+        "«interface»\nInterface"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "01 用例图",
+      "part": "visio/pages/page2.xml",
+      "top_level_shape_count": 33,
+      "all_shape_count_including_group_children": 69,
+      "native_group_count": 7,
+      "text_shape_count": 20,
+      "native_connector_count": 11,
+      "glued_connector_count": 11,
+      "local_glue_records": 22,
+      "local_sheet_formula_reference_count": 376,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "SignalLab 一维信号分析系统",
+        "信号分析用户",
+        "信号分析用户",
+        "信号分析用户"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "02 组件图",
+      "part": "visio/pages/page3.xml",
+      "top_level_shape_count": 29,
+      "all_shape_count_including_group_children": 77,
+      "native_group_count": 12,
+      "text_shape_count": 16,
+      "native_connector_count": 11,
+      "glued_connector_count": 11,
+      "local_glue_records": 22,
+      "local_sheet_formula_reference_count": 472,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "SignalLab\n组装根 · src/gui/main.cpp",
+        "signallab_gui\nMainWindow · Models · Widgets\nQt Core / Widgets / Charts",
+        "signallab_io\n文件仓库 · 脚本文件网关 · 音频\nQt Core · WinMM · DPAPI",
+        "signallab_database\nDatabaseExecutor · SQLite 仓库\nQt SQL · MariaDB Connector/C"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "03领域与导入类",
+      "part": "visio/pages/page4.xml",
+      "top_level_shape_count": 32,
+      "all_shape_count_including_group_children": 75,
+      "native_group_count": 9,
+      "text_shape_count": 31,
+      "native_connector_count": 6,
+      "glued_connector_count": 6,
+      "local_glue_records": 12,
+      "local_sheet_formula_reference_count": 407,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "core::SignalMetadata",
+        "core::Signal",
+        "app::SignalEntry",
+        "app::ImportService"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "04应用与持久化类",
+      "part": "visio/pages/page5.xml",
+      "top_level_shape_count": 30,
+      "all_shape_count_including_group_children": 79,
+      "native_group_count": 10,
+      "text_shape_count": 33,
+      "native_connector_count": 10,
+      "glued_connector_count": 10,
+      "local_glue_records": 20,
+      "local_sheet_formula_reference_count": 472,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "«interface»\nrepository::SignalRepository",
+        "«interface»\nrepository::TaskRepository",
+        "«interface»\nrepository::ScriptRepository",
+        "database::SqliteSignalRepository"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "05任务调度类",
+      "part": "visio/pages/page6.xml",
+      "top_level_shape_count": 44,
+      "all_shape_count_including_group_children": 97,
+      "native_group_count": 11,
+      "text_shape_count": 40,
+      "native_connector_count": 9,
+      "glued_connector_count": 9,
+      "local_glue_records": 18,
+      "local_sheet_formula_reference_count": 526,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "task::SchedulerConfig",
+        "task::Scheduler",
+        "task::TaskSpec",
+        "task::ThreadPool"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "06 持久化类图",
+      "part": "visio/pages/page7.xml",
+      "top_level_shape_count": 31,
+      "all_shape_count_including_group_children": 74,
+      "native_group_count": 9,
+      "text_shape_count": 39,
+      "native_connector_count": 4,
+      "glued_connector_count": 4,
+      "local_glue_records": 8,
+      "local_sheet_formula_reference_count": 376,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "«table» file_version",
+        "«table» signal_source",
+        "«table» signal_record",
+        "«table» script_history"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "07 导入顺序",
+      "part": "visio/pages/page8.xml",
+      "top_level_shape_count": 52,
+      "all_shape_count_including_group_children": 68,
+      "native_group_count": 8,
+      "text_shape_count": 31,
+      "native_connector_count": 19,
+      "glued_connector_count": 0,
+      "local_glue_records": 0,
+      "local_sheet_formula_reference_count": 128,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "alt [首次导入且未取消]",
+        "else [重复 / 取消 / 错误]：返回失败；清理无引用的新归档",
+        "用户",
+        "界面\nMainWindow"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "Sequence-message geometry is intentionally native but not glued to lifeline header groups."
+    },
+    {
+      "page": "08 分析顺序",
+      "part": "visio/pages/page9.xml",
+      "top_level_shape_count": 55,
+      "all_shape_count_including_group_children": 73,
+      "native_group_count": 9,
+      "text_shape_count": 33,
+      "native_connector_count": 20,
+      "glued_connector_count": 0,
+      "local_glue_records": 0,
+      "local_sheet_formula_reference_count": 144,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "alt [成功]",
+        "else [取消 / 失败]",
+        "用户",
+        "界面\nMainWindow"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "Sequence-message geometry is intentionally native but not glued to lifeline header groups."
+    },
+    {
+      "page": "09 SignalScript活动",
+      "part": "visio/pages/page10.xml",
+      "top_level_shape_count": 49,
+      "all_shape_count_including_group_children": 51,
+      "native_group_count": 1,
+      "text_shape_count": 24,
+      "native_connector_count": 19,
+      "glued_connector_count": 19,
+      "local_glue_records": 38,
+      "local_sheet_formula_reference_count": 168,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "创建脚本历史：RUNNING\n保存源码与哈希",
+        "Lexer → Parser → SemanticChecker\n生成 AST 并汇总诊断",
+        "有错误诊断？",
+        "请求取消？"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "10 调度状态",
+      "part": "visio/pages/page11.xml",
+      "top_level_shape_count": 32,
+      "all_shape_count_including_group_children": 46,
+      "native_group_count": 5,
+      "text_shape_count": 17,
+      "native_connector_count": 9,
+      "glued_connector_count": 9,
+      "local_glue_records": 18,
+      "local_sheet_formula_reference_count": 184,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "Pending｜待执行\nentry / 发布初始任务快照",
+        "Running｜执行中\nentry / action(TaskContext)\n内部 / reportProgress → 通知\n内部 / cancel() → request_stop",
+        "Succeeded｜成功\nentry / progress = 100",
+        "Failed｜失败\nentry / 保存错误信息"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "11 音频采集活动",
+      "part": "visio/pages/page12.xml",
+      "top_level_shape_count": 55,
+      "all_shape_count_including_group_children": 57,
+      "native_group_count": 1,
+      "text_shape_count": 31,
+      "native_connector_count": 20,
+      "glued_connector_count": 20,
+      "local_glue_records": 40,
+      "local_sheet_formula_reference_count": 176,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "刷新设备并设置采集参数\n采样率 / 时长 / 无滤波或低高通",
+        "参数有效且\n允许开始？",
+        "start(options)\n设计 FIR、预分配缓冲、注册输入回调",
+        "输入启动成功？"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "12 部署图",
+      "part": "visio/pages/page13.xml",
+      "top_level_shape_count": 28,
+      "all_shape_count_including_group_children": 54,
+      "native_group_count": 7,
+      "text_shape_count": 20,
+      "native_connector_count": 6,
+      "glued_connector_count": 6,
+      "local_glue_records": 12,
+      "local_sheet_formula_reference_count": 256,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "«device» Windows x64 工作站",
+        "«executionEnvironment» SignalLab 桌面进程",
+        "«artifact» SignalLab.exe\nC++20 / Qt 桌面程序\n可写的独立发布目录",
+        "必需的客户端运行库\nQt 6 · qwindows.dll · qsqlite.dll\nMinGW DLL · libmariadb.dll"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "13应用服务类",
+      "part": "visio/pages/page14.xml",
+      "top_level_shape_count": 34,
+      "all_shape_count_including_group_children": 89,
+      "native_group_count": 11,
+      "text_shape_count": 42,
+      "native_connector_count": 8,
+      "glued_connector_count": 8,
+      "local_glue_records": 16,
+      "local_sheet_formula_reference_count": 504,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "app::BackgroundFileService",
+        "app::BackgroundAnalysisService",
+        "app::BackgroundScriptService",
+        "task::Scheduler"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    },
+    {
+      "page": "14 音频与备份类",
+      "part": "visio/pages/page15.xml",
+      "top_level_shape_count": 36,
+      "all_shape_count_including_group_children": 93,
+      "native_group_count": 13,
+      "text_shape_count": 43,
+      "native_connector_count": 7,
+      "glued_connector_count": 7,
+      "local_glue_records": 14,
+      "local_sheet_formula_reference_count": 522,
+      "foreign_data_count": 0,
+      "representative_text": [
+        "实时音频：app / repository / io / algorithm",
+        "项目备份：app / repository / database",
+        "app::AudioCaptureService",
+        "«interface»\nrepository::AudioInput"
+      ],
+      "missing_model_text": [],
+      "errors": [],
+      "passed": true,
+      "note": "All model endpoint associations use local native connection formulas."
+    }
+  ],
+  "source_model_review": {
+    "facts": [
+      {
+        "fact": "Signal metadata and imported entries are value members",
+        "passed": true,
+        "sources": [
+          "include/signallab/core/signal.hpp",
+          "include/signallab/app/import_service.hpp"
+        ]
+      },
+      {
+        "fact": "SQLite foreign keys and unique source relationship match page 06",
+        "passed": true,
+        "sources": [
+          "migrations/001_init.sql"
+        ]
+      },
+      {
+        "fact": "Persisted analysis includes CANCELLED; script lifecycle has source identity",
+        "passed": true,
+        "sources": [
+          "migrations/002_task_scheduler.sql",
+          "migrations/003_signal_script.sql"
+        ]
+      },
+      {
+        "fact": "Scheduler owns two value pools and a map of shared task records",
+        "passed": true,
+        "sources": [
+          "include/signallab/task/scheduler.hpp"
+        ]
+      },
+      {
+        "fact": "TaskStatus is the five-state in-memory lifecycle",
+        "passed": true,
+        "sources": [
+          "include/signallab/task/task.hpp"
+        ]
+      },
+      {
+        "fact": "Audio input is unique ownership; FIR is optional value state",
+        "passed": true,
+        "sources": [
+          "include/signallab/app/audio_capture_service.hpp"
+        ]
+      },
+      {
+        "fact": "Backup collaborators are shared pointers, not exclusive composition",
+        "passed": true,
+        "sources": [
+          "include/signallab/app/backup_service.hpp"
+        ]
+      },
+      {
+        "fact": "Audio and backup implementations realize their repository interfaces",
+        "passed": true,
+        "sources": [
+          "include/signallab/io/windows_audio_input.hpp",
+          "include/signallab/database/project_backup_source.hpp",
+          "include/signallab/database/mariadb_backup_repository.hpp"
+        ]
+      },
+      {
+        "fact": "Backup GUI launches an independent std::async worker",
+        "passed": true,
+        "sources": [
+          "src/gui/database_backup_widget.cpp"
+        ]
+      },
+      {
+        "fact": "Current source requires MariaDB client; backup snapshot uses SQLite VACUUM INTO",
+        "passed": true,
+        "sources": [
+          "cmake/Dependencies.cmake",
+          "src/database/project_backup_source.cpp"
+        ]
+      }
+    ],
+    "errors": [],
+    "warnings": [],
+    "passed": true,
+    "scope": "Selected structural facts checked against source; not an application regression test."
+  },
+  "errors": [],
+  "warnings": [],
+  "passed": true,
+  "limits": "Checks native structure, text preservation, formula locality and selected source facts. Layout/visual QA and interaction are separate checks."
+}

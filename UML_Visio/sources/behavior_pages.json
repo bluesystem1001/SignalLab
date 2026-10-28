@@ -1,0 +1,2395 @@
+[
+  {
+    "name": "07 导入顺序",
+    "title": "文件导入顺序图",
+    "subtitle": "CSV / WAV：预览后确认 → Io 工作线程导入 → Qt 排队通知 GUI 接收结果",
+    "footer": "源码：main_window.cpp:1521,1605,1696,2023 | background_file_service.cpp:235,319,462 | import_service.cpp:396,562",
+    "nodes": [
+      {
+        "id": "alt",
+        "type": "frame",
+        "x": 485,
+        "y": 585,
+        "w": 1060,
+        "h": 145,
+        "text": "alt [首次导入且未取消]"
+      },
+      {
+        "id": "alt_else",
+        "type": "note",
+        "x": 495,
+        "y": 673,
+        "w": 650,
+        "h": 36,
+        "text": "else [重复 / 取消 / 错误]：返回失败；清理无引用的新归档",
+        "fill": "gray"
+      },
+      {
+        "id": "u",
+        "type": "lifeline",
+        "x": 60,
+        "y": 145,
+        "w": 160,
+        "h": 65,
+        "text": "用户",
+        "fill": "gray"
+      },
+      {
+        "id": "gui",
+        "type": "lifeline",
+        "x": 280,
+        "y": 145,
+        "w": 160,
+        "h": 65,
+        "text": "界面\nMainWindow",
+        "fill": "blue"
+      },
+      {
+        "id": "bg",
+        "type": "lifeline",
+        "x": 500,
+        "y": 145,
+        "w": 160,
+        "h": 65,
+        "text": "后台文件服务\nBackgroundFile\nService",
+        "fill": "green"
+      },
+      {
+        "id": "sch",
+        "type": "lifeline",
+        "x": 720,
+        "y": 145,
+        "w": 160,
+        "h": 65,
+        "text": "调度器 / Io 工作线程\nScheduler + ThreadPool",
+        "fill": "orange"
+      },
+      {
+        "id": "imp",
+        "type": "lifeline",
+        "x": 940,
+        "y": 145,
+        "w": 160,
+        "h": 65,
+        "text": "导入应用服务\nImportService",
+        "fill": "green"
+      },
+      {
+        "id": "file",
+        "type": "lifeline",
+        "x": 1160,
+        "y": 145,
+        "w": 160,
+        "h": 65,
+        "text": "文件仓储接口\nFileRepository",
+        "fill": "purple"
+      },
+      {
+        "id": "db",
+        "type": "lifeline",
+        "x": 1380,
+        "y": 145,
+        "w": 160,
+        "h": 65,
+        "text": "信号仓储接口\nSignalRepository",
+        "fill": "purple"
+      }
+    ],
+    "edges": [
+      {
+        "points": [
+          [
+            140,
+            245
+          ],
+          [
+            360,
+            245
+          ]
+        ],
+        "style": "message",
+        "label": "1. 确认文件与导入参数",
+        "labelAt": [
+          145,
+          218,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            360,
+            285
+          ],
+          [
+            580,
+            285
+          ]
+        ],
+        "style": "message",
+        "label": "2. importCsv / importWav",
+        "labelAt": [
+          365,
+          258,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            580,
+            325
+          ],
+          [
+            800,
+            325
+          ]
+        ],
+        "style": "message",
+        "label": "3. submit(TaskSpec, Io)",
+        "labelAt": [
+          585,
+          298,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            800,
+            360
+          ],
+          [
+            580,
+            360
+          ]
+        ],
+        "style": "return",
+        "label": "4. 返回 TaskId",
+        "labelAt": [
+          585,
+          333,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            580,
+            377
+          ],
+          [
+            360,
+            377
+          ]
+        ],
+        "style": "return",
+        "label": "返回 TaskId 给界面",
+        "labelAt": [
+          365,
+          350,
+          200,
+          24
+        ]
+      },
+      {
+        "points": [
+          [
+            800,
+            395
+          ],
+          [
+            580,
+            395
+          ]
+        ],
+        "style": "async",
+        "label": "5. 执行 action(context)",
+        "labelAt": [
+          585,
+          368,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            580,
+            430
+          ],
+          [
+            1020,
+            430
+          ]
+        ],
+        "style": "message",
+        "label": "6. loadCsv / loadWav(stopToken)",
+        "labelAt": [
+          585,
+          403,
+          430,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1020,
+            465
+          ],
+          [
+            1240,
+            465
+          ]
+        ],
+        "style": "message",
+        "label": "7. importCsv / importWav",
+        "labelAt": [
+          1025,
+          438,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1240,
+            500
+          ],
+          [
+            1020,
+            500
+          ]
+        ],
+        "style": "return",
+        "label": "8. 返回已读取并归档的 FileImport",
+        "labelAt": [
+          1025,
+          473,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1020,
+            535
+          ],
+          [
+            1460,
+            535
+          ]
+        ],
+        "style": "message",
+        "label": "9. findBySourceKey(sourceKey)",
+        "labelAt": [
+          1025,
+          508,
+          430,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1460,
+            570
+          ],
+          [
+            1020,
+            570
+          ]
+        ],
+        "style": "return",
+        "label": "10. 查询是否已存在逻辑信号",
+        "labelAt": [
+          1025,
+          543,
+          430,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1020,
+            615
+          ],
+          [
+            1460,
+            615
+          ]
+        ],
+        "style": "message",
+        "label": "11. saveSignal(registration)",
+        "labelAt": [
+          1025,
+          588,
+          430,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1460,
+            650
+          ],
+          [
+            1020,
+            650
+          ]
+        ],
+        "style": "return",
+        "label": "12. 返回 StoredSignal；数据库已提交",
+        "labelAt": [
+          1025,
+          623,
+          430,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            485,
+            667
+          ],
+          [
+            1545,
+            667
+          ]
+        ],
+        "style": "plain",
+        "label": ""
+      },
+      {
+        "points": [
+          [
+            1020,
+            755
+          ],
+          [
+            580,
+            755
+          ]
+        ],
+        "style": "return",
+        "label": "13. 返回 Result<SignalEntry>",
+        "labelAt": [
+          585,
+          728,
+          430,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            580,
+            790
+          ],
+          [
+            800,
+            790
+          ]
+        ],
+        "style": "return",
+        "label": "14. action 返回成功或错误",
+        "labelAt": [
+          585,
+          763,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            800,
+            825
+          ],
+          [
+            580,
+            825
+          ]
+        ],
+        "style": "async",
+        "label": "15. observer(终态快照) → 事件入队",
+        "labelAt": [
+          585,
+          798,
+          210,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            580,
+            860
+          ],
+          [
+            360,
+            860
+          ]
+        ],
+        "style": "async",
+        "label": "16. Qt 排队通知；GUI takeEvents()",
+        "labelAt": [
+          355,
+          831,
+          430,
+          27
+        ]
+      },
+      {
+        "points": [
+          [
+            360,
+            895
+          ],
+          [
+            1020,
+            895
+          ]
+        ],
+        "style": "message",
+        "label": "17. [成功] acceptImportedSignal；刷新信号列表",
+        "labelAt": [
+          440,
+          868,
+          500,
+          25
+        ]
+      }
+    ]
+  },
+  {
+    "name": "08 分析顺序",
+    "title": "异步分析顺序图",
+    "subtitle": "用户提交分析；特征 → 去直流 → 频谱与峰值 → 可选 SNR / THD；数据库提交成功后更新 GUI",
+    "footer": "源码：main_window.cpp:1737,1841 | background_analysis_service.cpp:44 | analysis_service.cpp:175,348 | scheduler.cpp:468,569",
+    "nodes": [
+      {
+        "id": "alt",
+        "type": "frame",
+        "x": 825,
+        "y": 630,
+        "w": 720,
+        "h": 130,
+        "text": "alt [成功]"
+      },
+      {
+        "id": "alt_else",
+        "type": "note",
+        "x": 835,
+        "y": 712,
+        "w": 200,
+        "h": 22,
+        "text": "else [取消 / 失败]",
+        "fill": "gray"
+      },
+      {
+        "id": "u",
+        "type": "lifeline",
+        "x": 50,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "用户",
+        "fill": "gray"
+      },
+      {
+        "id": "gui",
+        "type": "lifeline",
+        "x": 240,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "界面\nMainWindow",
+        "fill": "blue"
+      },
+      {
+        "id": "bg",
+        "type": "lifeline",
+        "x": 430,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "后台分析服务\nBackgroundAnalysis\nService",
+        "fill": "green"
+      },
+      {
+        "id": "sch",
+        "type": "lifeline",
+        "x": 620,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "Compute 工作线程\nScheduler + ThreadPool",
+        "fill": "orange"
+      },
+      {
+        "id": "svc",
+        "type": "lifeline",
+        "x": 810,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "分析应用服务\nAnalysisService",
+        "fill": "green"
+      },
+      {
+        "id": "sig",
+        "type": "lifeline",
+        "x": 1000,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "信号仓储\nSignalRepository",
+        "fill": "purple"
+      },
+      {
+        "id": "alg",
+        "type": "lifeline",
+        "x": 1190,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "算法函数\nanalyzeSignal",
+        "fill": "blue"
+      },
+      {
+        "id": "task",
+        "type": "lifeline",
+        "x": 1380,
+        "y": 145,
+        "w": 170,
+        "h": 65,
+        "text": "分析历史仓储\nTaskRepository",
+        "fill": "purple"
+      }
+    ],
+    "edges": [
+      {
+        "points": [
+          [
+            135,
+            245
+          ],
+          [
+            325,
+            245
+          ]
+        ],
+        "style": "message",
+        "label": "1. 分析所选信号",
+        "labelAt": [
+          140,
+          218,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            325,
+            285
+          ],
+          [
+            515,
+            285
+          ]
+        ],
+        "style": "message",
+        "label": "2. submit(recordId, options)",
+        "labelAt": [
+          330,
+          258,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            515,
+            325
+          ],
+          [
+            705,
+            325
+          ]
+        ],
+        "style": "message",
+        "label": "3. submit(TaskSpec, Compute)",
+        "labelAt": [
+          520,
+          298,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            705,
+            360
+          ],
+          [
+            515,
+            360
+          ]
+        ],
+        "style": "return",
+        "label": "4. 返回 TaskId",
+        "labelAt": [
+          520,
+          333,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            515,
+            377
+          ],
+          [
+            325,
+            377
+          ]
+        ],
+        "style": "return",
+        "label": "返回 TaskId 给界面",
+        "labelAt": [
+          320,
+          350,
+          190,
+          24
+        ]
+      },
+      {
+        "points": [
+          [
+            705,
+            395
+          ],
+          [
+            515,
+            395
+          ]
+        ],
+        "style": "async",
+        "label": "5. 异步执行 action(context)",
+        "labelAt": [
+          520,
+          368,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            515,
+            430
+          ],
+          [
+            895,
+            430
+          ]
+        ],
+        "style": "message",
+        "label": "6. analyze(recordId, options, stopToken)",
+        "labelAt": [
+          520,
+          403,
+          370,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            895,
+            465
+          ],
+          [
+            1085,
+            465
+          ]
+        ],
+        "style": "message",
+        "label": "7. findByRecordId",
+        "labelAt": [
+          900,
+          438,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1085,
+            500
+          ],
+          [
+            895,
+            500
+          ]
+        ],
+        "style": "return",
+        "label": "8. 返回 StoredSignal",
+        "labelAt": [
+          900,
+          473,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            895,
+            535
+          ],
+          [
+            1465,
+            535
+          ]
+        ],
+        "style": "message",
+        "label": "9. createTask(Pending)；startTask(Running)",
+        "labelAt": [
+          930,
+          508,
+          500,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            895,
+            575
+          ],
+          [
+            1275,
+            575
+          ]
+        ],
+        "style": "message",
+        "label": "10. analyzeSignal(signal, options, stopToken)",
+        "labelAt": [
+          900,
+          548,
+          370,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1275,
+            615
+          ],
+          [
+            895,
+            615
+          ]
+        ],
+        "style": "return",
+        "label": "11. 返回 AnalysisResult 或错误",
+        "labelAt": [
+          885,
+          586,
+          500,
+          28
+        ]
+      },
+      {
+        "points": [
+          [
+            895,
+            660
+          ],
+          [
+            1465,
+            660
+          ]
+        ],
+        "style": "message",
+        "label": "12. completeTask(taskId, featureValues)",
+        "labelAt": [
+          1050,
+          633,
+          460,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            1465,
+            695
+          ],
+          [
+            895,
+            695
+          ]
+        ],
+        "style": "return",
+        "label": "13. 提交结果；返回成功",
+        "labelAt": [
+          930,
+          668,
+          500,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            825,
+            710
+          ],
+          [
+            1545,
+            710
+          ]
+        ],
+        "style": "plain",
+        "label": ""
+      },
+      {
+        "points": [
+          [
+            895,
+            745
+          ],
+          [
+            1465,
+            745
+          ]
+        ],
+        "style": "message",
+        "label": "14. cancelTask 或 failTask",
+        "labelAt": [
+          1060,
+          718,
+          460,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            895,
+            790
+          ],
+          [
+            515,
+            790
+          ]
+        ],
+        "style": "return",
+        "label": "15. 返回 Result<AnalysisResult>",
+        "labelAt": [
+          520,
+          763,
+          370,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            515,
+            825
+          ],
+          [
+            705,
+            825
+          ]
+        ],
+        "style": "return",
+        "label": "16. action 返回结果",
+        "labelAt": [
+          520,
+          798,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            705,
+            860
+          ],
+          [
+            515,
+            860
+          ]
+        ],
+        "style": "async",
+        "label": "17. observer → 事件入队",
+        "labelAt": [
+          520,
+          833,
+          180,
+          25
+        ]
+      },
+      {
+        "points": [
+          [
+            515,
+            895
+          ],
+          [
+            325,
+            895
+          ]
+        ],
+        "style": "async",
+        "label": "18. Qt 排队通知；takeEvents → 展示结果 / 刷新历史",
+        "labelAt": [
+          285,
+          866,
+          570,
+          28
+        ]
+      }
+    ]
+  },
+  {
+    "name": "09 SignalScript活动",
+    "title": "SignalScript 解析与执行活动图",
+    "subtitle": "保留源码和运行历史；前端错误阻止执行；每条语句前检查停止请求；所有出口汇合后保存终态",
+    "footer": "源码：script_service.cpp:91–206 | script_runtime/evaluator.cpp:268–305,470,552,932 | background_script_service.cpp:69",
+    "nodes": [
+      {
+        "id": "s",
+        "type": "start",
+        "x": 788,
+        "y": 130,
+        "w": 24,
+        "h": 24,
+        "text": ""
+      },
+      {
+        "id": "history",
+        "type": "box",
+        "x": 620,
+        "y": 175,
+        "w": 360,
+        "h": 48,
+        "text": "创建脚本历史：RUNNING\n保存源码与哈希",
+        "fill": "purple"
+      },
+      {
+        "id": "frontend",
+        "type": "box",
+        "x": 590,
+        "y": 250,
+        "w": 420,
+        "h": 55,
+        "text": "Lexer → Parser → SemanticChecker\n生成 AST 并汇总诊断",
+        "fill": "blue"
+      },
+      {
+        "id": "front_error",
+        "type": "diamond",
+        "x": 710,
+        "y": 335,
+        "w": 180,
+        "h": 70,
+        "text": "有错误诊断？",
+        "fill": "orange"
+      },
+      {
+        "id": "loop_merge",
+        "type": "diamond",
+        "x": 787.5,
+        "y": 420,
+        "w": 25,
+        "h": 25,
+        "text": "",
+        "fill": "gray"
+      },
+      {
+        "id": "stop",
+        "type": "diamond",
+        "x": 710,
+        "y": 470,
+        "w": 180,
+        "h": 70,
+        "text": "请求取消？",
+        "fill": "orange"
+      },
+      {
+        "id": "more",
+        "type": "diamond",
+        "x": 710,
+        "y": 575,
+        "w": 180,
+        "h": 70,
+        "text": "还有语句？",
+        "fill": "orange"
+      },
+      {
+        "id": "stmt",
+        "type": "box",
+        "x": 590,
+        "y": 680,
+        "w": 420,
+        "h": 55,
+        "text": "执行下一条语句\nload / 赋值 / 表达式 / plot / save",
+        "fill": "green"
+      },
+      {
+        "id": "runtime_ok",
+        "type": "diamond",
+        "x": 710,
+        "y": 780,
+        "w": 180,
+        "h": 70,
+        "text": "本条执行成功？",
+        "fill": "orange"
+      },
+      {
+        "id": "failed",
+        "type": "box",
+        "x": 1180,
+        "y": 342,
+        "w": 300,
+        "h": 55,
+        "text": "结果 = Failed\n记录前端诊断与错误位置",
+        "fill": "orange"
+      },
+      {
+        "id": "cancelled",
+        "type": "box",
+        "x": 1180,
+        "y": 477,
+        "w": 300,
+        "h": 55,
+        "text": "结果 = Cancelled\n保留已产生的部分输出",
+        "fill": "orange"
+      },
+      {
+        "id": "runtime_failed",
+        "type": "box",
+        "x": 1180,
+        "y": 697,
+        "w": 300,
+        "h": 55,
+        "text": "按运行时错误形成\nFailed 或 Cancelled 结果",
+        "fill": "orange"
+      },
+      {
+        "id": "succeeded",
+        "type": "box",
+        "x": 1180,
+        "y": 590,
+        "w": 300,
+        "h": 55,
+        "text": "结果 = Succeeded\n汇集变量 / 绘图请求 / 输出文件",
+        "fill": "green"
+      },
+      {
+        "id": "terminal_merge",
+        "type": "diamond",
+        "x": 1335,
+        "y": 770,
+        "w": 30,
+        "h": 30,
+        "text": "",
+        "fill": "gray"
+      },
+      {
+        "id": "finish",
+        "type": "box",
+        "x": 1180,
+        "y": 810,
+        "w": 300,
+        "h": 55,
+        "text": "finishHistory(终态, 错误信息)\n返回结构化执行结果",
+        "fill": "purple"
+      },
+      {
+        "id": "end",
+        "type": "end",
+        "x": 1337,
+        "y": 880,
+        "w": 26,
+        "h": 26,
+        "text": ""
+      }
+    ],
+    "edges": [
+      {
+        "from": "s",
+        "to": "history",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "history",
+        "to": "frontend",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "frontend",
+        "to": "front_error",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "front_error",
+        "to": "failed",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            890,
+            370
+          ],
+          [
+            1180,
+            370
+          ]
+        ],
+        "labelAt": [
+          1010,
+          341,
+          100,
+          25
+        ]
+      },
+      {
+        "from": "front_error",
+        "to": "loop_merge",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[否]",
+        "points": [
+          [
+            800,
+            405
+          ],
+          [
+            800,
+            420
+          ]
+        ],
+        "labelAt": [
+          816,
+          405,
+          85,
+          24
+        ]
+      },
+      {
+        "from": "loop_merge",
+        "to": "stop",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "stop",
+        "to": "cancelled",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            890,
+            505
+          ],
+          [
+            1180,
+            505
+          ]
+        ],
+        "labelAt": [
+          1010,
+          476,
+          100,
+          25
+        ]
+      },
+      {
+        "from": "stop",
+        "to": "more",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[否]",
+        "points": [
+          [
+            800,
+            540
+          ],
+          [
+            800,
+            575
+          ]
+        ],
+        "labelAt": [
+          820,
+          542,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "more",
+        "to": "stmt",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            800,
+            645
+          ],
+          [
+            800,
+            680
+          ]
+        ],
+        "labelAt": [
+          820,
+          647,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "more",
+        "to": "succeeded",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[否]",
+        "points": [
+          [
+            890,
+            610
+          ],
+          [
+            1040,
+            610
+          ],
+          [
+            1040,
+            617.5
+          ],
+          [
+            1180,
+            617.5
+          ]
+        ],
+        "labelAt": [
+          1010,
+          584,
+          100,
+          25
+        ]
+      },
+      {
+        "from": "stmt",
+        "to": "runtime_ok",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "runtime_ok",
+        "to": "loop_merge",
+        "fromSide": "L",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[是：下一次循环]",
+        "points": [
+          [
+            710,
+            815
+          ],
+          [
+            540,
+            815
+          ],
+          [
+            540,
+            432.5
+          ],
+          [
+            787.5,
+            432.5
+          ]
+        ],
+        "labelAt": [
+          545,
+          750,
+          160,
+          28
+        ]
+      },
+      {
+        "from": "runtime_ok",
+        "to": "runtime_failed",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[否]",
+        "points": [
+          [
+            890,
+            815
+          ],
+          [
+            1100,
+            815
+          ],
+          [
+            1100,
+            724.5
+          ],
+          [
+            1180,
+            724.5
+          ]
+        ],
+        "labelAt": [
+          1000,
+          783,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "failed",
+        "to": "terminal_merge",
+        "fromSide": "R",
+        "toSide": "R",
+        "style": "flow",
+        "points": [
+          [
+            1480,
+            369.5
+          ],
+          [
+            1520,
+            369.5
+          ],
+          [
+            1520,
+            785
+          ],
+          [
+            1365,
+            785
+          ]
+        ]
+      },
+      {
+        "from": "cancelled",
+        "to": "terminal_merge",
+        "fromSide": "R",
+        "toSide": "R",
+        "style": "flow",
+        "points": [
+          [
+            1480,
+            504.5
+          ],
+          [
+            1520,
+            504.5
+          ],
+          [
+            1520,
+            785
+          ],
+          [
+            1365,
+            785
+          ]
+        ]
+      },
+      {
+        "from": "runtime_failed",
+        "to": "terminal_merge",
+        "fromSide": "R",
+        "toSide": "R",
+        "style": "flow",
+        "points": [
+          [
+            1480,
+            724.5
+          ],
+          [
+            1520,
+            724.5
+          ],
+          [
+            1520,
+            785
+          ],
+          [
+            1365,
+            785
+          ]
+        ]
+      },
+      {
+        "from": "succeeded",
+        "to": "terminal_merge",
+        "fromSide": "R",
+        "toSide": "R",
+        "style": "flow",
+        "points": [
+          [
+            1480,
+            617.5
+          ],
+          [
+            1520,
+            617.5
+          ],
+          [
+            1520,
+            785
+          ],
+          [
+            1365,
+            785
+          ]
+        ]
+      },
+      {
+        "from": "terminal_merge",
+        "to": "finish",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "finish",
+        "to": "end",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      }
+    ]
+  },
+  {
+    "name": "10 调度状态",
+    "title": "调度任务状态机",
+    "subtitle": "对象：Scheduler 中单个 TaskId 的 TaskSnapshot；取消采用停止令牌合作机制",
+    "footer": "源码：task/task.hpp:14–20,65–69 | task/scheduler.cpp:119–178,392–465,468–527,530–603",
+    "nodes": [
+      {
+        "id": "s",
+        "type": "start",
+        "x": 80,
+        "y": 290,
+        "w": 30,
+        "h": 30,
+        "text": ""
+      },
+      {
+        "id": "pending",
+        "type": "box",
+        "x": 180,
+        "y": 250,
+        "w": 300,
+        "h": 110,
+        "text": "Pending｜待执行\nentry / 发布初始任务快照",
+        "fill": "blue"
+      },
+      {
+        "id": "running",
+        "type": "box",
+        "x": 650,
+        "y": 250,
+        "w": 300,
+        "h": 110,
+        "text": "Running｜执行中\nentry / action(TaskContext)\n内部 / reportProgress → 通知\n内部 / cancel() → request_stop",
+        "fill": "blue"
+      },
+      {
+        "id": "success",
+        "type": "box",
+        "x": 1160,
+        "y": 190,
+        "w": 300,
+        "h": 100,
+        "text": "Succeeded｜成功\nentry / progress = 100",
+        "fill": "green"
+      },
+      {
+        "id": "failed",
+        "type": "box",
+        "x": 1160,
+        "y": 445,
+        "w": 300,
+        "h": 100,
+        "text": "Failed｜失败\nentry / 保存错误信息",
+        "fill": "orange"
+      },
+      {
+        "id": "cancelled",
+        "type": "box",
+        "x": 650,
+        "y": 725,
+        "w": 300,
+        "h": 110,
+        "text": "Cancelled｜已取消\nentry / 保存取消原因",
+        "fill": "gray"
+      },
+      {
+        "id": "end_success",
+        "type": "end",
+        "x": 1510,
+        "y": 226,
+        "w": 28,
+        "h": 28,
+        "text": ""
+      },
+      {
+        "id": "end_failed",
+        "type": "end",
+        "x": 1510,
+        "y": 481,
+        "w": 28,
+        "h": 28,
+        "text": ""
+      },
+      {
+        "id": "end_cancelled",
+        "type": "end",
+        "x": 1000,
+        "y": 766,
+        "w": 28,
+        "h": 28,
+        "text": ""
+      },
+      {
+        "id": "retry_note",
+        "type": "note",
+        "x": 70,
+        "y": 560,
+        "w": 420,
+        "h": 155,
+        "text": "重试规则\n仅终态任务可 retry。\n创建新 TaskId，状态为 Pending；\nretryOf 记录原任务编号。\n原任务保持原终态。",
+        "fill": "gray"
+      },
+      {
+        "id": "commit_note",
+        "type": "note",
+        "x": 1090,
+        "y": 650,
+        "w": 430,
+        "h": 140,
+        "text": "提交边界\n成功 Result 优先于晚到的停止请求。\n运行中 cancel() 仅 request_stop，\n不会立即把状态改为 Cancelled。\nInterrupted 不属于本状态机。",
+        "fill": "gray"
+      }
+    ],
+    "edges": [
+      {
+        "from": "s",
+        "to": "pending",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "submit 有效且调度器接收",
+        "points": [
+          [
+            110,
+            305
+          ],
+          [
+            180,
+            305
+          ]
+        ],
+        "labelAt": [
+          65,
+          208,
+          370,
+          28
+        ]
+      },
+      {
+        "from": "pending",
+        "to": "running",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "worker 取出\n[未请求停止]",
+        "points": [
+          [
+            480,
+            305
+          ],
+          [
+            650,
+            305
+          ]
+        ],
+        "labelAt": [
+          487,
+          250,
+          156,
+          48
+        ]
+      },
+      {
+        "from": "pending",
+        "to": "cancelled",
+        "fromSide": "B",
+        "toSide": "L",
+        "style": "flow",
+        "label": "取消并移出队列 / 启动前已停止 / 关闭队列",
+        "points": [
+          [
+            330,
+            360
+          ],
+          [
+            330,
+            445
+          ],
+          [
+            550,
+            445
+          ],
+          [
+            550,
+            780
+          ],
+          [
+            650,
+            780
+          ]
+        ],
+        "labelAt": [
+          145,
+          392,
+          490,
+          43
+        ]
+      },
+      {
+        "from": "running",
+        "to": "success",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[action 返回\n成功 Result]",
+        "points": [
+          [
+            950,
+            305
+          ],
+          [
+            1035,
+            305
+          ],
+          [
+            1035,
+            240
+          ],
+          [
+            1160,
+            240
+          ]
+        ],
+        "labelAt": [
+          985,
+          181,
+          165,
+          50
+        ]
+      },
+      {
+        "from": "running",
+        "to": "failed",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[其他错误 /\n抛出异常]",
+        "points": [
+          [
+            950,
+            305
+          ],
+          [
+            1035,
+            305
+          ],
+          [
+            1035,
+            495
+          ],
+          [
+            1160,
+            495
+          ]
+        ],
+        "labelAt": [
+          1045,
+          365,
+          195,
+          50
+        ]
+      },
+      {
+        "from": "running",
+        "to": "cancelled",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[action 返回 ErrorCode::Cancelled]",
+        "points": [
+          [
+            800,
+            360
+          ],
+          [
+            800,
+            725
+          ]
+        ],
+        "labelAt": [
+          812,
+          548,
+          300,
+          46
+        ]
+      },
+      {
+        "from": "success",
+        "to": "end_success",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow"
+      },
+      {
+        "from": "failed",
+        "to": "end_failed",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow"
+      },
+      {
+        "from": "cancelled",
+        "to": "end_cancelled",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow"
+      }
+    ]
+  },
+  {
+    "name": "11 音频采集活动",
+    "title": "音频采集、实时滤波与保存活动图",
+    "subtitle": "采样回调处理音频；GUI 轮询快照并停止异常或超时采集；WAV 保存异步执行并保留失败录音",
+    "footer": "源码：audio_capture_service.cpp:33,143,178,237 | audio_capture_widget.cpp:247,273,333,361 | main_window.cpp:802",
+    "nodes": [
+      {
+        "id": "s",
+        "type": "start",
+        "x": 247,
+        "y": 135,
+        "w": 26,
+        "h": 26,
+        "text": ""
+      },
+      {
+        "id": "options",
+        "type": "box",
+        "x": 80,
+        "y": 205,
+        "w": 360,
+        "h": 60,
+        "text": "刷新设备并设置采集参数\n采样率 / 时长 / 无滤波或低高通",
+        "fill": "blue"
+      },
+      {
+        "id": "valid",
+        "type": "diamond",
+        "x": 170,
+        "y": 310,
+        "w": 180,
+        "h": 80,
+        "text": "参数有效且\n允许开始？",
+        "fill": "orange"
+      },
+      {
+        "id": "start_service",
+        "type": "box",
+        "x": 80,
+        "y": 440,
+        "w": 360,
+        "h": 65,
+        "text": "start(options)\n设计 FIR、预分配缓冲、注册输入回调",
+        "fill": "green"
+      },
+      {
+        "id": "started",
+        "type": "diamond",
+        "x": 170,
+        "y": 550,
+        "w": 180,
+        "h": 80,
+        "text": "输入启动成功？",
+        "fill": "orange"
+      },
+      {
+        "id": "start_failed",
+        "type": "box",
+        "x": 80,
+        "y": 700,
+        "w": 360,
+        "h": 70,
+        "text": "显示启动错误\n保留上次录音并返回就绪",
+        "fill": "orange"
+      },
+      {
+        "id": "capture",
+        "type": "box",
+        "x": 600,
+        "y": 205,
+        "w": 400,
+        "h": 70,
+        "text": "回调追加原始样本并逐点 FIR / 直通\n更新峰值与上限标志\nGUI poll 更新近 2 秒预览",
+        "fill": "green"
+      },
+      {
+        "id": "stop_condition",
+        "type": "diamond",
+        "x": 710,
+        "y": 330,
+        "w": 180,
+        "h": 80,
+        "text": "手动停止 / 达到\n时长 / 采集出错？",
+        "fill": "orange"
+      },
+      {
+        "id": "stop",
+        "type": "box",
+        "x": 600,
+        "y": 460,
+        "w": 400,
+        "h": 55,
+        "text": "GUI 调用 service.stop()\n停止输入并保留已采集音频",
+        "fill": "blue"
+      },
+      {
+        "id": "choose",
+        "type": "box",
+        "x": 600,
+        "y": 560,
+        "w": 400,
+        "h": 55,
+        "text": "选择原始或滤波版与目标路径\n选择“保存”或“保存并导入”",
+        "fill": "blue"
+      },
+      {
+        "id": "save",
+        "type": "box",
+        "x": 600,
+        "y": 670,
+        "w": 400,
+        "h": 55,
+        "text": "后台保存：recordedSignal(filtered)\n→ writePcm16Wav；GUI poll 等待",
+        "fill": "purple"
+      },
+      {
+        "id": "saved",
+        "type": "diamond",
+        "x": 710,
+        "y": 790,
+        "w": 180,
+        "h": 75,
+        "text": "保存成功？",
+        "fill": "orange"
+      },
+      {
+        "id": "retry",
+        "type": "box",
+        "x": 400,
+        "y": 790,
+        "w": 230,
+        "h": 65,
+        "text": "显示保存错误\n保留录音，可重试保存",
+        "fill": "orange"
+      },
+      {
+        "id": "import_question",
+        "type": "diamond",
+        "x": 1250,
+        "y": 650,
+        "w": 180,
+        "h": 80,
+        "text": "选择保存并导入？",
+        "fill": "orange"
+      },
+      {
+        "id": "import",
+        "type": "box",
+        "x": 1170,
+        "y": 790,
+        "w": 330,
+        "h": 60,
+        "text": "调用 importCallback(path)\n提交后台 WAV 导入任务",
+        "fill": "green"
+      },
+      {
+        "id": "end",
+        "type": "end",
+        "x": 1335,
+        "y": 884,
+        "w": 26,
+        "h": 26,
+        "text": ""
+      }
+    ],
+    "edges": [
+      {
+        "from": "s",
+        "to": "options",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "options",
+        "to": "valid",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "valid",
+        "to": "options",
+        "fromSide": "L",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[否 / 取消替换\n未保存录音]",
+        "points": [
+          [
+            170,
+            350
+          ],
+          [
+            50,
+            350
+          ],
+          [
+            50,
+            235
+          ],
+          [
+            80,
+            235
+          ]
+        ],
+        "labelAt": [
+          55,
+          395,
+          170,
+          45
+        ]
+      },
+      {
+        "from": "valid",
+        "to": "start_service",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            260,
+            390
+          ],
+          [
+            260,
+            440
+          ]
+        ],
+        "labelAt": [
+          280,
+          398,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "start_service",
+        "to": "started",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "started",
+        "to": "start_failed",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[否]",
+        "points": [
+          [
+            260,
+            630
+          ],
+          [
+            260,
+            700
+          ]
+        ],
+        "labelAt": [
+          280,
+          649,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "start_failed",
+        "to": "options",
+        "fromSide": "L",
+        "toSide": "L",
+        "style": "flow",
+        "label": "修改参数 / 重试",
+        "points": [
+          [
+            80,
+            735
+          ],
+          [
+            50,
+            735
+          ],
+          [
+            50,
+            235
+          ],
+          [
+            80,
+            235
+          ]
+        ],
+        "labelAt": [
+          62,
+          655,
+          220,
+          27
+        ]
+      },
+      {
+        "from": "started",
+        "to": "capture",
+        "fromSide": "R",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            350,
+            590
+          ],
+          [
+            500,
+            590
+          ],
+          [
+            500,
+            175
+          ],
+          [
+            800,
+            175
+          ],
+          [
+            800,
+            205
+          ]
+        ],
+        "labelAt": [
+          505,
+          455,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "capture",
+        "to": "stop_condition",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "stop_condition",
+        "to": "capture",
+        "fromSide": "R",
+        "toSide": "R",
+        "style": "flow",
+        "label": "[否：继续接收]",
+        "points": [
+          [
+            890,
+            370
+          ],
+          [
+            1060,
+            370
+          ],
+          [
+            1060,
+            242.5
+          ],
+          [
+            1000,
+            242.5
+          ]
+        ],
+        "labelAt": [
+          904,
+          378,
+          210,
+          27
+        ]
+      },
+      {
+        "from": "stop_condition",
+        "to": "stop",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            800,
+            410
+          ],
+          [
+            800,
+            460
+          ]
+        ],
+        "labelAt": [
+          820,
+          418,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "stop",
+        "to": "choose",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[有已采集样本]",
+        "labelAt": [
+          815,
+          520,
+          260,
+          25
+        ]
+      },
+      {
+        "from": "choose",
+        "to": "save",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "save",
+        "to": "saved",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      },
+      {
+        "from": "saved",
+        "to": "retry",
+        "fromSide": "L",
+        "toSide": "R",
+        "style": "flow",
+        "label": "[否]",
+        "points": [
+          [
+            710,
+            827.5
+          ],
+          [
+            630,
+            827.5
+          ]
+        ],
+        "labelAt": [
+          638,
+          791,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "retry",
+        "to": "choose",
+        "fromSide": "T",
+        "toSide": "L",
+        "style": "flow",
+        "label": "重试",
+        "points": [
+          [
+            515,
+            790
+          ],
+          [
+            515,
+            587.5
+          ],
+          [
+            600,
+            587.5
+          ]
+        ],
+        "labelAt": [
+          520,
+          734,
+          90,
+          25
+        ]
+      },
+      {
+        "from": "saved",
+        "to": "import_question",
+        "fromSide": "R",
+        "toSide": "L",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            890,
+            827.5
+          ],
+          [
+            1090,
+            827.5
+          ],
+          [
+            1090,
+            690
+          ],
+          [
+            1250,
+            690
+          ]
+        ],
+        "labelAt": [
+          1098,
+          731,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "import_question",
+        "to": "import",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow",
+        "label": "[是]",
+        "points": [
+          [
+            1340,
+            730
+          ],
+          [
+            1340,
+            790
+          ]
+        ],
+        "labelAt": [
+          1360,
+          750,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "import_question",
+        "to": "end",
+        "fromSide": "R",
+        "toSide": "R",
+        "style": "flow",
+        "label": "[否]",
+        "points": [
+          [
+            1430,
+            690
+          ],
+          [
+            1540,
+            690
+          ],
+          [
+            1540,
+            898
+          ],
+          [
+            1361,
+            898
+          ]
+        ],
+        "labelAt": [
+          1440,
+          738,
+          80,
+          25
+        ]
+      },
+      {
+        "from": "import",
+        "to": "end",
+        "fromSide": "B",
+        "toSide": "T",
+        "style": "flow"
+      }
+    ]
+  }
+]

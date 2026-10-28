@@ -1,0 +1,387 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<!-- 由 Microsoft Visio, SVG Export 生成 11 音频采集活动.svg 11 音频采集活动 -->
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" xmlns:ev="http://www.w3.org/2001/xml-events"
+		xmlns:v="http://schemas.microsoft.com/visio/2003/SVGExtensions/" width="16in" height="10in" viewBox="0 0 1152 720"
+		xml:space="preserve" color-interpolation-filters="sRGB" class="st22">
+	<title>SignalLab 杞欢宸ョ▼ UML 璁捐瑙嗗浘</title>
+	<v:documentProperties v:langID="2052" v:metric="true" v:viewMarkup="false"/>
+
+	<style type="text/css">
+	<![CDATA[
+		.st1 {marker-end:url(#mrkr4-6);stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st2 {fill:#273345;fill-opacity:1;stroke:#273345;stroke-opacity:1;stroke-width:0.28409090909091}
+		.st3 {marker-end:url(#mrkr4-12);stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st4 {fill:none;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st5 {fill:#273345;font-family:Microsoft YaHei UI;font-size:1.91666em;font-weight:bold}
+		.st6 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.916672em}
+		.st7 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1.4}
+		.st8 {stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:0.7}
+		.st9 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.708344em}
+		.st10 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.75em;font-weight:bold}
+		.st11 {fill:#273345;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st12 {fill:#e8f1fc;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st13 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.958328em}
+		.st14 {font-size:1em}
+		.st15 {fill:#fff4e2;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st16 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.874992em}
+		.st17 {fill:#e9f6f1;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st18 {fill:#f2edfb;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st19 {fill:#ffffff;stroke:#273345;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st20 {fill:#ffffff;stroke:none;stroke-linecap:round;stroke-linejoin:round;stroke-width:1}
+		.st21 {fill:#273345;font-family:Microsoft YaHei UI;font-size:0.849998em}
+		.st22 {fill:none;fill-rule:evenodd;font-size:12px;overflow:visible;stroke-linecap:square;stroke-miterlimit:3}
+	]]>
+	</style>
+
+	<defs id="Markers">
+		<g id="lend4">
+			<path d="M 2 1 L 0 0 L 2 -1 L 2 1 " style="stroke:none"/>
+		</g>
+		<marker id="mrkr4-6" class="st2" v:arrowType="4" v:arrowSize="2" v:setback="7.04" refX="-7.04" orient="auto"
+				markerUnits="strokeWidth" overflow="visible">
+			<use xlink:href="#lend4" transform="scale(-3.52,-3.52) "/>
+		</marker>
+		<marker id="mrkr4-12" class="st2" v:arrowType="4" v:arrowSize="2" v:setback="6.68" refX="-6.68" orient="auto"
+				markerUnits="strokeWidth" overflow="visible">
+			<use xlink:href="#lend4" transform="scale(-3.52,-3.52) "/>
+		</marker>
+	</defs>
+	<g v:mID="14" v:index="12" v:groupContext="foregroundPage">
+		<title>11 音频采集活动</title>
+		<v:pageProperties v:drawingScale="0.0393701" v:pageScale="0.0393701" v:drawingUnits="24" v:shadowOffsetX="8.50394"
+				v:shadowOffsetY="-8.50394"/>
+		<g id="shape57-1" v:mID="57" v:groupContext="shape" transform="translate(1633.72,354.861) rotate(69.0755)">
+			<title>UML_Connector_19</title>
+			<path d="M0 720 L19.17 720" class="st1"/>
+		</g>
+		<g id="shape55-7" v:mID="55" v:groupContext="shape" transform="translate(1712.98,723.498) rotate(108.352)">
+			<title>UML_Connector_18</title>
+			<path d="M0 720 L-24.94 644.83 L117.21 597.68 L157.79 720 L157.79 720" class="st3"/>
+		</g>
+		<g id="shape53-13" v:mID="53" v:groupContext="shape" transform="translate(1684.8,525.6) rotate(90)">
+			<title>UML_Connector_17</title>
+			<path d="M0 720 L36.16 720" class="st1"/>
+		</g>
+		<g id="shape51-18" v:mID="51" v:groupContext="shape" transform="translate(402.233,-28.811) rotate(-20.9041)">
+			<title>UML_Connector_16</title>
+			<path d="M0 668.62 L134.52 720 L169.85 627.52 L277.46 668.62 L277.46 668.62" class="st3"/>
+		</g>
+		<g id="shape49-23" v:mID="49" v:groupContext="shape" transform="translate(-293.086,290.132) rotate(-67.2296)">
+			<title>UML_Connector_15</title>
+			<path d="M0 720 L134.44 663.57 L158.12 720 L158.12 720" class="st3"/>
+		</g>
+		<g id="shape47-28" v:mID="47" v:groupContext="shape" transform="translate(511.2,1315.8) rotate(180)">
+			<title>UML_Connector_14</title>
+			<path d="M0 720 L50.56 720" class="st1"/>
+		</g>
+		<g id="shape46-33" v:mID="46" v:groupContext="shape" transform="translate(1296,522) rotate(90)">
+			<title>UML_Connector_13</title>
+			<path d="M0 720 L39.76 720" class="st1"/>
+		</g>
+		<g id="shape45-38" v:mID="45" v:groupContext="shape" transform="translate(1296,442.8) rotate(90)">
+			<title>UML_Connector_12</title>
+			<path d="M0 720 L32.56 720" class="st1"/>
+		</g>
+		<g id="shape43-43" v:mID="43" v:groupContext="shape" transform="translate(1296,370.8) rotate(90)">
+			<title>UML_Connector_11</title>
+			<path d="M0 720 L25.36 720" class="st1"/>
+		</g>
+		<g id="shape41-48" v:mID="41" v:groupContext="shape" transform="translate(1296,295.2) rotate(90)">
+			<title>UML_Connector_10</title>
+			<path d="M0 720 L28.96 720" class="st1"/>
+		</g>
+		<g id="shape39-53" v:mID="39" v:groupContext="shape" transform="translate(165.817,-143.389) rotate(-49.2142)">
+			<title>UML_Connector_9</title>
+			<path d="M0 627.32 L79.96 720 L149.46 660.03 L121.24 627.32 L121.24 627.32" class="st3"/>
+		</g>
+		<g id="shape38-58" v:mID="38" v:groupContext="shape" transform="translate(1296,198) rotate(90)">
+			<title>UML_Connector_8</title>
+			<path d="M0 720 L32.56 720" class="st1"/>
+		</g>
+		<g id="shape36-63" v:mID="36" v:groupContext="shape" transform="translate(-170.426,-68.9441) rotate(-40.5488)">
+			<title>UML_Connector_7</title>
+			<path d="M0 649.79 L82.06 720 L276.31 492.96 L440.44 633.38 L426.4 649.79 L426.4 649.79" class="st3"/>
+		</g>
+		<g id="shape34-68" v:mID="34" v:groupContext="shape" transform="translate(-662.4,529.2) rotate(-90)">
+			<title>UML_Connector_6</title>
+			<path d="M0 720 L0 698.4 L360 698.4 L360 720 L360 720" class="st3"/>
+		</g>
+		<g id="shape32-73" v:mID="32" v:groupContext="shape" transform="translate(907.2,453.6) rotate(90)">
+			<title>UML_Connector_5</title>
+			<path d="M0 720 L43.36 720" class="st1"/>
+		</g>
+		<g id="shape31-78" v:mID="31" v:groupContext="shape" transform="translate(907.2,363.6) rotate(90)">
+			<title>UML_Connector_4</title>
+			<path d="M0 720 L25.36 720" class="st1"/>
+		</g>
+		<g id="shape29-83" v:mID="29" v:groupContext="shape" transform="translate(907.2,280.8) rotate(90)">
+			<title>UML_Connector_3</title>
+			<path d="M0 720 L28.96 720" class="st1"/>
+		</g>
+		<g id="shape27-88" v:mID="27" v:groupContext="shape" transform="translate(-444.604,695.742) rotate(-128.047)">
+			<title>UML_Connector_2</title>
+			<path d="M0 720 L53.25 651.96 L118.45 702.99 L105.14 720 L105.14 720" class="st3"/>
+		</g>
+		<g id="shape26-93" v:mID="26" v:groupContext="shape" transform="translate(907.2,190.8) rotate(90)">
+			<title>UML_Connector_1</title>
+			<path d="M0 720 L25.36 720" class="st1"/>
+		</g>
+		<g id="shape25-98" v:mID="25" v:groupContext="shape" transform="translate(907.2,115.92) rotate(90)">
+			<title>UML_Connector_0</title>
+			<path d="M0 720 L24.64 720" class="st1"/>
+		</g>
+		<g id="shape1-103" v:mID="1" v:groupContext="shape" transform="translate(34.56,-668.16)">
+			<title>工作表.1</title>
+			<desc>音频采集、实时滤波与保存活动图</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="702.72" width="1080" height="34.56"/>
+			<rect x="0" y="685.44" width="1080" height="34.56" class="st4"/>
+			<text x="5" y="709.62" class="st5" v:langID="2052"><v:paragraph/><v:tabList/>音频采集、实时滤波与保存活动图</text>		</g>
+		<g id="shape2-106" v:mID="2" v:groupContext="shape" transform="translate(36,-643.68)">
+			<title>工作表.2</title>
+			<desc>采样回调处理音频GUI 轮询快照并停止异常或超时采集WAV 保存异步执行并保留失败录音</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="540" cy="709.56" width="1080" height="20.88"/>
+			<rect x="0" y="699.12" width="1080" height="20.88" class="st4"/>
+			<text x="5" y="712.86" class="st6" v:langID="2052"><v:paragraph/><v:tabList/>采样回调处理音频；GUI 轮询快照并停止异常或超时采集；WAV 保存异步执行并保留失败录音</text>		</g>
+		<g id="shape3-109" v:mID="3" v:groupContext="shape" transform="translate(36,-635.04)">
+			<title>工作表.3</title>
+			<path d="M0 720 L1080 720" class="st7"/>
+		</g>
+		<g id="shape4-112" v:mID="4" v:groupContext="shape" transform="translate(36,-48.96)">
+			<title>工作表.4</title>
+			<path d="M0 720 L1080 720" class="st8"/>
+		</g>
+		<g id="shape5-115" v:mID="5" v:groupContext="shape" transform="translate(36,-10.8)">
+			<title>工作表.5</title>
+			<desc>源码audio_capture_service.cpp:33,143,178,237 | audio_capture_wi...</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="486" cy="703.8" width="972" height="32.4"/>
+			<rect x="0" y="687.6" width="972" height="32.4" class="st4"/>
+			<text x="5" y="706.35" class="st9" v:langID="2052"><v:paragraph/><v:tabList/>源码：audio_capture_service.cpp:33,143,178,237 | audio_capture_widget.cpp:247,273,333,361 | main_window.cpp:802</text>		</g>
+		<g id="shape6-118" v:mID="6" v:groupContext="shape" transform="translate(1008,-16.56)">
+			<title>工作表.6</title>
+			<desc>SignalLab | 11</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="52.2" cy="709.2" width="104.4" height="21.6"/>
+			<rect x="0" y="698.4" width="104.4" height="21.6" class="st4"/>
+			<text x="36" y="711.9" class="st10" v:langID="2052"><v:paragraph v:horizAlign="2"/><v:tabList/>SignalLab | 11</text>		</g>
+		<g id="shape7-121" v:mID="7" v:groupContext="shape" transform="translate(177.84,-604.08)">
+			<title>UML_s</title>
+			<ellipse cx="9.36" cy="710.64" rx="9.36" ry="9.36" class="st11"/>
+		</g>
+		<g id="shape8-123" v:mID="8" v:groupContext="shape" transform="translate(57.6,-529.2)">
+			<title>UML_options</title>
+			<desc>刷新设备并设置采集参数 采样率 / 时长 / 无滤波或低高通</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="129.6" cy="698.4" width="259.2" height="43.2"/>
+			<rect x="0" y="676.8" width="259.2" height="43.2" rx="3.96" ry="3.96" class="st12"/>
+			<text x="66.35" y="694.95" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>刷新设备并设置采集参数<v:newlineChar/><tspan
+						x="48.88" dy="1.2em" class="st14">采样率</tspan> / 时长 / 无滤波或低高通</text>		</g>
+		<g id="shape9-127" v:mID="9" v:groupContext="shape" transform="translate(122.4,-439.2)">
+			<title>UML_valid</title>
+			<desc>参数有效且 允许开始</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="64.8" cy="691.2" width="129.6" height="57.6"/>
+			<path d="M64.8 662.4 L129.6 691.2 L64.8 720 L0 691.2 L64.8 662.4 Z" class="st15"/>
+			<text x="38.55" y="688.05" class="st16" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>参数有效且<v:newlineChar/><tspan
+						x="38.55" dy="1.2em" class="st14">允许开始</tspan>？</text>		</g>
+		<g id="shape10-131" v:mID="10" v:groupContext="shape" transform="translate(57.6,-356.4)">
+			<title>UML_start_service</title>
+			<desc>start(options) 设计 FIR、预分配缓冲、注册输入回调</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="129.6" cy="696.6" width="259.2" height="46.8"/>
+			<rect x="0" y="673.2" width="259.2" height="46.8" rx="3.96" ry="3.96" class="st17"/>
+			<text x="92.58" y="693.15" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>start(options)<v:newlineChar/><tspan
+						x="33.15" dy="1.2em" class="st14">设计</tspan> FIR、预分配缓冲、注册输入回调</text>		</g>
+		<g id="shape11-135" v:mID="11" v:groupContext="shape" transform="translate(122.4,-266.4)">
+			<title>UML_started</title>
+			<desc>输入启动成功</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="64.8" cy="691.2" width="129.6" height="57.6"/>
+			<path d="M64.8 662.4 L129.6 691.2 L64.8 720 L0 691.2 L64.8 662.4 Z" class="st15"/>
+			<text x="28.05" y="694.35" class="st16" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>输入启动成功？</text>		</g>
+		<g id="shape12-138" v:mID="12" v:groupContext="shape" transform="translate(57.6,-165.6)">
+			<title>UML_start_failed</title>
+			<desc>显示启动错误 保留上次录音并返回就绪</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="129.6" cy="694.8" width="259.2" height="50.4"/>
+			<rect x="0" y="669.6" width="259.2" height="50.4" rx="3.96" ry="3.96" class="st15"/>
+			<text x="95.1" y="691.35" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>显示启动错误<v:newlineChar/><tspan
+						x="66.35" dy="1.2em" class="st14">保留上次录音并返回就绪</tspan></text>		</g>
+		<g id="shape13-142" v:mID="13" v:groupContext="shape" transform="translate(432,-522)">
+			<title>UML_capture</title>
+			<desc>回调追加原始样本并逐点 FIR / 直通 更新峰值与上限标志 GUI poll 更新近 2 秒预览</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="144" cy="694.8" width="288" height="50.4"/>
+			<rect x="0" y="669.6" width="288" height="50.4" rx="3.96" ry="3.96" class="st17"/>
+			<text x="53.19" y="684.45" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>回调追加原始样本并逐点 FIR / 直通<v:newlineChar/><tspan
+						x="92.25" dy="1.2em" class="st14">更新峰值与上限标志<v:newlineChar/></tspan><tspan x="78.68" dy="1.2em" class="st14">GUI poll </tspan>更新近 2 秒预览</text>		</g>
+		<g id="shape14-147" v:mID="14" v:groupContext="shape" transform="translate(511.2,-424.8)">
+			<title>UML_stop_condition</title>
+			<desc>手动停止 / 达到 时长 / 采集出错</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="64.8" cy="691.2" width="129.6" height="57.6"/>
+			<path d="M64.8 662.4 L129.6 691.2 L64.8 720 L0 691.2 L64.8 662.4 Z" class="st15"/>
+			<text x="27.95" y="688.05" class="st16" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>手动停止 / 达到<v:newlineChar/><tspan
+						x="22.7" dy="1.2em" class="st14">时长</tspan> / 采集出错？</text>		</g>
+		<g id="shape15-151" v:mID="15" v:groupContext="shape" transform="translate(432,-349.2)">
+			<title>UML_stop</title>
+			<desc>GUI 调用 service.stop() 停止输入并保留已采集音频</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="144" cy="700.2" width="288" height="39.6"/>
+			<rect x="0" y="680.4" width="288" height="39.6" rx="3.96" ry="3.96" class="st12"/>
+			<text x="82.67" y="696.75" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>GUI 调用 service.stop()<v:newlineChar/><tspan
+						x="75" dy="1.2em" class="st14">停止输入并保留已采集音频</tspan></text>		</g>
+		<g id="shape16-155" v:mID="16" v:groupContext="shape" transform="translate(432,-277.2)">
+			<title>UML_choose</title>
+			<desc>选择原始或滤波版与目标路径 选择“保存”或“保存并导入”</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="144" cy="700.2" width="288" height="39.6"/>
+			<rect x="0" y="680.4" width="288" height="39.6" rx="3.96" ry="3.96" class="st12"/>
+			<text x="69.25" y="696.75" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>选择原始或滤波版与目标路径<v:newlineChar/><tspan
+						x="77.83" dy="1.2em" class="st14">选择</tspan>“保存”或“保存并导入”</text>		</g>
+		<g id="shape17-159" v:mID="17" v:groupContext="shape" transform="translate(432,-198)">
+			<title>UML_save</title>
+			<desc>后台保存recordedSignal(filtered) → writePcm16WavGUI poll 等待</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="144" cy="700.2" width="288" height="39.6"/>
+			<rect x="0" y="680.4" width="288" height="39.6" rx="3.96" ry="3.96" class="st18"/>
+			<text x="50.23" y="696.75" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>后台保存：recordedSignal(filtered)<v:newlineChar/><tspan
+						x="51" dy="1.2em" class="st14">→</tspan> writePcm16Wav；GUI poll 等待</text>		</g>
+		<g id="shape18-163" v:mID="18" v:groupContext="shape" transform="translate(511.2,-97.2)">
+			<title>UML_saved</title>
+			<desc>保存成功</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="64.8" cy="693" width="129.6" height="54"/>
+			<path d="M64.8 666 L129.6 693 L64.8 720 L0 693 L64.8 666 Z" class="st15"/>
+			<text x="38.55" y="696.15" class="st16" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>保存成功？</text>		</g>
+		<g id="shape19-166" v:mID="19" v:groupContext="shape" transform="translate(288,-104.4)">
+			<title>UML_retry</title>
+			<desc>显示保存错误 保留录音可重试保存</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="82.8" cy="696.6" width="165.6" height="46.8"/>
+			<rect x="0" y="673.2" width="165.6" height="46.8" rx="3.96" ry="3.96" class="st15"/>
+			<text x="48.3" y="693.15" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>显示保存错误<v:newlineChar/><tspan
+						x="25.3" dy="1.2em" class="st14">保留录音</tspan>，可重试保存</text>		</g>
+		<g id="shape20-170" v:mID="20" v:groupContext="shape" transform="translate(900,-194.4)">
+			<title>UML_import_question</title>
+			<desc>选择保存并导入</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="64.8" cy="691.2" width="129.6" height="57.6"/>
+			<path d="M64.8 662.4 L129.6 691.2 L64.8 720 L0 691.2 L64.8 662.4 Z" class="st15"/>
+			<text x="22.8" y="694.35" class="st16" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>选择保存并导入？</text>		</g>
+		<g id="shape21-173" v:mID="21" v:groupContext="shape" transform="translate(842.4,-108)">
+			<title>UML_import</title>
+			<desc>调用 importCallback(path) 提交后台 WAV 导入任务</desc>
+			<v:textBlock v:margins="rect(3,5,3,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="118.8" cy="698.4" width="237.6" height="43.2"/>
+			<rect x="0" y="676.8" width="237.6" height="43.2" rx="3.96" ry="3.96" class="st17"/>
+			<text x="47.69" y="694.95" class="st13" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>调用 importCallback(path)<v:newlineChar/><tspan
+						x="55.61" dy="1.2em" class="st14">提交后台</tspan> WAV 导入任务</text>		</g>
+		<g id="group24-177" transform="translate(961.2,-64.8)" v:mID="24" v:groupContext="group">
+			<title>UML_Final_end</title>
+			<g id="shape22-178" v:mID="22" v:groupContext="shape">
+				<title>工作表.22</title>
+				<ellipse cx="9.36" cy="710.64" rx="9.36" ry="9.36" class="st19"/>
+			</g>
+			<g id="shape23-180" v:mID="23" v:groupContext="shape" transform="translate(3.6,-3.6)">
+				<title>工作表.23</title>
+				<ellipse cx="5.76" cy="714.24" rx="5.76" ry="5.76" class="st11"/>
+			</g>
+		</g>
+		<g id="shape28-182" v:mID="28" v:groupContext="shape" transform="translate(39.6,-403.2)">
+			<title>工作表.28</title>
+			<desc>[否 / 取消替换 未保存录音]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="61.2" cy="703.8" width="122.4" height="32.4"/>
+			<rect x="0" y="687.6" width="122.4" height="32.4" class="st20"/>
+			<text x="28.8" y="700.74" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[否 / 取消替换<v:newlineChar/><tspan
+						x="34" dy="1.2em" class="st14">未保存录音</tspan>]</text>		</g>
+		<g id="shape30-186" v:mID="30" v:groupContext="shape" transform="translate(201.6,-415.44)">
+			<title>工作表.30</title>
+			<desc>[是]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.6" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[是]</text>		</g>
+		<g id="shape33-189" v:mID="33" v:groupContext="shape" transform="translate(201.6,-234.72)">
+			<title>工作表.33</title>
+			<desc>[否]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.6" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[否]</text>		</g>
+		<g id="shape35-192" v:mID="35" v:groupContext="shape" transform="translate(44.64,-228.96)">
+			<title>工作表.35</title>
+			<desc>修改参数 / 重试</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="79.2" cy="710.28" width="158.4" height="19.44"/>
+			<rect x="0" y="700.56" width="158.4" height="19.44" class="st20"/>
+			<text x="43.4" y="713.34" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>修改参数 / 重试</text>		</g>
+		<g id="shape37-195" v:mID="37" v:groupContext="shape" transform="translate(363.6,-374.4)">
+			<title>工作表.37</title>
+			<desc>[是]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.61" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[是]</text>		</g>
+		<g id="shape40-198" v:mID="40" v:groupContext="shape" transform="translate(650.88,-428.4)">
+			<title>工作表.40</title>
+			<desc>[否继续接收]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="75.6" cy="710.28" width="151.21" height="19.44"/>
+			<rect x="0" y="700.56" width="151.2" height="19.44" class="st20"/>
+			<text x="41.59" y="713.34" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[否：继续接收]</text>		</g>
+		<g id="shape42-201" v:mID="42" v:groupContext="shape" transform="translate(590.4,-401.04)">
+			<title>工作表.42</title>
+			<desc>[是]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.61" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[是]</text>		</g>
+		<g id="shape44-204" v:mID="44" v:groupContext="shape" transform="translate(586.8,-327.6)">
+			<title>工作表.44</title>
+			<desc>[有已采集样本]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="93.6" cy="711" width="187.2" height="18"/>
+			<rect x="0" y="702" width="187.2" height="18" class="st20"/>
+			<text x="59.59" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[有已采集样本]</text>		</g>
+		<g id="shape48-207" v:mID="48" v:groupContext="shape" transform="translate(459.36,-132.48)">
+			<title>工作表.48</title>
+			<desc>[否]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.6" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[否]</text>		</g>
+		<g id="shape50-210" v:mID="50" v:groupContext="shape" transform="translate(374.4,-173.52)">
+			<title>工作表.50</title>
+			<desc>重试</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="32.4" cy="711" width="64.8" height="18"/>
+			<rect x="0" y="702" width="64.8" height="18" class="st20"/>
+			<text x="22.2" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>重试</text>		</g>
+		<g id="shape52-213" v:mID="52" v:groupContext="shape" transform="translate(790.56,-175.68)">
+			<title>工作表.52</title>
+			<desc>[是]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.6" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[是]</text>		</g>
+		<g id="shape54-216" v:mID="54" v:groupContext="shape" transform="translate(979.2,-162)">
+			<title>工作表.54</title>
+			<desc>[是]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.61" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[是]</text>		</g>
+		<g id="shape56-219" v:mID="56" v:groupContext="shape" transform="translate(1036.8,-170.64)">
+			<title>工作表.56</title>
+			<desc>[否]</desc>
+			<v:textBlock v:margins="rect(1,5,1,5)" v:tabSpace="42.5197"/>
+			<v:textRect cx="28.8" cy="711" width="57.61" height="18"/>
+			<rect x="0" y="702" width="57.6" height="18" class="st20"/>
+			<text x="20.29" y="714.06" class="st21" v:langID="2052"><v:paragraph v:horizAlign="1"/><v:tabList/>[否]</text>		</g>
+	</g>
+</svg>

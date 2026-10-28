@@ -204,6 +204,7 @@ Assert-ToolExists -Name "MinGW compiler" -Path (Join-Path $mingwDirectory "bin\g
 Assert-ToolExists -Name "windeployqt6" -Path $windeployQtPath
 Assert-ToolExists -Name "objdump" -Path $objdumpPath
 Assert-ToolExists -Name "sqlite3" -Path $sqlitePath
+Assert-ToolExists -Name "MariaDB backup client runtime (install mingw-w64-x86_64-libmariadbclient)" -Path (Join-Path $mingwDirectory "bin\libmariadb.dll")
 
 $oldPath = $env:PATH
 try {
@@ -317,7 +318,7 @@ try {
             "--dir", $stagingRoot,
             "--add-plugin-types", "imageformats",
             "--include-plugins", "qwindows,qoffscreen,qsqlite,qgif,qico,qjpeg",
-            "--exclude-plugins", "qdirect2d,qminimal,qsqlibase,qsqlmysql,qsqlodbc,qsqlpsql,qcertonlybackend,qopensslbackend,qschannelbackend,qglib,qnetworklistmanager,qtuiotouchplugin,qmodernwindowsstyle",
+            "--exclude-plugins", "qdirect2d,qminimal,qsqlmysql,qsqlibase,qsqlodbc,qsqlpsql,qcertonlybackend,qopensslbackend,qschannelbackend,qglib,qnetworklistmanager,qtuiotouchplugin,qmodernwindowsstyle",
             (Join-Path $stagingRoot "SignalLab.exe")
         )
         Invoke-NativeTool `
@@ -326,7 +327,13 @@ try {
             -Description "Deploy Qt, plugins, and compiler runtime" `
             -AllowStderr
 
-        foreach ($runtimeName in @("libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll")) {
+        $mysqlPlugin = Get-ChildItem -LiteralPath $stagingRoot -Recurse -File -Filter "qsqlmysql*.dll" |
+            Select-Object -First 1
+        if ($null -ne $mysqlPlugin) {
+            throw "Qt deployment included $($mysqlPlugin.Name); MariaDB backup uses Connector/C directly and must not bundle QMYSQL."
+        }
+
+        foreach ($runtimeName in @("libgcc_s_seh-1.dll", "libstdc++-6.dll", "libwinpthread-1.dll", "libmariadb.dll")) {
             $runtimeTarget = Join-Path $stagingRoot $runtimeName
             if (-not (Test-Path -LiteralPath $runtimeTarget -PathType Leaf)) {
                 Copy-Item `

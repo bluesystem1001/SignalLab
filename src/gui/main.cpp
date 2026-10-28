@@ -6,6 +6,7 @@
 #include <QTimer>
 
 #include <filesystem>
+#include <memory>
 #include <system_error>
 #include <utility>
 
@@ -14,10 +15,13 @@
 #include "signallab/app/background_analysis_service.hpp"
 #include "signallab/app/background_file_service.hpp"
 #include "signallab/app/background_script_service.hpp"
+#include "signallab/app/backup_service.hpp"
 #include "signallab/app/import_service.hpp"
 #include "signallab/app/script_service.hpp"
 #include "signallab/core/signal_generator.hpp"
 #include "signallab/database/database_executor.hpp"
+#include "signallab/database/mariadb_backup_repository.hpp"
+#include "signallab/database/project_backup_source.hpp"
 #include "signallab/io/filesystem_file_repository.hpp"
 #include "signallab/io/filesystem_script_file_gateway.hpp"
 #include "signallab/task/scheduler.hpp"
@@ -180,6 +184,9 @@ int main(int argc, char* argv[])
         backgroundAnalysisService,
         scheduler,
         &backgroundScriptService);
+    mainWindow.setBackupService(std::make_shared<signallab::app::BackupService>(
+        std::make_shared<signallab::database::ProjectBackupSource>(projectRoot),
+        std::make_shared<signallab::database::MariaDbBackupRepository>()));
     mainWindow.show();
 
     if (commandLine.isSet(smokeTestOption)) {

@@ -20,6 +20,7 @@ add_executable(signallab_algorithm_tests
     unit/algorithm/features_test.cpp
     unit/algorithm/fft_test.cpp
     unit/algorithm/fir_filter_test.cpp
+    unit/algorithm/streaming_fir_filter_test.cpp
     unit/algorithm/peak_detector_test.cpp
     unit/algorithm/preprocessing_test.cpp
     unit/algorithm/quality_metrics_test.cpp
@@ -73,11 +74,16 @@ gtest_discover_tests(signallab_task_tests)
 add_executable(signallab_io_tests
     unit/database/database_test_main.cpp
     unit/app/analysis_service_test.cpp
+    unit/app/audio_capture_service_test.cpp
+    unit/app/backup_service_test.cpp
     unit/app/display_downsampler_test.cpp
     unit/app/import_service_test.cpp
     unit/io/csv_reader_test.cpp
     unit/io/script_file_gateway_test.cpp
     unit/io/wav_reader_test.cpp
+    unit/io/wav_writer_test.cpp
+    unit/io/windows_audio_input_test.cpp
+    unit/io/backup_settings_test.cpp
 )
 
 target_compile_features(signallab_io_tests PRIVATE cxx_std_20)
@@ -146,6 +152,8 @@ signallab_set_compiler_warnings(signallab_script_integration_tests)
 gtest_discover_tests(signallab_script_integration_tests)
 
 add_executable(signallab_database_tests
+    integration/mariadb_backup_repository_test.cpp
+    unit/database/project_backup_source_test.cpp
     unit/database/database_test_main.cpp
     unit/database/migration_runner_test.cpp
     unit/database/sqlite_signal_repository_test.cpp
@@ -163,6 +171,7 @@ target_link_libraries(signallab_database_tests
     PRIVATE
         GTest::gtest
         signallab_database
+        MariaDB::Client
 )
 
 signallab_set_compiler_warnings(signallab_database_tests)
@@ -173,6 +182,8 @@ add_executable(signallab_gui_runtime_tests
     integration/stage5_gui_runtime_test.cpp
     integration/stage7_gui_runtime_test.cpp
     unit/gui/file_import_dialog_test.cpp
+    unit/gui/audio_capture_widget_test.cpp
+    unit/gui/database_backup_widget_test.cpp
     unit/gui/interactive_chart_view_test.cpp
 )
 

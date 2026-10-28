@@ -1,10 +1,13 @@
 #include "main_window.hpp"
 
+#include "audio_capture_widget.hpp"
+#include "database_backup_widget.hpp"
 #include "file_import_dialog.hpp"
 #include "interactive_chart_view.hpp"
 #include "stage7_models.hpp"
 
 #include <QAbstractItemView>
+#include <QCloseEvent>
 #include <QComboBox>
 #include <QDoubleSpinBox>
 #include <QFileDialog>
@@ -60,6 +63,7 @@
 
 #include "signallab/app/display_downsampler.hpp"
 #include "signallab/core/error.hpp"
+#include "signallab/io/windows_audio_input.hpp"
 
 namespace {
 
@@ -498,6 +502,9 @@ MainWindow::MainWindow(
     importWavButton->setObjectName(QStringLiteral("importWavButton"));
     projectLayout->addWidget(importCsvButton);
     projectLayout->addWidget(importWavButton);
+    auto* captureButton = new QPushButton(QStringLiteral("麦克风实时采集"), projectPanel);
+    captureButton->setObjectName(QStringLiteral("openAudioCaptureButton"));
+    projectLayout->addWidget(captureButton);
     projectPanel->setMinimumWidth(210);
     mainSplitter->addWidget(projectPanel);
 
@@ -789,6 +796,24 @@ MainWindow::MainWindow(
     scriptSplitter->setStretchFactor(1, 1);
     scriptLayout->addWidget(scriptSplitter, 1);
     workspaceTabs_->addTab(scriptPage, QStringLiteral("SignalScript"));
+    audioCaptureWidget_ = new signallab::gui::AudioCaptureWidget(
+        std::make_unique<signallab::io::WindowsAudioInput>(), workspaceTabs_);
+    workspaceTabs_->addTab(audioCaptureWidget_, QStringLiteral("实时采集"));
+    audioCaptureWidget_->setImportCallback([this](const std::filesystem::path& path) {
+        signallab::repository::WavImportOptions options;
+        options.metadata.name = QString::fromStdWString(path.stem().wstring()).toStdString();
+        options.metadata.unit = "FS";
+        options.metadata.source = "Microphone capture";
+        const auto submitted = backgroundFileService_.importWav(path, std::move(options));
+        if (!submitted) {
+            showFailure(QStringLiteral("录音已保存，但导入失败"),
+                QString::fromStdString(submitted.error().message),
+                QStringLiteral("录音文件已保留，可以通过“导入 WAV”重新导入。"));
+            return;
+        }
+        refreshTaskList(submitted.value());
+        statusBar()->showMessage(QStringLiteral("录音已保存，正在后台导入项目信号。"));
+    });
     mainSplitter->addWidget(workspaceTabs_);
 
     auto* detailsScroll = new QScrollArea(mainSplitter);
@@ -954,6 +979,9 @@ MainWindow::MainWindow(
     });
     connect(importWavButton, &QPushButton::clicked, this, [this]() {
         importWav();
+    });
+    connect(captureButton, &QPushButton::clicked, this, [this]() {
+        workspaceTabs_->setCurrentWidget(audioCaptureWidget_);
     });
     connect(deleteSignalButton_, &QPushButton::clicked, this, [this]() {
         deleteSelectedSignal();
@@ -1367,6 +1395,31 @@ MainWindow::~MainWindow()
     }
     backgroundAnalysisService_.clearEventNotifier();
     backgroundFileService_.clearEventNotifier();
+}
+
+void MainWindow::setBackupService(std::shared_ptr<signallab::app::BackupService> service)
+{
+    if (!service || databaseBackupWidget_ != nullptr) {
+        return;
+    }
+    databaseBackupWidget_ = new signallab::gui::DatabaseBackupWidget(
+        std::move(service), std::filesystem::path(), workspaceTabs_);
+    workspaceTabs_->addTab(databaseBackupWidget_, QStringLiteral("云端备份"));
+}
+
+void MainWindow::closeEvent(QCloseEvent* event)
+{
+    if (databaseBackupWidget_ != nullptr && !databaseBackupWidget_->requestClose()) {
+        event->ignore();
+        workspaceTabs_->setCurrentWidget(databaseBackupWidget_);
+        return;
+    }
+    if (!audioCaptureWidget_->requestClose()) {
+        event->ignore();
+        workspaceTabs_->setCurrentWidget(audioCaptureWidget_);
+        return;
+    }
+    QMainWindow::closeEvent(event);
 }
 
 signallab::app::AnalysisOptions MainWindow::analysisOptions() const

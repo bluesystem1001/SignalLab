@@ -1,0 +1,287 @@
+[
+  {
+    "name": "03领域与导入类",
+    "title": "03  领域模型与信号导入类图",
+    "subtitle": "代码结构视图｜保留关键成员；引用关联与值成员组合分别表示",
+    "footer": "依据：core/signal.hpp；app/import_service.hpp；repository/{file,signal}_repository.hpp；io/filesystem_file_repository.hpp。省略部分查询方法、错误类型及参数；Result<T> 表示成功值或 Error。",
+    "nodes": [
+      {
+        "id": "metadata", "type": "class", "x": 80, "y": 150, "w": 390, "h": 160,
+        "text": "core::SignalMetadata", "fill": "blue",
+        "sections": ["+name: string\n+unit: string\n+source: string", ""]
+      },
+      {
+        "id": "signal", "type": "class", "x": 605, "y": 150, "w": 390, "h": 230,
+        "text": "core::Signal", "fill": "blue",
+        "sections": ["-samples_: shared_ptr<...>\n-sample_rate_: double\n-metadata_: SignalMetadata", "+create(...): Result<Signal> {static}\n+samples(): span<const double>\n+sampleRate(): double\n+sampleCount(): size_t\n+withMetadata(...): Signal"]
+      },
+      {
+        "id": "entry", "type": "class", "x": 1130, "y": 150, "w": 390, "h": 245,
+        "text": "app::SignalEntry", "fill": "blue",
+        "sections": ["+recordId: int64\n+sourceId: int64\n+sourceType: SignalSourceType\n+displayName: string\n+hash / sampleHash: string\n+storedRelativePath: path\n+signal: Signal", ""]
+      },
+      {
+        "id": "import", "type": "class", "x": 605, "y": 500, "w": 390, "h": 300,
+        "text": "app::ImportService", "fill": "green",
+        "sections": ["-entries_: vector<SignalEntry>\n-fileRepository_: FileRepository&\n-signalRepository_: SignalRepository&", "+restoreSignals(): Result<size_t>\n+loadCsv(...): Result<SignalEntry>\n+loadWav(...): Result<SignalEntry>\n+persistGeneratedSignal(...)\n+acceptImportedSignal(...)\n+removePersistedSignal(id)"]
+      },
+      {
+        "id": "fileRepo", "type": "class", "x": 80, "y": 500, "w": 390, "h": 240,
+        "text": "«interface»\nrepository::FileRepository", "fill": "purple",
+        "sections": ["", "+previewCsv(...):Result<ImportPreview>\n+previewWav(...):Result<ImportPreview>\n+importCsv(...): Result<FileImport>\n+importWav(...): Result<FileImport>\n+validateStoredFile(...): Result<bool>\n+removeStoredFile(...): Result<bool>"]
+      },
+      {
+        "id": "signalRepo", "type": "class", "x": 1130, "y": 500, "w": 390, "h": 280,
+        "text": "«interface»\nrepository::SignalRepository", "fill": "purple",
+        "sections": ["", "+saveSignal(...): Result<StoredSignal>\n+findBySourceKey(...)\n+findByRecordId(...)\n+findByFileHash(...)\n+listSignals()\n+removeSignal(id)"]
+      },
+      {
+        "id": "filesystem", "type": "class", "x": 80, "y": 790, "w": 390, "h": 110,
+        "text": "io::FilesystemFileRepository", "fill": "orange",
+        "sections": ["-projectRoot_: path", "+FilesystemFileRepository(root)"]
+      },
+      {
+        "id": "signalNote", "type": "note", "x": 1130, "y": 815, "w": 390, "h": 85,
+        "text": "Signal 的副本共享不可变样本缓冲区。\nSignalEntry 与 SignalMetadata 是值成员。\n导入记录及文件去重细节在此省略。", "fill": "gray"
+      },
+      {
+        "id": "importNote", "type": "note", "x": 605, "y": 835, "w": 390, "h": 65,
+        "text": "仓储引用为普通关联，表示协作关系。\n组合仅用于代码中的值成员及其集合。", "fill": "gray"
+      }
+    ],
+    "edges": [
+      {
+        "from": "signal", "to": "metadata", "fromSide": "L", "toSide": "R", "style": "composition",
+        "points": [[605, 265], [540, 265], [540, 230], [470, 230]],
+        "label": "metadata", "labelAt": [475, 190, 120, 25], "targetMultiplicity": "1"
+      },
+      {
+        "from": "entry", "to": "signal", "fromSide": "L", "toSide": "R", "style": "composition",
+        "points": [[1130, 272.5], [1065, 272.5], [1065, 265], [995, 265]],
+        "label": "signal", "labelAt": [1005, 220, 115, 25], "targetMultiplicity": "1"
+      },
+      {
+        "from": "import", "to": "entry", "fromSide": "T", "toSide": "B", "style": "composition",
+        "points": [[800, 500], [800, 450], [1325, 450], [1325, 395]],
+        "label": "entries", "labelAt": [1020, 410, 180, 25], "targetMultiplicity": "0..*"
+      },
+      {
+        "from": "import", "to": "fileRepo", "fromSide": "L", "toSide": "R", "style": "association",
+        "points": [[605, 650], [535, 650], [535, 620], [470, 620]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "import", "to": "signalRepo", "fromSide": "R", "toSide": "L", "style": "association",
+        "points": [[995, 650], [1060, 650], [1060, 640], [1130, 640]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "filesystem", "to": "fileRepo", "fromSide": "T", "toSide": "B", "style": "realization",
+        "points": [[275, 790], [275, 740]]
+      }
+    ]
+  },
+  {
+    "name": "04应用与持久化类",
+    "title": "04  应用端口与 SQLite 持久化类图",
+    "subtitle": "代码结构视图｜DatabaseExecutor 实现三类仓储端口，并在专用线程内代理调用",
+    "footer": "依据：database/{database_executor,database_connection,migration_runner,sqlite_*_repository}.hpp；src/database/database_executor.cpp:117–125、206–255。省略重复 CRUD 方法、Impl 和调用依赖；所有 connection 关联均为引用。",
+    "nodes": [
+      {
+        "id": "sigPort", "type": "class", "x": 70, "y": 150, "w": 360, "h": 200,
+        "text": "«interface»\nrepository::SignalRepository", "fill": "purple",
+        "sections": ["", "+saveSignal(...)\n+findByRecordId(...)\n+listSignals()\n+removeSignal(id)"]
+      },
+      {
+        "id": "taskPort", "type": "class", "x": 620, "y": 150, "w": 360, "h": 210,
+        "text": "«interface»\nrepository::TaskRepository", "fill": "purple",
+        "sections": ["", "+createTask(...)\n+startTask(id)\n+completeTask(id, features)\n+failTask(id, error)\n+cancelTask(id, reason)"]
+      },
+      {
+        "id": "scriptPort", "type": "class", "x": 1170, "y": 150, "w": 360, "h": 200,
+        "text": "«interface»\nrepository::ScriptRepository", "fill": "purple",
+        "sections": ["", "+createScriptHistory(text)\n+finishScriptHistory(id, finish)\n+interruptRunningScripts()\n+listScriptHistory(maximumCount)"]
+      },
+      {
+        "id": "sqliteSignal", "type": "class", "x": 70, "y": 425, "w": 360, "h": 160,
+        "text": "database::SqliteSignalRepository", "fill": "orange",
+        "sections": ["-connection_: DatabaseConnection&", "+SqliteSignalRepository(connection)\n实现 SignalRepository 的全部操作"]
+      },
+      {
+        "id": "sqliteTask", "type": "class", "x": 620, "y": 425, "w": 360, "h": 160,
+        "text": "database::SqliteTaskRepository", "fill": "orange",
+        "sections": ["-connection_: DatabaseConnection&", "+SqliteTaskRepository(connection)\n实现 TaskRepository 的全部操作"]
+      },
+      {
+        "id": "sqliteScript", "type": "class", "x": 1170, "y": 425, "w": 360, "h": 160,
+        "text": "database::SqliteScriptRepository", "fill": "orange",
+        "sections": ["-connection_: DatabaseConnection&", "+SqliteScriptRepository(connection)\n实现 ScriptRepository 的全部操作"]
+      },
+      {
+        "id": "executor", "type": "class", "x": 620, "y": 690, "w": 360, "h": 205,
+        "text": "database::DatabaseExecutor", "fill": "green",
+        "sections": ["-implementation_: unique_ptr<Impl>", "+start(): Result<bool>\n+shutdown(): Result<bool>\n+isRunning(): bool\n实现三个仓储接口的全部操作"]
+      },
+      {
+        "id": "connection", "type": "class", "x": 1170, "y": 690, "w": 360, "h": 205,
+        "text": "database::DatabaseConnection", "fill": "blue",
+        "sections": ["-databasePath_: path\n-database_: QSqlDatabase\n-ownerThread_: QThread*", "+open(): Result<bool>\n+close(): Result<bool>\n+checkThread(): Result<bool>\n+database(): QSqlDatabase"]
+      },
+      {
+        "id": "migration", "type": "class", "x": 70, "y": 720, "w": 360, "h": 155,
+        "text": "database::MigrationRunner", "fill": "orange",
+        "sections": ["-connection_: DatabaseConnection&", "+run(directory): Result<size_t>"]
+      },
+      {
+        "id": "threadNote", "type": "note", "x": 70, "y": 625, "w": 360, "h": 65,
+        "text": "三个具体仓储引用同一线程内的连接。\n代理在专用线程创建仓储、迁移器及连接，\n串行执行 SQLite 操作后在原线程销毁。", "fill": "gray"
+      }
+    ],
+    "edges": [
+      {
+        "from": "sqliteSignal", "to": "sigPort", "fromSide": "T", "toSide": "B", "style": "realization",
+        "points": [[250, 425], [250, 350]]
+      },
+      {
+        "from": "sqliteTask", "to": "taskPort", "fromSide": "T", "toSide": "B", "style": "realization",
+        "points": [[800, 425], [800, 360]]
+      },
+      {
+        "from": "sqliteScript", "to": "scriptPort", "fromSide": "T", "toSide": "B", "style": "realization",
+        "points": [[1350, 425], [1350, 350]]
+      },
+      {
+        "from": "executor", "to": "sigPort", "fromSide": "L", "toSide": "L", "style": "realization",
+        "points": [[620, 792.5], [500, 792.5], [500, 390], [50, 390], [50, 250], [70, 250]]
+      },
+      {
+        "from": "executor", "to": "taskPort", "fromSide": "T", "toSide": "R", "style": "realization",
+        "points": [[800, 690], [800, 650], [1040, 650], [1040, 255], [980, 255]]
+      },
+      {
+        "from": "executor", "to": "scriptPort", "fromSide": "R", "toSide": "R", "style": "realization",
+        "points": [[980, 792.5], [1075, 792.5], [1075, 660], [1550, 660], [1550, 250], [1530, 250]]
+      },
+      {
+        "from": "sqliteSignal", "to": "connection", "fromSide": "B", "toSide": "L", "style": "association",
+        "points": [[250, 585], [250, 605], [1110, 605], [1110, 792.5], [1170, 792.5]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "sqliteTask", "to": "connection", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[800, 585], [800, 625], [1350, 625], [1350, 690]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "sqliteScript", "to": "connection", "fromSide": "R", "toSide": "R", "style": "association",
+        "points": [[1530, 505], [1540, 505], [1540, 792.5], [1530, 792.5]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "migration", "to": "connection", "fromSide": "B", "toSide": "B", "style": "association",
+        "points": [[250, 875], [250, 900], [1350, 900], [1350, 895]], "targetMultiplicity": "1"
+      }
+    ]
+  },
+  {
+    "name": "05任务调度类",
+    "title": "05  任务调度与并发执行类图",
+    "subtitle": "代码结构视图｜双执行池、阻塞队列、任务快照及协作取消上下文",
+    "footer": "依据：task/{task,scheduler,thread_pool,task_queue}.hpp；src/task/scheduler.cpp:22–36。省略锁、观察者队列与部分 API；TaskRecord 为 Scheduler 私有类型。TaskStatus 不含持久化状态 Interrupted。",
+    "nodes": [
+      {
+        "id": "config", "type": "class", "x": 70, "y": 150, "w": 350, "h": 180,
+        "text": "task::SchedulerConfig", "fill": "blue",
+        "sections": ["+computeThreadCount: size_t\n+ioThreadCount: size_t = 1\n+progressInterval: milliseconds = 50", ""]
+      },
+      {
+        "id": "scheduler", "type": "class", "x": 610, "y": 150, "w": 380, "h": 250,
+        "text": "task::Scheduler", "fill": "green",
+        "sections": ["-config_: SchedulerConfig\n-computePool_ / ioPool_: ThreadPool\n-tasks_: unordered_map<TaskId, ...>", "+submit(spec): Result<TaskId>\n+retry(id): Result<TaskId>\n+cancel(id): bool\n+snapshot(id): optional<TaskSnapshot>\n+shutdownAndWait(): void"]
+      },
+      {
+        "id": "spec", "type": "class", "x": 1160, "y": 150, "w": 370, "h": 180,
+        "text": "task::TaskSpec", "fill": "blue",
+        "sections": ["+name: string\n+lane: TaskLane\n+action: TaskAction\n+observer: TaskObserver", ""]
+      },
+      {
+        "id": "pool", "type": "class", "x": 70, "y": 430, "w": 350, "h": 200,
+        "text": "task::ThreadPool", "fill": "orange",
+        "sections": ["-queue_: TaskQueue\n-workers_: vector<jthread>", "+submit(task): bool\n+removePending(id)\n+requestStop(): void\n+join(): void\n+workerCount(): size_t"]
+      },
+      {
+        "id": "queued", "type": "class", "x": 610, "y": 465, "w": 380, "h": 160,
+        "text": "task::QueuedTask", "fill": "blue",
+        "sections": ["+id: TaskId\n+run: function<void()>", ""]
+      },
+      {
+        "id": "context", "type": "class", "x": 1160, "y": 430, "w": 370, "h": 180,
+        "text": "task::TaskContext", "fill": "blue",
+        "sections": ["-id_: TaskId\n-stopToken_: stop_token", "+id(): TaskId\n+stopRequested(): bool\n+reportProgress(percent, message)"]
+      },
+      {
+        "id": "queue", "type": "class", "x": 70, "y": 690, "w": 350, "h": 210,
+        "text": "task::TaskQueue", "fill": "orange",
+        "sections": ["-tasks_: deque<QueuedTask>\n-closed_: bool", "+push(task): bool\n+waitPop(...): optional<QueuedTask>\n+remove(id): optional<QueuedTask>\n+closeAndTakePending()\n+close(): void"]
+      },
+      {
+        "id": "record", "type": "class", "x": 610, "y": 690, "w": 380, "h": 210,
+        "text": "«private»\nScheduler::TaskRecord", "fill": "gray",
+        "sections": ["+snapshot: TaskSnapshot\n+action: TaskAction\n+observer: TaskObserver\n+stopSource: stop_source\n+lastProgressTime: time_point", ""]
+      },
+      {
+        "id": "snapshot", "type": "class", "x": 1160, "y": 690, "w": 370, "h": 210,
+        "text": "task::TaskSnapshot", "fill": "blue",
+        "sections": ["+id: TaskId\n+name: string\n+lane: TaskLane\n+status: TaskStatus\n+progressPercent: int\n+errorMessage: string\n+retryOf: TaskId", ""]
+      },
+      {
+        "id": "laneNote", "type": "note", "x": 70, "y": 350, "w": 350, "h": 55,
+        "text": "两个 ThreadPool 实例：Compute 与 Io。\n每个池的工作线程数由配置决定。", "fill": "gray"
+      },
+      {
+        "id": "statusNote", "type": "note", "x": 1160, "y": 625, "w": 370, "h": 50,
+        "text": "TaskStatus: Pending / Running\nSucceeded / Failed / Cancelled", "fill": "gray"
+      }
+    ],
+    "edges": [
+      {
+        "from": "scheduler", "to": "config", "fromSide": "T", "toSide": "T", "style": "composition",
+        "points": [[800, 150], [800, 135], [245, 135], [245, 150]]
+      },
+      {
+        "from": "scheduler", "to": "pool", "fromSide": "L", "toSide": "R", "style": "composition",
+        "points": [[610, 275], [500, 275], [500, 530], [420, 530]],
+        "label": "双线程池", "labelAt": [505, 340, 100, 45], "targetMultiplicity": "2"
+      },
+      {
+        "from": "pool", "to": "queue", "fromSide": "B", "toSide": "T", "style": "composition",
+        "points": [[245, 630], [245, 690]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "queue", "to": "queued", "fromSide": "R", "toSide": "L", "style": "composition",
+        "points": [[420, 795], [520, 795], [520, 545], [610, 545]],
+        "label": "tasks", "labelAt": [525, 645, 80, 25], "targetMultiplicity": "0..*"
+      },
+      {
+        "from": "scheduler", "to": "record", "fromSide": "B", "toSide": "T", "style": "composition",
+        "points": [[800, 400], [800, 415], [1090, 415], [1090, 660], [800, 660], [800, 690]],
+        "label": "tasks", "labelAt": [920, 630, 140, 25], "targetMultiplicity": "0..*"
+      },
+      {
+        "from": "record", "to": "snapshot", "fromSide": "R", "toSide": "L", "style": "composition",
+        "points": [[990, 795], [1160, 795]],
+        "label": "snapshot", "labelAt": [1010, 755, 140, 25], "targetMultiplicity": "1"
+      },
+      {
+        "from": "scheduler", "to": "spec", "fromSide": "R", "toSide": "L", "style": "dependency",
+        "points": [[990, 275], [1070, 275], [1070, 240], [1160, 240]],
+        "label": "submit", "labelAt": [1015, 200, 130, 25]
+      },
+      {
+        "from": "scheduler", "to": "context", "fromSide": "R", "toSide": "L", "style": "dependency",
+        "points": [[990, 275], [1120, 275], [1120, 520], [1160, 520]],
+        "label": "«create»", "labelAt": [1000, 330, 105, 25]
+      },
+      {
+        "from": "spec", "to": "context", "fromSide": "B", "toSide": "T", "style": "dependency",
+        "points": [[1345, 330], [1345, 430]],
+        "label": "action 的参数", "labelAt": [1360, 365, 150, 25]
+      }
+    ]
+  }
+]

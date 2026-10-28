@@ -2,7 +2,7 @@
 
 > 文档状态：实施基线（阶段 8 `1.0.0-rc1` 工程冻结已完成，外部发布门禁待完成）
 > 编制日期：2026-09-02  
-> 最近同步：2026-10-03（执行阶段 8 测试、覆盖率、性能、固定资产、文档和 Windows 候选包冻结）
+> 最近同步：2026-10-13（云端备份连接改为原生 MariaDB Connector/C）
 > 依据：`SignalLab_智能信号分析平台_课程大作业项目设计文档.docx`
 
 ## 当前实施进度
@@ -16,6 +16,40 @@
 - 阶段 6：已完成 SignalScript 前端、静态检查、受限运行时、文件安全网关、执行历史、Debug/Release 全量验证和阶段备份。
 - 阶段 7：已完成 Model/View 主窗口、交互图表、可见区降采样、分析参数与结果视图、任务中心和 SignalScript 控制台，并完成 Debug/Release 全量验证、`v0.7`/`stage-7-complete` 版本标记和仓库外备份；其后以 `0.7.1` 增量加入分析历史与任务中心的受限删除操作，以 `0.7.2` 增量加入时域横向缩放、可追溯 FIR 派生信号和单窗口导入流程，以 `0.7.3` 增量加入项目信号的持久化删除，并以 `0.7.4` 增量加入双信号同轴对比与波形时间轴滑动条。
 - 阶段 8：`1.0.0-rc1` 工程冻结及本机自动化/打包验收已完成；Debug/Release 273/273、逐模块 70% 覆盖率门禁、固定资产、Release 基准、30 分钟稳定性和最终 Windows 候选包均通过。真实干净机、两轮桌面 GUI、录屏及 Qt Charts 发布许可决定仍明确保留为外部门禁，因此不把本机工程冻结表述为全部发布验收闭合。
+
+### 阶段 8 后扩展：麦克风实时采集
+
+2026-10-11 按用户要求扩展原先排除在 MVP 之外的实时采集。本节优先于下文首版范围中的“实时采集不做”，阶段 0—8 的验收记录、发布 ZIP 和旧版本标签保持其历史含义。
+
+- 新增“实时采集”页签与入口，提供设备选择/刷新、16/44.1/48 kHz 单声道采样、开始、停止、原始/滤波 WAV 保存，以及保存后导入项目。
+- `repository::AudioInput` 定义设备边界；`io::WindowsAudioInput` 使用 Windows 系统 `winmm`、八个 20 ms 缓冲区和事件驱动工作线程，不新增 Qt Multimedia 或更新被冻结的 MSYS2 软件包。
+- `app::AudioCaptureService` 管理录音状态、原始/滤波缓冲区、参数校验和两秒预览；`algorithm::StreamingFirFilter` 复用既有 FIR 系数设计并跨音频块保留历史，支持直通、低通、高通。实时抽头最多 255，录音期间参数固定，新录音才应用参数变化。
+- 默认最长 120 秒，界面最多 300 秒，到达上限自动停止并保留数据；设备失败、三秒无输入或缓冲区耗尽时明确报错。停止先排空最后的有效音频，再等待采集线程退出；预览限点，录音不随界面刷新复制全部历史。
+- 停止后在后台保存单声道 PCM16 WAV，通过 `QSaveFile` 原子提交；保存失败保留内存录音及已有目标文件。原始和滤波结果可分别导出，超出满幅的输出在 PCM16 转换时限幅。导入继续走现有后台 WAV/SQLite 链路。
+- 自动测试使用可注入的模拟音频设备验证开始/停止、失败保留、时长限制、跨块滤波和界面状态；另验证 PCM16 文件回读及保存失败/取消。不在自动测试中开启真实麦克风。真实设备、Windows 权限和拔插场景按用户手册单独验收。
+- 2026-10-11 验证：Debug/Release 均构建成功，全量 CTest 各通过 308/308（16.13 秒 / 14.55 秒），比冻结基线新增 35 项测试。独立 FIR 基准在 48 kHz、255 抽头下，960 样本块的实测最大耗时分别为 1.590 ms / 0.210 ms，低于 20 ms 块周期；该数据仅含 FIR 运算，不替代真实设备和系统调度验收。
+
+### 阶段 8 后扩展：MariaDB 项目备份
+
+按用户要求加入“云端备份”页，当前目标是本机 MariaDB，主存储继续使用 SQLite。该扩展只在用户点击时连接备份服务器，不改变 SignalScript 的网络访问限制。
+
+- 默认连接 `127.0.0.1:3306`，备份库 `signallab_backup`；可配置主机、端口、用户和库名。首次备份创建专用 InnoDB 表，测试连接与读取列表不创建数据库，禁止使用 MariaDB 系统库。
+- `repository::BackupSource` / `BackupRepository` 定义边界，`app::BackupService` 编排临时快照、上传与恢复；`database::ProjectBackupSource` 使用 Qt SQL / QSQLITE 访问本地 SQLite，`MariaDbBackupRepository` 通过 `mysql.h` 原生 MariaDB Connector/C 访问备份服务器，每次连接在同一工作线程中创建、使用、销毁。
+- SQLite 使用 `VACUUM INTO` 取得包含已提交 WAL 数据的一致性快照，连同 `file_version` 引用的 `data/imports/<sha256>.source` 上传；兼容历史 `.csv` / `.wav` 存档。逐文件验证 SHA-256、大小及复制期间变化；导入删除竞态或源文件不匹配会令整份备份失败。
+- MariaDB 用 UUID 区分不可覆盖的历史快照，按 256 KiB 分块并在单个事务中提交；取消或失败回滚本次记录。单份上限 8 GiB、10,000 个文件。下载复核清单、分块、长度、SHA-256、SQLite 完整性、外键和当前迁移版本，然后整体移入新的恢复目录。
+- 恢复功能生成独立副本，不覆盖运行中的项目。脚本导出、尚未保存/导入的录音和外部任意文件不在本次备份范围；切换使用副本前退出程序并保留原 `data`。
+- 连接配置保存在 `%LOCALAPPDATA%/SignalLab/mariadb-backup.json`，选择记住密码时使用 Windows DPAPI 当前用户加密，不把密码写入源码、版本库或 SQL 错误信息。
+- 2026-10-11 初版补齐既有 MINGW64 仓库的 `mingw-w64-x86_64-libmariadbclient 3.4.8-3`（只新增此包，未升级其他包），当时通过 Qt `QMYSQL` 插件连接。
+- 2026-10-13 按用户要求将云端连接改为 `mysql.h` 原生 MariaDB Connector/C，继续使用既有 `libmariadbclient` 软件包；Qt SQL 仅保留给本地 SQLite。本地快照实现 `ProjectBackupSource` 继续使用 QSQLITE 的 `VACUUM INTO`。
+- 原生连接使用 `mysql_real_connect`，值参数经 `MYSQL_STMT` 绑定，二进制分块按显式长度传输；保留 UTF-8、连接/读写超时、事务和取消回滚，关闭自动重连及 LOCAL INFILE。客户端和工作线程分别初始化，连接与语句由 RAII 释放；下载通过只读游标逐块读取，拒绝截断或超限结果，不一次缓冲整份备份。
+- 当前 Windows 打包显式排除 `qsqlmysql.dll`，保留 `qsqlite.dll`，并要求主程序直接链接 `libmariadb.dll`；MariaDB 客户端依赖闭包、许可证与 SHA-256 校验继续执行。
+- 测试包含假仓库/假设备的后台 GUI、快照 WAL 一致性、历史扩展名、路径逃逸、损坏文件、取消回滚与加密配置；真实 MariaDB 集成用随机专用测试库，凭据只通过 `SIGNALLAB_MARIADB_TEST_PASSWORD` 注入，测试后仅删除本次创建的测试库。
+- 2026-10-11 验证：Debug/Release 均构建成功，全量 CTest 各 353 项通过、1 项因 Windows 符号链接权限跳过、0 失败；本扩展新增 46 项测试。已通过本机 MariaDB 12.3.3 完成真实项目首份备份（3 个文件，101,588,679 字节），恢复到独立目录并通过现有导入服务成功读取全部 6 个信号，原项目未被覆盖。
+- 2026-10-11 的 Release 独立验证包通过完整 DLL 依赖闭包、文件及许可证 SHA-256、隔离 PATH 的启动冒烟检查；当时的 ZIP 包含 QMYSQL 插件和 MariaDB 客户端。验证产物放在忽略的构建目录中，不覆盖原 `dist` 冻结候选包，也不代表新增正式发布版本。上述结果不替代 2026-10-13 原生连接改动的重新验收。
+- 2026-10-13 原生连接验收：Debug/Release 构建成功，全量 CTest 各 358 项通过、1 项因 Windows 符号链接权限跳过、0 失败（17.81 秒 / 14.35 秒）。13 项 MariaDB 专项测试通过，新增 5 项覆盖取消下载后重试、Unicode/二进制绑定、重复 UUID、旧表结构兼容、并发连接及结果截断。额外在 QMYSQL 不可用、仅保留 QSQLITE 的环境中，读取现存旧备份并恢复全部 6 个信号，未修改服务器备份或原项目数据。
+- 新的独立 Release 验证包通过 DLL 闭包、许可证及文件哈希、隔离 PATH 启动检查，确认主程序直接导入 `libmariadb.dll`，包内没有 `qsqlmysql.dll`，ZIP 共 180 项；产物仍仅位于忽略的构建目录，原 `dist` 不变。
+
+本地快照依据：[SQLite 一致性快照](https://www.sqlite.org/lang_vacuum.html)、[Qt QSQLITE 驱动](https://doc.qt.io/qt-6/sql-driver.html)。云端连接使用 MariaDB Connector/C 的 `mysql.h` 接口，参见官方 [`mysql_real_connect` API](https://mariadb.com/docs/connectors/mariadb-connector-c/api-functions/mysql_real_connect)。阶段 8 原始发布包和冻结验证记录继续保留原有含义。
 
 ## 1. 目标与实施原则
 
@@ -137,7 +171,7 @@ pacman -S --needed \
 - CMake 使用 `find_package(Qt6 6.11 REQUIRED COMPONENTS Core Widgets Charts Sql)` 和 `find_package(GTest CONFIG REQUIRED)`；测试目标链接 `GTest::gtest_main`，并通过 `include(GoogleTest)`、`gtest_discover_tests(signallab_tests)` 注册到 CTest。CLion 使用指定工具链后从 `E:\MSYS2\mingw64`/`/mingw64` 前缀查找依赖。
 - 第 1 周及每个里程碑分别执行 CLion 自带 `cmake.exe --version`、Windows x64 `ninja.exe --version`、所选 CLion `gdb.exe --version`、MINGW64 `g++.exe --version` 和 `pacman -Q`，把结果保存到 `docs/msys2-package-snapshot.txt`。快照同时记录未选用的 MSYS2 GDB，避免隐藏环境差异。所有可执行文件都使用本节列出的明确路径，8 周内基线以该快照为准。
 - CSV、PCM16 WAV、FFT、FIR、峰值、线程池和 Parser 首版自行实现，不引入替代课程核心的第三方库。
-- JSON、SHA-256 和数据库访问放在基础设施边界，分别使用 Qt Core 的 JSON、`QCryptographicHash` 和 Qt SQL。
+- JSON、SHA-256 和数据库访问放在基础设施边界；JSON 与哈希使用 Qt Core 的 JSON、`QCryptographicHash`，本地 SQLite 使用 Qt SQL / QSQLITE，云端 MariaDB 备份使用原生 Connector/C。
 - 首版不引入 FFTW、QtConcurrent、Boost、spdlog、nlohmann/json、ANTLR/Bison 或机器学习框架。
 
 注意：当前 Qt Charts 开源包为 GPL-3.0-only，而仓库尚未由权利人选定兼容的项目授权。在选定 GPL 兼容发布方式或提供合适的 Qt 商业许可之前，候选包只用于本地验收，不公开分发。详细边界以 `LICENSE` 和 `THIRD_PARTY_NOTICES.md` 为准。

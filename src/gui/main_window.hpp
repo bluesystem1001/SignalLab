@@ -13,11 +13,13 @@
 #include "signallab/app/background_analysis_service.hpp"
 #include "signallab/app/background_file_service.hpp"
 #include "signallab/app/background_script_service.hpp"
+#include "signallab/app/backup_service.hpp"
 #include "signallab/app/import_service.hpp"
 #include "signallab/repository/file_repository.hpp"
 #include "signallab/task/scheduler.hpp"
 
 class InteractiveChartView;
+class QCloseEvent;
 class QLabel;
 class QComboBox;
 class QDoubleSpinBox;
@@ -35,6 +37,8 @@ class QTimer;
 class QValueAxis;
 
 namespace signallab::gui {
+class AudioCaptureWidget;
+class DatabaseBackupWidget;
 class AnalysisHistoryModel;
 class AnalysisResultModel;
 class FileImportDialog;
@@ -56,6 +60,10 @@ public:
             backgroundScriptService = nullptr,
         QWidget* parent = nullptr);
     ~MainWindow() override;
+    void setBackupService(std::shared_ptr<signallab::app::BackupService> service);
+
+protected:
+    void closeEvent(QCloseEvent* event) override;
 
 private:
     struct PendingSignalDeletion {
@@ -158,6 +166,8 @@ private:
     QTableView* resultView_;
 
     QTabWidget* workspaceTabs_;
+    signallab::gui::AudioCaptureWidget* audioCaptureWidget_{nullptr};
+    signallab::gui::DatabaseBackupWidget* databaseBackupWidget_{nullptr};
     InteractiveChartView* timeChartView_;
     QLineSeries* timeSeries_;
     QLineSeries* comparisonTimeSeries_;

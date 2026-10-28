@@ -1,0 +1,122 @@
+[
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\00-模型导读.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\00-模型导读.png",
+    "edges": 2,
+    "topLevelShapes": 21,
+    "nodes": 8,
+    "page": "00-模型导读"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\01 用例图.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\01 用例图.png",
+    "edges": 11,
+    "topLevelShapes": 33,
+    "nodes": 16,
+    "page": "01 用例图"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\02 组件图.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\02 组件图.png",
+    "edges": 11,
+    "topLevelShapes": 29,
+    "nodes": 12,
+    "page": "02 组件图"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\03领域与导入类.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\03领域与导入类.png",
+    "edges": 6,
+    "topLevelShapes": 32,
+    "nodes": 9,
+    "page": "03领域与导入类"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\04应用与持久化类.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\04应用与持久化类.png",
+    "edges": 10,
+    "topLevelShapes": 30,
+    "nodes": 10,
+    "page": "04应用与持久化类"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\05任务调度类.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\05任务调度类.png",
+    "edges": 9,
+    "topLevelShapes": 44,
+    "nodes": 11,
+    "page": "05任务调度类"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\06 持久化类图.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\06 持久化类图.png",
+    "edges": 4,
+    "topLevelShapes": 31,
+    "nodes": 9,
+    "page": "06 持久化类图"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\07 导入顺序.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\07 导入顺序.png",
+    "edges": 19,
+    "topLevelShapes": 52,
+    "nodes": 9,
+    "page": "07 导入顺序"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\08 分析顺序.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\08 分析顺序.png",
+    "edges": 20,
+    "topLevelShapes": 55,
+    "nodes": 10,
+    "page": "08 分析顺序"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\09 SignalScript活动.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\09 SignalScript活动.png",
+    "edges": 19,
+    "topLevelShapes": 49,
+    "nodes": 16,
+    "page": "09 SignalScript活动"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\10 调度状态.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\10 调度状态.png",
+    "edges": 9,
+    "topLevelShapes": 32,
+    "nodes": 11,
+    "page": "10 调度状态"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\11 音频采集活动.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\11 音频采集活动.png",
+    "edges": 20,
+    "topLevelShapes": 55,
+    "nodes": 16,
+    "page": "11 音频采集活动"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\12 部署图.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\12 部署图.png",
+    "edges": 6,
+    "topLevelShapes": 28,
+    "nodes": 10,
+    "page": "12 部署图"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\13应用服务类.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\13应用服务类.png",
+    "edges": 8,
+    "topLevelShapes": 34,
+    "nodes": 11,
+    "page": "13应用服务类"
+  },
+  {
+    "svg": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\14 音频与备份类.svg",
+    "png": "E:\\programme\\project_c++\\SignalLab\\UML_Visio\\previews\\14 音频与备份类.png",
+    "edges": 7,
+    "topLevelShapes": 36,
+    "nodes": 13,
+    "page": "14 音频与备份类"
+  }
+]

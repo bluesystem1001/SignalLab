@@ -1,0 +1,100 @@
+[
+  {
+    "name": "13应用服务类",
+    "title": "13  应用服务、后台适配与仓储协作类图",
+    "subtitle": "代码结构视图｜后台适配器引用同步服务与 Scheduler；事件队列由 GUI 线程消费；类之间没有继承关系",
+    "footer": "依据：app/*service.hpp、src/app/script_service.cpp:108–155。路由：文件作业和脚本历史→I/O；FIR、分析、脚本执行→Compute。后台通知唤醒 GUI，由 takeEvents() 消费队列。省略重复 Scheduler、文件仓储、AnalysisService→SignalRepository 及 ScriptService→ImportService 关联；实线均为引用关联。",
+    "nodes": [
+      {
+        "id": "backgroundFile", "type": "class", "x": 360, "y": 150, "w": 350, "h": 200,
+        "text": "app::BackgroundFileService", "fill": "green",
+        "sections": ["-importService_: ImportService&\n-scheduler_: Scheduler&", "+importCsv(...): Result<TaskId>\n+filterFir(...): Result<TaskId>\n+takeEvents(): vector<...>"]
+      },
+      {
+        "id": "backgroundAnalysis", "type": "class", "x": 780, "y": 150, "w": 350, "h": 200,
+        "text": "app::BackgroundAnalysisService", "fill": "green",
+        "sections": ["-analysisService_: AnalysisService&\n-scheduler_: Scheduler&", "+submit(...): Result<TaskId>\n+setEventNotifier(callback)\n+takeEvents(): vector<...>"]
+      },
+      {
+        "id": "backgroundScript", "type": "class", "x": 1200, "y": 150, "w": 350, "h": 200,
+        "text": "app::BackgroundScriptService", "fill": "green",
+        "sections": ["-scriptService_: ScriptService&\n-scheduler_: Scheduler&", "+submit(source): Result<TaskId>\n+requestHistory(...): Result<TaskId>\n+takeEvents(): vector<...>"]
+      },
+      {
+        "id": "scheduler", "type": "class", "x": 60, "y": 435, "w": 220, "h": 235,
+        "text": "task::Scheduler", "fill": "orange",
+        "sections": ["-computePool_: ThreadPool\n-ioPool_: ThreadPool", "+submit(spec)\n+cancel(id): bool\n+retry(id)"]
+      },
+      {
+        "id": "importService", "type": "class", "x": 360, "y": 470, "w": 350, "h": 210,
+        "text": "app::ImportService", "fill": "blue",
+        "sections": ["-fileRepository_: FileRepository&\n-signalRepository_: SignalRepository&", "+loadCsv(...): Result<SignalEntry>\n+loadWav(...): Result<SignalEntry>\n+persistGeneratedSignal(...)"]
+      },
+      {
+        "id": "analysisService", "type": "class", "x": 780, "y": 470, "w": 350, "h": 210,
+        "text": "app::AnalysisService", "fill": "blue",
+        "sections": ["-taskRepository_: TaskRepository&\n-signalRepository_: SignalRepository&", "+analyze(id, options)\n  : Result<AnalysisResult>\n+history(maximumCount)\n+featureResults(taskId)"]
+      },
+      {
+        "id": "scriptService", "type": "class", "x": 1200, "y": 470, "w": 350, "h": 240,
+        "text": "app::ScriptService\n«前端检查与受限运行时编排»", "fill": "blue",
+        "sections": ["-importService_: ImportService&\n-scriptRepository_: ScriptRepository&\n-fileGateway_: ScriptFileGateway&", "+execute(source): Result<...>\n+history(maximumCount)\n+interruptRunningScripts()"]
+      },
+      {
+        "id": "signalRepo", "type": "class", "x": 350, "y": 770, "w": 270, "h": 130,
+        "text": "«interface»\nSignalRepository", "fill": "purple",
+        "sections": ["", "+saveSignal(...)\n+findByRecordId(id)"]
+      },
+      {
+        "id": "taskRepo", "type": "class", "x": 660, "y": 770, "w": 270, "h": 130,
+        "text": "«interface»\nTaskRepository", "fill": "purple",
+        "sections": ["", "+createTask(...)\n+completeTask(...)"]
+      },
+      {
+        "id": "scriptRepo", "type": "class", "x": 970, "y": 770, "w": 270, "h": 130,
+        "text": "«interface»\nScriptRepository", "fill": "purple",
+        "sections": ["", "+createScriptHistory(text)\n+finishScriptHistory(...)"]
+      },
+      {
+        "id": "gateway", "type": "class", "x": 1280, "y": 770, "w": 270, "h": 130,
+        "text": "«interface»\nScriptFileGateway", "fill": "purple",
+        "sections": ["", "+resolveInput(path)\n+writeOutput(path, text)"]
+      }
+    ],
+    "edges": [
+      {
+        "from": "backgroundFile", "to": "importService", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[535, 350], [535, 470]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "backgroundAnalysis", "to": "analysisService", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[955, 350], [955, 470]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "backgroundScript", "to": "scriptService", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[1375, 350], [1375, 470]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "backgroundAnalysis", "to": "scheduler", "fromSide": "L", "toSide": "T", "style": "association",
+        "points": [[780, 250], [750, 250], [750, 405], [170, 405], [170, 435]],
+        "label": "其余后台适配器\n亦引用 Scheduler", "labelAt": [300, 360, 220, 40], "targetMultiplicity": "1"
+      },
+      {
+        "from": "importService", "to": "signalRepo", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[535, 680], [535, 730], [485, 730], [485, 770]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "analysisService", "to": "taskRepo", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[955, 680], [955, 735], [795, 735], [795, 770]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "scriptService", "to": "scriptRepo", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[1375, 710], [1375, 740], [1105, 740], [1105, 770]], "targetMultiplicity": "1"
+      },
+      {
+        "from": "scriptService", "to": "gateway", "fromSide": "B", "toSide": "T", "style": "association",
+        "points": [[1375, 710], [1375, 725], [1415, 725], [1415, 770]], "targetMultiplicity": "1"
+      }
+    ]
+  }
+]

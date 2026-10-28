@@ -122,6 +122,7 @@ function Test-NativeDependencies {
         (Join-Path $env:SystemRoot "SysWOW64")
     )
     $missing = New-Object System.Collections.Generic.List[string]
+    $usesMariaDbClient = $false
     foreach ($binary in $binaryFiles) {
         $fileHeader = & $ObjdumpPath -f $binary.FullName 2>&1
         if ($LASTEXITCODE -ne 0 -or ($fileHeader -join "`n") -notmatch 'file format pei-x86-64') {
@@ -139,6 +140,9 @@ function Test-NativeDependencies {
             }
             $dependency = $Matches[1]
             $dependencyKey = $dependency.ToLowerInvariant()
+            if ($binary.Name -ieq "SignalLab.exe" -and $dependencyKey -eq "libmariadb.dll") {
+                $usesMariaDbClient = $true
+            }
             if ($availableNames.ContainsKey($dependencyKey)) {
                 continue
             }
@@ -162,6 +166,9 @@ function Test-NativeDependencies {
 
     if ($missing.Count -gt 0) {
         throw "Unresolved non-system DLL imports:`n$($missing -join "`n")"
+    }
+    if (-not $usesMariaDbClient) {
+        throw "SignalLab.exe must link directly to MariaDB Connector/C (libmariadb.dll)."
     }
 }
 
@@ -217,6 +224,7 @@ SELECT
     $licenseRoot = Join-Path $Root "licenses"
     $licenseManifest = Join-Path $licenseRoot "SHA256SUMS.txt"
     $licenseEntryCount = 0
+    $verifiedLicenses = @{}
     foreach ($line in Get-Content -LiteralPath $licenseManifest -Encoding UTF8) {
         if ([string]::IsNullOrWhiteSpace($line)) {
             continue
@@ -243,10 +251,27 @@ SELECT
         if ($actualHash -ne $expectedHash) {
             throw "License SHA-256 mismatch: $relativePath"
         }
+        $verifiedLicenses[$relativePath.Replace('\', '/')] = $true
         ++$licenseEntryCount
     }
     if ($licenseEntryCount -lt 1) {
         throw "licenses/SHA256SUMS.txt contains no third-party license entries."
+    }
+    foreach ($requiredLicense in @(
+            "curl/LICENSE",
+            "libidn2/NOTICE",
+            "libmariadbclient/COPYING.LIB",
+            "libpsl/COPYING",
+            "libssh2/LICENSE",
+            "libunistring/LICENSE",
+            "libunistring/LICENSE.LIB",
+            "nghttp2/COPYING",
+            "nghttp3/COPYING",
+            "ngtcp2/COPYING",
+            "openssl/LICENSE")) {
+        if (-not $verifiedLicenses.ContainsKey("licenses/third-party/$requiredLicense")) {
+            throw "MariaDB runtime license is missing from the verified license manifest: $requiredLicense"
+        }
     }
 }
 
@@ -356,6 +381,7 @@ $requiredFiles = @(
     "libgcc_s_seh-1.dll",
     "libstdc++-6.dll",
     "libwinpthread-1.dll",
+    "libmariadb.dll",
     "platforms\qwindows.dll",
     "platforms\qoffscreen.dll",
     "sqldrivers\qsqlite.dll",
@@ -382,6 +408,12 @@ $requiredFiles = @(
 )
 foreach ($relativePath in $requiredFiles) {
     Assert-FileExists -Root $packageRoot -RelativePath $relativePath
+}
+
+$mysqlPlugin = Get-ChildItem -LiteralPath $packageRoot -Recurse -File -Filter "qsqlmysql*.dll" |
+    Select-Object -First 1
+if ($null -ne $mysqlPlugin) {
+    throw "QMYSQL must not be bundled; MariaDB backup uses Connector/C directly: $($mysqlPlugin.FullName)"
 }
 
 $migrationFiles = Get-ChildItem -LiteralPath (Join-Path $packageRoot "migrations") -Filter "*.sql" -File
